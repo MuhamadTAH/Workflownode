@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(set PORT=3010)",
+      "Bash(npm start)",
+      "Bash(set PORT=3001)",
+      "Bash(set BROWSER=none)",
+      "Bash(set PORT=3020)",
+      "Bash(cmd /c:*)",
+      "Bash(powershell:*)",
+      "Bash($env:PORT=\"3020\")",
+      "Bash(PORT=3020 npm start)",
+      "Bash(taskkill:*)",
+      "Bash(npx kill-port:*)",
+      "Bash(rm:*)",
+      "Bash(npm install:*)"
+    ],
+    "deny": []
+  }
+}
