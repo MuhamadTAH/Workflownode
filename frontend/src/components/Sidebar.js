@@ -65,3 +65,4 @@ const Sidebar = ({ onSave, onRestore, onActivate }) => {
 };
 
 export default Sidebar;
+

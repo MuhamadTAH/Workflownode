@@ -10,18 +10,16 @@ const ConfigPanel = ({ node, onClose }) => {
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [inputData, setInputData] = useState(null);
-  const [outputData, setOutputData] = useState(null); // State for output data
+  const [outputData, setOutputData] = useState(null);
 
   const fetchInputData = async () => {
       try {
-          const response = await fetch('http://localhost:3012/api/workflows/123/data');
+          const response = await fetch('https://workflownode.onrender.com/api/workflows/123/data');
           
-          // Check if the response is ok (status in the range 200-299)
           if (response.ok) {
               const data = await response.json();
               setInputData(data);
           } else {
-              // If not ok, try to parse error message if it's JSON, otherwise use status text
               const contentType = response.headers.get("content-type");
               if (contentType && contentType.indexOf("application/json") !== -1) {
                   const errorData = await response.json();
@@ -36,7 +34,6 @@ const ConfigPanel = ({ node, onClose }) => {
       }
   };
 
-  // Fetch input data when the panel opens for a trigger node
   useEffect(() => {
       if (node.data.type === 'trigger') {
           fetchInputData();
@@ -64,7 +61,7 @@ const ConfigPanel = ({ node, onClose }) => {
       setIsLoading(true);
       setVerificationStatus(null);
       try {
-          const response = await fetch('http://localhost:3012/api/telegram/verify-token', {
+          const response = await fetch('https://workflownode.onrender.com/api/telegram/verify-token', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: formData.token })
@@ -78,7 +75,6 @@ const ConfigPanel = ({ node, onClose }) => {
   };
 
   const handlePostOutput = () => {
-      // In a real app, this would send the input data to the next node for processing
       setOutputData(inputData);
   };
 
@@ -90,7 +86,6 @@ const ConfigPanel = ({ node, onClose }) => {
           <button onClick={handleClose} className="close-button">&times;</button>
         </div>
         <div className="panel-content">
-          {/* Left Part: Input */}
           <div className="panel-section">
             <div className="section-header">
               <span>INPUT</span>
@@ -109,7 +104,6 @@ const ConfigPanel = ({ node, onClose }) => {
             </div>
           </div>
           
-          {/* Middle Part: Parameters */}
           <div className="panel-section main-section">
             <div className="section-header">PARAMETERS</div>
             <div className="section-content">
@@ -144,7 +138,6 @@ const ConfigPanel = ({ node, onClose }) => {
             </div>
           </div>
 
-          {/* Right Part: Output */}
           <div className="panel-section">
             <div className="section-header">
               <span>OUTPUT</span>

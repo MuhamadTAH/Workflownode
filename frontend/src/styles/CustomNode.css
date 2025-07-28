@@ -10,10 +10,9 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* CORRECTED: This selector now correctly targets the custom node when its wrapper is selected. */
 .react-flow__node-custom.selected .custom-node-ai {
-  border: 2px solid #2563eb; /* A vibrant blue border */
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); /* A soft outer glow */
+  border: 2px solid #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
 .custom-node-ai .node-content {
@@ -29,7 +28,7 @@
 .custom-node-ai .node-icon {
   font-size: 20px;
   margin-right: 12px;
-  color: #6b21a8; /* Purple color for the brain icon */
+  color: #6b21a8;
 }
 
 .custom-node-ai .node-label {
@@ -112,3 +111,4 @@
     right: auto;
     bottom: auto;
 }
+

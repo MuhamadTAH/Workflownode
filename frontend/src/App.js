@@ -7,11 +7,10 @@ import ReactFlow, {
   Background,
   BackgroundVariant,
   useReactFlow,
-  ReactFlowProvider, // Import the provider
+  ReactFlowProvider,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-// Import components and styles from the correct directories
 import Sidebar from './components/Sidebar';
 import CustomNode from './components/CustomNode';
 import ConfigPanel from './components/ConfigPanel';
@@ -24,7 +23,6 @@ let id = 0;
 const getId = () => `dndnode_${id++}`;
 const flowKey = 'workflow-flow';
 
-// This component contains the actual editor logic
 const FlowEditorComponent = () => {
   const reactFlowWrapper = useRef(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -32,7 +30,6 @@ const FlowEditorComponent = () => {
   const [selectedNode, setSelectedNode] = useState(null);
   const [clipboard, setClipboard] = useState(null);
   
-  // useReactFlow must be used inside a child of ReactFlowProvider
   const { getNodes, setViewport, toObject, project } = useReactFlow();
 
   const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
@@ -94,8 +91,7 @@ const FlowEditorComponent = () => {
       }
       
       try {
-          // UPDATED PORT
-          const response = await fetch('http://localhost:3012/api/workflows/123/activate', {
+          const response = await fetch('https://workflownode.onrender.com/api/workflows/123/activate', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ triggerNode })
@@ -183,7 +179,6 @@ const FlowEditorComponent = () => {
   );
 };
 
-// The main App component now just wraps the editor in the provider
 const App = () => (
   <ReactFlowProvider>
     <FlowEditorComponent />
@@ -191,3 +186,4 @@ const App = () => (
 );
 
 export default App;
+

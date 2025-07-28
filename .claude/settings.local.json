@@ -14,7 +14,9 @@
       "Bash(taskkill:*)",
       "Bash(npx kill-port:*)",
       "Bash(rm:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

@@ -1,32 +1,29 @@
 const express = require('express');
 const dotenv = require('dotenv');
-const cors = require('cors'); // <-- Import CORS
+const cors = require('cors');
 
-// Load environment variables from .env file
 dotenv.config();
 
-// Import routes
 const webhookRoutes = require('./src/api/routes/webhooks');
 const workflowRoutes = require('./src/api/routes/workflows');
-const telegramRoutes = require('./src/api/routes/telegram'); // <-- Import new routes
+const telegramRoutes = require('./src/api/routes/telegram');
 
 const app = express();
-const PORT = process.env.PORT || 3010; // Using 3010 for backend
+const PORT = process.env.PORT || 3012;
 
-// --- MIDDLEWARE ---
-app.use(cors()); // <-- Enable CORS for all routes
+app.use(cors());
 app.use(express.json());
 
-// --- ROUTES ---
 app.get('/', (req, res) => {
     res.send('Workflow Automation Backend is running!');
 });
 
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/workflows', workflowRoutes);
-app.use('/api/telegram', telegramRoutes); // <-- Register new routes
+app.use('/api/telegram', telegramRoutes);
 
-// --- SERVER START ---
 app.listen(PORT, () => {
     console.log(`Backend server is listening on port ${PORT}`);
+    // Important: For production, ensure your .env file's BASE_URL is set to your Render URL.
+    console.log(`Production webhook URL should use: ${process.env.BASE_URL || 'https://workflownode.onrender.com'}`);
 });
