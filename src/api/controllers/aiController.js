@@ -17,19 +17,19 @@ const verifyClaudeApiKey = async (req, res) => {
         // We make a simple, low-cost call to the Claude API to check for authentication.
         // A successful request (even if it has other errors) means the key is valid.
         // A 401 error means the key is invalid.
-        await axios.post(
+        const response = await axios.post(
             'https://api.anthropic.com/v1/messages',
             {
-                model: 'claude-3-sonnet-20240229',
-                max_tokens: 1,
-                messages: [{ role: 'user', content: 'test' }],
+                model: 'claude-3-5-sonnet-20241022',
+                max_tokens: 10,
+                messages: [{ role: 'user', content: 'Hello' }]
             },
             {
                 headers: {
                     'x-api-key': apiKey,
                     'anthropic-version': '2023-06-01',
-                    'content-type': 'application/json',
-                },
+                    'content-type': 'application/json'
+                }
             }
         );
 
