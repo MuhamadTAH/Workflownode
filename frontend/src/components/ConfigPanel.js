@@ -285,7 +285,7 @@ const ChatbotInterface = ({ nodeConfig }) => {
                         type: 'modelNode',
                         config: nodeConfig,
                     },
-                    inputData: { userMessage: inputValue }
+                    inputData: { message: inputValue }
                 })
             });
 
@@ -338,7 +338,8 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       description: node.data.description || '',
       model: node.data.model || 'claude-3-5-sonnet-20241022',
       apiKey: node.data.apiKey || '',
-      systemPrompt: node.data.systemPrompt || 'You are a helpful assistant.',
+      systemPrompt: node.data.systemPrompt || 'You are a helpful AI assistant.',
+      userPrompt: node.data.userPrompt || '{{message}}',
       promptTemplate: node.data.promptTemplate || 'You are a helpful assistant. User message: {{message.text}}',
       temperature: node.data.temperature || 0.7,
       maxTokens: node.data.maxTokens || 400,
@@ -818,6 +819,27 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       </div>
                     )}
                   </div>
+                  <DroppableTextInput 
+                    label="System Prompt" 
+                    name="systemPrompt" 
+                    value={formData.systemPrompt} 
+                    onChange={handleInputChange}
+                    rows={4}
+                    placeholder="You are a helpful AI assistant."
+                    inputData={inputData}
+                  />
+                  <DroppableTextInput 
+                    label="User Prompt" 
+                    name="userPrompt" 
+                    value={formData.userPrompt} 
+                    onChange={handleInputChange}
+                    rows={3}
+                    placeholder="{{message}}"
+                    inputData={inputData}
+                  />
+                  <div className="text-xs text-gray-500 mb-2">
+                    💡 System Prompt defines the AI's personality. User Prompt processes input data with {"{{variables}}"}.
+                  </div>
                 </>
               )}
 
@@ -892,15 +914,19 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
               </button>
             </div>
             <div className="section-content">
-              {node.data.type === 'modelNode' ? (
-                <ChatbotInterface nodeConfig={formData} />
-              ) : outputData ? (
+              {outputData ? (
                 <div className="bg-gray-50 p-3 rounded text-sm font-mono max-h-64 overflow-y-auto">
                   <pre>{JSON.stringify(outputData, null, 2)}</pre>
                 </div>
               ) : (
                 <div className="text-gray-400 text-sm text-center py-8">
                   Click POST to process data
+                </div>
+              )}
+              {node.data.type === 'modelNode' && (
+                <div className="mt-4 border-t pt-4">
+                  <div className="text-sm font-semibold text-gray-700 mb-2">💬 Interactive Chat</div>
+                  <ChatbotInterface nodeConfig={formData} />
                 </div>
               )}
             </div>

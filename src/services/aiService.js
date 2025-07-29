@@ -6,7 +6,7 @@ This service handles all communications with external AI APIs.
 */
 const axios = require('axios');
 
-const callClaudeApi = async (apiKey, userMessage) => {
+const callClaudeApi = async (apiKey, userMessage, systemPrompt = 'You are a helpful AI assistant.') => {
     try {
         const response = await axios.post(
             'https://api.anthropic.com/v1/messages',
@@ -14,7 +14,7 @@ const callClaudeApi = async (apiKey, userMessage) => {
                 model: 'claude-3-5-sonnet-20241022',
                 max_tokens: 1024,
                 messages: [{ role: 'user', content: userMessage }],
-                system: 'You are a helpful AI assistant.'
+                system: systemPrompt
             },
             {
                 headers: {
