@@ -1,3 +1,8 @@
+/*
+=================================================================
+FRONTEND FILE: src/styles/ConfigPanel.css
+=================================================================
+*/
 .config-panel-overlay {
   position: fixed;
   top: 0;
@@ -125,4 +130,33 @@
 
 .form-group textarea {
   resize: vertical;
+}
+
+.draggable-key {
+    padding: 2px 4px;
+    margin: 2px 0;
+    border-radius: 4px;
+    cursor: grab;
+    transition: background-color 0.2s ease;
+}
+
+.draggable-key:hover {
+    background-color: #e0e7ff;
+}
+
+.live-preview-bar {
+    margin-top: -5px;
+    padding: 8px 12px;
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.5;
+}
+
+.live-preview-bar strong {
+    color: #1d4ed8;
+    font-weight: 600;
 }

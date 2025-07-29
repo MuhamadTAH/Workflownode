@@ -1,3 +1,8 @@
+/*
+=================================================================
+FRONTEND FILE: src/components/CustomNode.js (UPDATED)
+=================================================================
+*/
 import React from 'react';
 import { Handle, Position } from 'reactflow';
 
@@ -6,7 +11,10 @@ const CustomNode = ({ data }) => {
 
   return (
     <div className={nodeClasses}>
+      {/* Input Handle */}
       <Handle type="target" position={Position.Left} className="handle-left" />
+      
+      {/* Main Content */}
       <div className="node-content">
         <div className="node-header">
           <i className={`${data.icon} node-icon`}></i>
@@ -14,8 +22,12 @@ const CustomNode = ({ data }) => {
         </div>
         <div className="node-description">{data.description}</div>
       </div>
+      
+      {/* Output Handle */}
       <Handle type="source" position={Position.Right} className="handle-right" />
-      {data.type === 'agent' && (
+
+      {/* UPDATED: Added back the bottom handles for the AI Agent node */}
+      {data.type === 'aiAgent' && (
         <div className="bottom-handles">
             <div className="handle-group">
                 <Handle type="target" id="model" position={Position.Bottom} className="handle-bottom" />

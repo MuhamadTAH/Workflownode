@@ -1,8 +1,3 @@
-/*
-=================================================================
-FRONTEND FILE: src/App.js (UPDATED)
-=================================================================
-*/
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactFlow, {
   addEdge,
@@ -12,17 +7,15 @@ import ReactFlow, {
   Background,
   BackgroundVariant,
   useReactFlow,
-  ReactFlowProvider,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import Sidebar from './components/Sidebar';
-import CustomNode from './components/CustomNode';
-import ConfigPanel from './components/ConfigPanel';
-// REMOVED: ChatbotPanel is no longer needed here
-import './styles/CustomNode.css';
-import './styles/ConfigPanel.css';
-import './styles/ChatbotPanel.css';
+// Corrected import paths for a flat structure
+import Sidebar from './Sidebar';
+import CustomNode from './CustomNode';
+import ConfigPanel from './ConfigPanel';
+import './CustomNode.css';
+import './ConfigPanel.css';
 
 const nodeTypes = { custom: CustomNode };
 const initialNodes = [];
@@ -30,14 +23,14 @@ let id = 0;
 const getId = () => `dndnode_${id++}`;
 const flowKey = 'workflow-flow';
 
-const FlowEditorComponent = () => {
+const FlowEditor = () => {
   const reactFlowWrapper = useRef(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [clipboard, setClipboard] = useState(null);
-  
-  const { getNodes, setViewport, toObject, project } = useReactFlow();
+  const { getNodes } = useReactFlow();
 
   const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
 
@@ -54,7 +47,7 @@ const FlowEditorComponent = () => {
       if (!nodeDataString) return;
       
       const nodeData = JSON.parse(nodeDataString);
-      const position = project({
+      const position = reactFlowInstance.project({
         x: event.clientX - reactFlowBounds.left,
         y: event.clientY - reactFlowBounds.top,
       });
@@ -67,7 +60,7 @@ const FlowEditorComponent = () => {
       };
       setNodes((nds) => nds.concat(newNode));
     },
-    [project, setNodes]
+    [reactFlowInstance, setNodes]
   );
 
   const onNodeDoubleClick = useCallback((event, node) => setSelectedNode(node), []);
@@ -98,7 +91,7 @@ const FlowEditorComponent = () => {
       }
       
       try {
-          const response = await fetch('https://workflownode.onrender.com/api/workflows/123/activate', {
+          const response = await fetch('http://localhost:3010/api/workflows/123/activate', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ triggerNode })
@@ -116,11 +109,14 @@ const FlowEditorComponent = () => {
       }
   };
   
+  // --- Save, Load, Copy, Paste Logic ---
   const onSave = useCallback(() => {
-    const flow = toObject();
-    localStorage.setItem(flowKey, JSON.stringify(flow));
-    alert('Flow saved successfully!');
-  }, [toObject]);
+    if (reactFlowInstance) {
+      const flow = reactFlowInstance.toObject();
+      localStorage.setItem(flowKey, JSON.stringify(flow));
+      alert('Flow saved successfully!');
+    }
+  }, [reactFlowInstance]);
 
   const onRestore = useCallback(() => {
     const flow = JSON.parse(localStorage.getItem(flowKey));
@@ -128,9 +124,9 @@ const FlowEditorComponent = () => {
       const { x = 0, y = 0, zoom = 1 } = flow.viewport;
       setNodes(flow.nodes || []);
       setEdges(flow.edges || []);
-      setViewport({ x, y, zoom });
+      reactFlowInstance.setViewport({ x, y, zoom });
     }
-  }, [setNodes, setEdges, setViewport]);
+  }, [setNodes, setEdges, reactFlowInstance]);
 
   const onCopy = useCallback(() => {
     const selectedNodes = getNodes().filter(node => node.selected);
@@ -171,6 +167,7 @@ const FlowEditorComponent = () => {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onInit={setReactFlowInstance}
           onDrop={onDrop}
           onDragOver={onDragOver}
           onNodeDoubleClick={onNodeDoubleClick}
@@ -181,16 +178,9 @@ const FlowEditorComponent = () => {
           <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
         </ReactFlow>
       </div>
-      {/* This now correctly renders the ConfigPanel for all nodes */}
       {selectedNode && <ConfigPanel node={selectedNode} onClose={onPanelClose} />}
     </div>
   );
 };
 
-const App = () => (
-  <ReactFlowProvider>
-    <FlowEditorComponent />
-  </ReactFlowProvider>
-);
-
-export default App;
+export default FlowEditor;

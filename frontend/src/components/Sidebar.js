@@ -1,3 +1,8 @@
+/*
+=================================================================
+FRONTEND FILE: src/components/Sidebar.js (UPDATED)
+=================================================================
+*/
 import React from 'react';
 
 const DraggableNode = ({ nodeInfo }) => {
@@ -26,12 +31,21 @@ const Sidebar = ({ onSave, onRestore, onActivate }) => {
         <div className="mb-4 font-bold text-lg text-gray-700">Nodes</div>
         <div className="text-gray-500 mb-6">Drag nodes to the canvas to build your workflow.</div>
 
+        {/* NEW: Added the Model Node to the sidebar */}
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'Model Node', 
+              icon: 'fa-solid fa-comments', 
+              description: 'Chat with an AI model',
+              type: 'modelNode' 
+          }} 
+        />
         <DraggableNode 
           nodeInfo={{ 
               label: 'AI Agent', 
-              icon: 'fa-solid fa-brain', 
-              description: 'Process input through an AI model with memory and tools',
-              type: 'agent' 
+              icon: 'fa-solid fa-robot', 
+              description: 'Process input using an LLM',
+              type: 'aiAgent'
           }} 
         />
         <DraggableNode 
@@ -65,4 +79,3 @@ const Sidebar = ({ onSave, onRestore, onActivate }) => {
 };
 
 export default Sidebar;
-
