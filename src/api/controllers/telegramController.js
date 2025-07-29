@@ -32,6 +32,42 @@ const verifyToken = async (req, res) => {
     }
 };
 
+const getUpdates = async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).send({ message: 'Token is required.' });
+    }
+
+    try {
+        const telegramApiUrl = `https://api.telegram.org/bot${token}/getUpdates`;
+        const response = await axios.get(telegramApiUrl, {
+            params: {
+                limit: 10, // Get last 10 messages
+                offset: -10 // Get most recent messages
+            }
+        });
+
+        if (response.data.ok) {
+            res.status(200).send({
+                ok: true,
+                updates: response.data.result,
+                message: `Retrieved ${response.data.result.length} recent messages.`
+            });
+        } else {
+            throw new Error(response.data.description || 'Failed to get updates.');
+        }
+    } catch (error) {
+        console.error('Failed to get Telegram updates:', error.message);
+        res.status(400).send({
+            ok: false,
+            message: 'Failed to get Telegram updates. Check your bot token.',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     verifyToken,
+    getUpdates,
 };
