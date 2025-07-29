@@ -44,7 +44,7 @@ const getUpdates = async (req, res) => {
         const response = await axios.get(telegramApiUrl, {
             params: {
                 limit: 10, // Get last 10 messages
-                offset: -10 // Get most recent messages
+                timeout: 1 // Short polling timeout
             }
         });
 
@@ -58,11 +58,29 @@ const getUpdates = async (req, res) => {
             throw new Error(response.data.description || 'Failed to get updates.');
         }
     } catch (error) {
-        console.error('Failed to get Telegram updates:', error.message);
-        res.status(400).send({
+        console.error('Failed to get Telegram updates:', error.response ? error.response.data : error.message);
+        
+        // More specific error messages
+        let errorMessage = 'Failed to get Telegram updates. Check your bot token.';
+        let statusCode = 400;
+        
+        if (error.response) {
+            // Telegram API returned an error
+            if (error.response.status === 401) {
+                errorMessage = 'Invalid bot token. Please check your Telegram Bot API token.';
+                statusCode = 401;
+            } else if (error.response.data && error.response.data.description) {
+                errorMessage = `Telegram API Error: ${error.response.data.description}`;
+            }
+        } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+            errorMessage = 'Network error. Could not connect to Telegram API.';
+            statusCode = 503;
+        }
+        
+        res.status(statusCode).send({
             ok: false,
-            message: 'Failed to get Telegram updates. Check your bot token.',
-            error: error.message
+            message: errorMessage,
+            error: error.response ? error.response.data : error.message
         });
     }
 };

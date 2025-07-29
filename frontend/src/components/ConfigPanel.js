@@ -102,6 +102,22 @@ const ConfigPanel = ({ node, onClose }) => {
   const [inputData, setInputData] = useState(null);
   const [outputData, setOutputData] = useState(null);
 
+  // Load persisted execution data when component mounts
+  useEffect(() => {
+    const nodeExecutionKey = `node-execution-${node.id}`;
+    const persistedData = localStorage.getItem(nodeExecutionKey);
+    
+    if (persistedData) {
+      const executionData = JSON.parse(persistedData);
+      if (executionData.inputData) {
+        setInputData(executionData.inputData);
+      }
+      if (executionData.outputData) {
+        setOutputData(executionData.outputData);
+      }
+    }
+  }, [node.id]);
+
   const handleInputChange = (e) => {
       const { name, value, type } = e.target;
       const finalValue = type === 'number' ? parseFloat(value) : value;
@@ -114,7 +130,33 @@ const ConfigPanel = ({ node, onClose }) => {
       }
   };
 
-  const handleClose = () => onClose(formData);
+  const handleClose = () => {
+    // Save node execution data to localStorage before closing
+    if (inputData || outputData) {
+      const nodeExecutionKey = `node-execution-${node.id}`;
+      const executionData = {
+        nodeId: node.id,
+        nodeType: node.data.type,
+        inputData: inputData,
+        outputData: outputData,
+        timestamp: new Date().toISOString(),
+        config: formData
+      };
+      localStorage.setItem(nodeExecutionKey, JSON.stringify(executionData));
+      
+      // Also update a global registry of executed nodes
+      const executedNodesKey = 'executed-nodes-registry';
+      const existingRegistry = JSON.parse(localStorage.getItem(executedNodesKey) || '{}');
+      existingRegistry[node.id] = {
+        nodeType: node.data.type,
+        hasData: !!(inputData || outputData),
+        lastExecuted: new Date().toISOString()
+      };
+      localStorage.setItem(executedNodesKey, JSON.stringify(existingRegistry));
+    }
+    
+    onClose(formData);
+  };
 
   const handleVerifyApiKey = async () => {
       if (!formData.apiKey) {
@@ -183,31 +225,30 @@ const ConfigPanel = ({ node, onClose }) => {
         if (result.updates && result.updates.length > 0) {
           const latestUpdate = result.updates[result.updates.length - 1];
           setInputData(latestUpdate);
+          // For trigger nodes, automatically set output data same as input (they pass-through)
+          setOutputData(latestUpdate);
         } else {
-          setInputData({ message: "No recent messages found. Send a message to your bot first." });
+          const noDataMessage = { message: "No recent messages found. Send a message to your bot first." };
+          setInputData(noDataMessage);
+          setOutputData(noDataMessage);
         }
         
       } else {
-        // For action nodes, use mock data representing input from previous nodes
-        const mockData = {
-          aiAgent: {
-            message: {
-              text: "Process this text with AI",
-              from: { username: "testuser" },
-              chat: { id: 123456 }
-            },
-            previousData: {
-              source: "telegram",
-              timestamp: new Date().toISOString()
+        // For action nodes, get output from connected previous node
+        const previousNodeOutput = await getPreviousNodeOutput();
+        if (previousNodeOutput) {
+          setInputData(previousNodeOutput);
+        } else {
+          setInputData({ 
+            error: "No connected input node found. Connect this node to a previous node in the workflow.",
+            hint: "Drag a connection from another node to this node to provide input data.",
+            debug: {
+              currentNodeId: node.id,
+              currentNodeType: node.data.type,
+              availableNodes: "Check saved workflow for node connections"
             }
-          },
-          modelNode: {
-            userMessage: "Test message for the model",
-            context: "User interaction"
-          }
-        };
-        
-        setInputData(mockData[node.data.type] || mockData.modelNode);
+          });
+        }
       }
       
     } catch (error) {
@@ -215,6 +256,149 @@ const ConfigPanel = ({ node, onClose }) => {
     }
     
     setIsLoading(false);
+  };
+
+  const getPreviousNodeOutput = async () => {
+    try {
+      // Check if we can get workflow data from localStorage
+      const savedFlow = localStorage.getItem('workflow-flow');
+      if (!savedFlow) {
+        throw new Error('No workflow found. Please save your workflow first.');
+      }
+      
+      const workflow = JSON.parse(savedFlow);
+      const { nodes: allNodes, edges } = workflow;
+      
+      // Find edges that connect TO this node (incoming connections)
+      const incomingEdges = edges.filter(edge => edge.target === node.id);
+      
+      console.log('Debug - Looking for previous node:', {
+        currentNodeId: node.id,
+        incomingEdges: incomingEdges,
+        allEdges: edges
+      });
+      
+      if (incomingEdges.length === 0) {
+        return null; // No previous node connected
+      }
+      
+      // Get the first connected previous node
+      const previousNodeId = incomingEdges[0].source;
+      const previousNode = allNodes.find(n => n.id === previousNodeId);
+      
+      if (!previousNode) {
+        throw new Error('Connected previous node not found');
+      }
+
+      // First, check if we have persisted output data for the previous node
+      const nodeExecutionKey = `node-execution-${previousNodeId}`;
+      const persistedData = localStorage.getItem(nodeExecutionKey);
+      
+      if (persistedData) {
+        const executionData = JSON.parse(persistedData);
+        
+        // For trigger nodes, use inputData as the output (since they don't process data)
+        // For action nodes, use outputData (result of processing)
+        let dataToReturn = null;
+        
+        if (executionData.nodeType === 'trigger' && executionData.inputData) {
+          dataToReturn = executionData.inputData;
+        } else if (executionData.outputData) {
+          dataToReturn = executionData.outputData;
+        }
+        
+        if (dataToReturn) {
+          return {
+            ...dataToReturn,
+            _metadata: {
+              sourceNode: executionData.config?.label || previousNode.data.label,
+              nodeType: executionData.nodeType,
+              lastExecuted: executionData.timestamp,
+              fromCache: true
+            }
+          };
+        }
+      }
+      
+      // Execute the previous node to get its output
+      if (previousNode.data.type === 'trigger') {
+        // For trigger nodes, simulate getting telegram data
+        if (!previousNode.data.token) {
+          throw new Error('Previous Telegram trigger node needs to be configured with a bot token');
+        }
+        
+        const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: previousNode.data.token })
+        });
+        
+        const result = await response.json();
+        if (result.ok && result.updates && result.updates.length > 0) {
+          return result.updates[result.updates.length - 1];
+        }
+        
+        return { message: "No messages from previous Telegram trigger" };
+        
+      } else {
+        // For other action nodes, execute them to get real output
+        // First get THEIR input (recursive node chaining)
+        let previousNodeInput = null;
+        
+        // Find what's connected to the previous node
+        const previousNodeIncomingEdges = edges.filter(edge => edge.target === previousNodeId);
+        if (previousNodeIncomingEdges.length > 0) {
+          const sourcePreviousId = previousNodeIncomingEdges[0].source;
+          const sourcePreviousNode = allNodes.find(n => n.id === sourcePreviousId);
+          
+          if (sourcePreviousNode && sourcePreviousNode.data.type === 'trigger') {
+            // Get data from the trigger node
+            const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: sourcePreviousNode.data.token })
+            });
+            
+            const result = await response.json();
+            if (result.ok && result.updates && result.updates.length > 0) {
+              previousNodeInput = result.updates[result.updates.length - 1];
+            }
+          }
+        }
+        
+        // Now execute the previous node with its input
+        if (previousNodeInput) {
+          const response = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              node: {
+                type: previousNode.data.type,
+                config: previousNode.data,
+              },
+              inputData: previousNodeInput
+            })
+          });
+          
+          const result = await response.json();
+          if (response.ok) {
+            return result;
+          } else {
+            throw new Error(`Failed to execute previous node: ${result.message}`);
+          }
+        } else {
+          return {
+            error: "Previous node has no input data",
+            sourceNode: previousNode.data.label || previousNode.data.type,
+            nodeType: previousNode.data.type
+          };
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error getting previous node output:', error);
+      throw error;
+    }
   };
 
   const handlePostData = async () => {
@@ -272,8 +456,15 @@ const ConfigPanel = ({ node, onClose }) => {
             </div>
             <div className="section-content">
               {inputData ? (
-                <div className="bg-gray-50 p-3 rounded text-sm font-mono max-h-64 overflow-y-auto">
-                  <pre>{JSON.stringify(inputData, null, 2)}</pre>
+                <div>
+                  {inputData._metadata?.fromCache && (
+                    <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mb-2">
+                      📁 Cached data from {inputData._metadata.sourceNode} ({new Date(inputData._metadata.lastExecuted).toLocaleTimeString()})
+                    </div>
+                  )}
+                  <div className="bg-gray-50 p-3 rounded text-sm font-mono max-h-64 overflow-y-auto">
+                    <pre>{JSON.stringify(inputData, null, 2)}</pre>
+                  </div>
                 </div>
               ) : (
                 <div className="text-gray-400 text-sm text-center py-8">
