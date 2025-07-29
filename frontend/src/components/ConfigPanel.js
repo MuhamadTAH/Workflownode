@@ -1,6 +1,6 @@
 /*
 =================================================================
-FRONTEND FILE: src/components/ConfigPanel.js (UPDATED)
+FRONTEND FILE: src/components/ConfigPanel.js (CORRECTED)
 =================================================================
 */
 import React, { useState, useEffect, useRef } from 'react';
@@ -97,7 +97,7 @@ const ConfigPanel = ({ node, onClose }) => {
   });
   
   const [verificationStatus, setVerificationStatus] = useState(null);
-  const [apiKeyVerificationStatus, setApiKeyVerificationStatus] = useState(null); // New state for AI API key
+  const [apiKeyVerificationStatus, setApiKeyVerificationStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [inputData, setInputData] = useState(null);
 
@@ -107,6 +107,9 @@ const ConfigPanel = ({ node, onClose }) => {
       setFormData(prev => ({ ...prev, [name]: finalValue }));
       if (name === 'apiKey') {
           setApiKeyVerificationStatus(null);
+      }
+      if (name === 'token') {
+          setVerificationStatus(null);
       }
   };
 
@@ -133,7 +136,26 @@ const ConfigPanel = ({ node, onClose }) => {
       setIsLoading(false);
   };
 
-  // ... (other handlers like handleCheckToken remain the same)
+  const handleCheckToken = async () => {
+      if (!formData.token) {
+          setVerificationStatus({ ok: false, message: 'Please enter a token first.' });
+          return;
+      }
+      setIsLoading(true);
+      setVerificationStatus(null);
+      try {
+          const response = await fetch('https://workflownode.onrender.com/api/telegram/verify-token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: formData.token })
+          });
+          const result = await response.json();
+          setVerificationStatus(result);
+      } catch (error) {
+          setVerificationStatus({ ok: false, message: 'Network error. Is the backend running?' });
+      }
+      setIsLoading(false);
+  };
 
   return (
     <div className="config-panel-overlay" onClick={handleClose}>
@@ -143,7 +165,6 @@ const ConfigPanel = ({ node, onClose }) => {
           <button onClick={handleClose} className="close-button">&times;</button>
         </div>
         <div className="panel-content">
-          {/* Main Parameters Section (always visible) */}
           <div className="panel-section main-section">
             <div className="section-header">PARAMETERS</div>
             <div className="section-content">
@@ -183,16 +204,29 @@ const ConfigPanel = ({ node, onClose }) => {
                 </>
               )}
 
-              {/* Fields for Telegram Trigger */}
+              {/* RESTORED: Fields for Telegram Trigger */}
               {node.data.type === 'trigger' && (
                 <div className="form-group">
-                  {/* ... (Telegram token form) */}
+                  <label htmlFor="token">Bot API Token</label>
+                  <div className="flex items-center gap-2">
+                    <input type="password" name="token" id="token" className="flex-grow" value={formData.token} onChange={handleInputChange} placeholder="Enter your Telegram Bot Token"/>
+                    <button onClick={handleCheckToken} disabled={isLoading} className="bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-600 disabled:bg-indigo-300">
+                      {isLoading ? '...' : 'Check'}
+                    </button>
+                  </div>
+                  {verificationStatus && (
+                    <div className={`mt-2 text-sm p-2 rounded-md ${verificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {verificationStatus.ok 
+                        ? `Success! Bot Name: ${verificationStatus.bot.first_name}, ID: ${verificationStatus.bot.id}`
+                        : `Error: ${verificationStatus.message}`
+                      }
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Right Section: Chatbot for Model Node, Output for others */}
           <div className="panel-section">
             {node.data.type === 'modelNode' ? (
               <ChatbotInterface nodeConfig={formData} />
@@ -200,10 +234,9 @@ const ConfigPanel = ({ node, onClose }) => {
               <>
                 <div className="section-header">
                   <span>OUTPUT</span>
-                  {/* ... (Post button logic) */}
                 </div>
                 <div className="section-content">
-                  {/* ... (Output display logic) */}
+                  <p className="text-gray-400 text-sm">This is the output section for the trigger.</p>
                 </div>
               </>
             )}
