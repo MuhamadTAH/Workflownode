@@ -85,7 +85,51 @@ const getUpdates = async (req, res) => {
     }
 };
 
+const deleteWebhook = async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).send({ message: 'Token is required.' });
+    }
+
+    try {
+        const telegramApiUrl = `https://api.telegram.org/bot${token}/deleteWebhook`;
+        const response = await axios.post(telegramApiUrl);
+
+        if (response.data.ok) {
+            res.status(200).send({
+                ok: true,
+                message: 'Webhook deleted successfully. You can now use getUpdates.',
+                result: response.data.result
+            });
+        } else {
+            throw new Error(response.data.description || 'Failed to delete webhook.');
+        }
+    } catch (error) {
+        console.error('Failed to delete Telegram webhook:', error.response ? error.response.data : error.message);
+        
+        let errorMessage = 'Failed to delete webhook.';
+        let statusCode = 400;
+        
+        if (error.response) {
+            if (error.response.status === 401) {
+                errorMessage = 'Invalid bot token.';
+                statusCode = 401;
+            } else if (error.response.data && error.response.data.description) {
+                errorMessage = `Telegram API Error: ${error.response.data.description}`;
+            }
+        }
+        
+        res.status(statusCode).send({
+            ok: false,
+            message: errorMessage,
+            error: error.response ? error.response.data : error.message
+        });
+    }
+};
+
 module.exports = {
     verifyToken,
     getUpdates,
+    deleteWebhook,
 };

@@ -210,13 +210,42 @@ const ConfigPanel = ({ node, onClose }) => {
           throw new Error('Please configure Bot API Token first');
         }
         
-        const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+        let response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: formData.token })
         });
         
-        const result = await response.json();
+        let result = await response.json();
+        
+        // If webhook conflict, automatically delete webhook and retry
+        if (!response.ok && result.error && result.error.description && result.error.description.includes('webhook is active')) {
+          console.log('Webhook conflict detected, attempting to delete webhook...');
+          
+          // Delete webhook first
+          const deleteResponse = await fetch('https://workflownode.onrender.com/api/telegram/delete-webhook', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: formData.token })
+          });
+          
+          const deleteResult = await deleteResponse.json();
+          if (deleteResponse.ok) {
+            console.log('Webhook deleted successfully, retrying getUpdates...');
+            
+            // Retry getUpdates after webhook deletion
+            response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: formData.token })
+            });
+            
+            result = await response.json();
+          } else {
+            throw new Error(`Failed to delete webhook: ${deleteResult.message}`);
+          }
+        }
+        
         if (!response.ok) {
           throw new Error(result.message || 'Failed to get Telegram updates');
         }

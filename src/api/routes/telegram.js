@@ -8,4 +8,7 @@ router.post('/verify-token', telegramController.verifyToken);
 // Route to get recent telegram messages
 router.post('/get-updates', telegramController.getUpdates);
 
+// Route to delete webhook (needed before using getUpdates)
+router.post('/delete-webhook', telegramController.deleteWebhook);
+
 module.exports = router;
