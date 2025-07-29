@@ -105,7 +105,7 @@ const DraggableJSONViewer = ({ data }) => {
   return (
     <div className="bg-gray-50 p-3 rounded text-sm font-mono max-h-64 overflow-y-auto">
       <div className="text-xs text-blue-600 mb-2 font-sans">
-        💡 Drag fields below into text inputs to create {{template}} variables
+        💡 Drag fields below into text inputs to create {"{{template}}"} variables
       </div>
       {Object.entries(data).map(([key, value]) => (
         <DraggableJSONField key={key} path={key} value={value} />
@@ -114,9 +114,70 @@ const DraggableJSONViewer = ({ data }) => {
   );
 };
 
-// Enhanced Text Input with drop support
-const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, className = "" }) => {
+// Template Preview Component
+const TemplatePreview = ({ template, data }) => {
+  if (!template || !data) return null;
+
+  // Function to replace template variables with actual data
+  const processTemplate = (template, data) => {
+    if (!template) return '';
+    
+    return template.replace(/\{\{([^}]+)\}\}/g, (match, variablePath) => {
+      try {
+        // Navigate through nested object using dot notation
+        const pathParts = variablePath.trim().split('.');
+        let value = data;
+        
+        for (const part of pathParts) {
+          if (value && typeof value === 'object' && part in value) {
+            value = value[part];
+          } else {
+            return match; // Keep original if path not found
+          }
+        }
+        
+        // Convert value to string, handling different types
+        if (typeof value === 'string') {
+          return value;
+        } else if (typeof value === 'number' || typeof value === 'boolean') {
+          return String(value);
+        } else if (typeof value === 'object') {
+          return JSON.stringify(value, null, 2);
+        } else {
+          return match; // Keep original if unable to convert
+        }
+      } catch (error) {
+        return match; // Keep original on error
+      }
+    });
+  };
+
+  const processedText = processTemplate(template, data);
+  const hasTemplateVars = /\{\{[^}]+\}\}/.test(template);
+  
+  if (!hasTemplateVars) return null;
+
+  return (
+    <div className="mt-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-400 rounded-r-md">
+      <div className="text-xs font-semibold text-blue-700 mb-1">
+        📋 Live Preview:
+      </div>
+      <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+        {processedText}
+      </div>
+      {processedText === template && (
+        <div className="text-xs text-amber-600 mt-1">
+          ⚠️ Some template variables couldn't be resolved with current input data
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Enhanced Text Input with drop support and live preview
+const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, className = "", inputData }) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -152,6 +213,14 @@ const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, c
     setIsDragOver(false);
   };
 
+  const handleFocus = (e) => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = (e) => {
+    setIsFocused(false);
+  };
+
   const InputComponent = rows ? 'textarea' : 'input';
   
   return (
@@ -167,14 +236,19 @@ const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, c
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         placeholder={placeholder}
-        className={`w-full p-2 border rounded-md drop-zone ${isDragOver ? 'drag-over' : ''} ${className}`}
+        className={`w-full p-2 border rounded-md drop-zone ${isDragOver ? 'drag-over' : ''} ${isFocused ? 'ring-2 ring-blue-200' : ''} ${className}`}
         title="Drop template variables here"
       />
       {isDragOver && (
         <div className="text-xs text-green-600 mt-1">
           📥 Drop here to insert template variable
         </div>
+      )}
+      {(isFocused || value) && (
+        <TemplatePreview template={value} data={inputData} />
       )}
     </div>
   );
@@ -708,6 +782,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 value={formData.label} 
                 onChange={handleInputChange}
                 placeholder="Node label"
+                inputData={inputData}
               />
               <DroppableTextInput 
                 label="Description" 
@@ -716,6 +791,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 onChange={handleInputChange}
                 rows={3}
                 placeholder="Node description"
+                inputData={inputData}
               />
               
               {/* Fields for Model Node */}
@@ -776,9 +852,10 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     onChange={handleInputChange}
                     rows={4}
                     placeholder="You are a helpful assistant. User message: {{message.text}}"
+                    inputData={inputData}
                   />
                   <div className="text-xs text-gray-500 mb-2">
-                    💡 Drag fields from the INPUT section to create template variables like {{message.text}}
+                    💡 Drag fields from the INPUT section to create template variables like {"{{message.text}}"}
                   </div>
                 </>
               )}
