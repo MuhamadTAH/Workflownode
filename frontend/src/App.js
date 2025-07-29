@@ -182,7 +182,7 @@ const FlowEditorComponent = () => {
         </ReactFlow>
       </div>
       {/* This now correctly renders the ConfigPanel for all nodes */}
-      {selectedNode && <ConfigPanel node={selectedNode} onClose={onPanelClose} />}
+      {selectedNode && <ConfigPanel node={selectedNode} onClose={onPanelClose} nodes={nodes} edges={edges} />}
     </div>
   );
 };

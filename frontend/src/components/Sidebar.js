@@ -50,6 +50,14 @@ const Sidebar = ({ onSave, onRestore, onActivate }) => {
         />
         <DraggableNode 
           nodeInfo={{ 
+              label: 'Google Docs', 
+              icon: 'fa-solid fa-file-text', 
+              description: 'Read, write, or create Google Docs',
+              type: 'googleDocs'
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
               label: 'Telegram Trigger', 
               icon: 'fa-brands fa-telegram', 
               description: 'Starts workflow on a new message',

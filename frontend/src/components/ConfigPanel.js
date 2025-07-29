@@ -114,13 +114,13 @@ const DraggableJSONViewer = ({ data }) => {
   );
 };
 
-// Template Preview Component
-const TemplatePreview = ({ template, data }) => {
-  if (!template || !data) return null;
+// Universal Live Preview Component - Shows preview for all text inputs
+const UniversalLivePreview = ({ text, data, isFocused }) => {
+  if (!text) return null;
 
   // Function to replace template variables with actual data
   const processTemplate = (template, data) => {
-    if (!template) return '';
+    if (!template || !data) return template || '';
     
     return template.replace(/\{\{([^}]+)\}\}/g, (match, variablePath) => {
       try {
@@ -152,23 +152,75 @@ const TemplatePreview = ({ template, data }) => {
     });
   };
 
-  const processedText = processTemplate(template, data);
-  const hasTemplateVars = /\{\{[^}]+\}\}/.test(template);
-  
-  if (!hasTemplateVars) return null;
+  const processedText = processTemplate(text, data);
+  const hasTemplateVars = /\{\{[^}]+\}\}/.test(text);
+  const textChanged = processedText !== text;
 
+  // Always show preview when focused or when there's content
   return (
-    <div className="mt-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-400 rounded-r-md">
-      <div className="text-xs font-semibold text-blue-700 mb-1">
-        📋 Live Preview:
+    <div className="mt-2 p-3 bg-gradient-to-r from-green-50 to-blue-50 border-l-4 border-green-400 rounded-r-md">
+      <div className="text-xs font-semibold text-green-700 mb-1 flex items-center gap-1">
+        {isFocused ? '✨' : '👁️'} {isFocused ? 'Live Preview:' : 'Current Content:'}
+        {hasTemplateVars && <span className="text-blue-600">(with template processing)</span>}
       </div>
-      <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
-        {processedText}
+      <div className="text-sm text-gray-800 whitespace-pre-wrap break-words bg-white p-2 rounded-md border border-gray-200">
+        {processedText || <span className="text-gray-400 italic">Empty</span>}
       </div>
-      {processedText === template && (
-        <div className="text-xs text-amber-600 mt-1">
+      {hasTemplateVars && textChanged && (
+        <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+          ✅ Template variables processed with current input data
+        </div>
+      )}
+      {hasTemplateVars && !textChanged && data && (
+        <div className="text-xs text-amber-600 mt-1 flex items-center gap-1">
           ⚠️ Some template variables couldn't be resolved with current input data
         </div>
+      )}
+      {!hasTemplateVars && (
+        <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+          💡 Add {"{{variables}}"} to use dynamic content from input data
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Keep the old TemplatePreview for backward compatibility
+const TemplatePreview = ({ template, data }) => {
+  return <UniversalLivePreview text={template} data={data} isFocused={true} />;
+};
+
+// Enhanced Text Input with live preview (for regular inputs)
+const EnhancedTextInput = ({ label, name, value, onChange, placeholder, rows, className = "", inputData, type = "text" }) => {
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleFocus = (e) => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = (e) => {
+    setIsFocused(false);
+  };
+
+  const InputComponent = rows ? 'textarea' : 'input';
+  
+  return (
+    <div className="form-group">
+      <label htmlFor={name}>{label}</label>
+      <InputComponent
+        type={rows ? undefined : type}
+        name={name}
+        id={name}
+        rows={rows}
+        value={value}
+        onChange={onChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        className={`w-full p-2 border rounded-md ${isFocused ? 'ring-2 ring-blue-200' : ''} ${className}`}
+      />
+      {(isFocused || value) && (
+        <UniversalLivePreview text={value} data={inputData} isFocused={isFocused} />
       )}
     </div>
   );
@@ -248,7 +300,7 @@ const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, c
         </div>
       )}
       {(isFocused || value) && (
-        <TemplatePreview template={value} data={inputData} />
+        <UniversalLivePreview text={value} data={inputData} isFocused={isFocused} />
       )}
     </div>
   );
@@ -277,7 +329,7 @@ const ChatbotInterface = ({ nodeConfig }) => {
         setIsLoading(true);
 
         try {
-            const response = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
+            const response = await fetch('http://localhost:3000/api/nodes/run-node', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -344,11 +396,17 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       promptTemplate: node.data.promptTemplate || 'You are a helpful assistant. User message: {{message.text}}',
       temperature: node.data.temperature || 0.7,
       maxTokens: node.data.maxTokens || 400,
-      token: node.data.token || ''
+      token: node.data.token || '',
+      // Google Docs specific fields
+      action: node.data.action || 'get',
+      documentUrl: node.data.documentUrl || '',
+      documentTitle: node.data.documentTitle || 'New Document',
+      content: node.data.content || '{{message}}'
   });
   
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [apiKeyVerificationStatus, setApiKeyVerificationStatus] = useState(null);
+  const [googleAuthStatus, setGoogleAuthStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [inputData, setInputData] = useState(null);
   const [outputData, setOutputData] = useState(null);
@@ -368,6 +426,13 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       }
     }
   }, [node.id]);
+
+  // Check Google authentication status for Google Docs nodes
+  useEffect(() => {
+    if (node.data.type === 'googleDocs') {
+      checkGoogleAuthStatus();
+    }
+  }, [node.data.type]);
 
   const handleInputChange = (e) => {
       const { name, value, type } = e.target;
@@ -417,7 +482,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       setIsLoading(true);
       setApiKeyVerificationStatus(null);
       try {
-          const response = await fetch('https://workflownode.onrender.com/api/ai/verify-claude', {
+          const response = await fetch('http://localhost:3000/api/ai/verify-claude', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ apiKey: formData.apiKey })
@@ -438,7 +503,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       setIsLoading(true);
       setVerificationStatus(null);
       try {
-          const response = await fetch('https://workflownode.onrender.com/api/telegram/verify-token', {
+          const response = await fetch('http://localhost:3000/api/telegram/verify-token', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: formData.token })
@@ -451,6 +516,48 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       setIsLoading(false);
   };
 
+  const checkGoogleAuthStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/auth/status');
+      const result = await response.json();
+      setGoogleAuthStatus(result);
+    } catch (error) {
+      setGoogleAuthStatus({ isAuthenticated: false, error: 'Failed to check authentication status' });
+    }
+  };
+
+  const handleGoogleConnect = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/auth/google');
+      const result = await response.json();
+      
+      // Debug: Log the auth URL to console
+      console.log('Google Auth URL:', result.url);
+      
+      // Open Google OAuth in a new window
+      const authWindow = window.open(result.url, 'google-auth', 'width=500,height=600');
+      
+      // Poll for window closure (user completed auth)
+      const pollTimer = setInterval(() => {
+        if (authWindow.closed) {
+          clearInterval(pollTimer);
+          // Check auth status after window closes
+          setTimeout(() => {
+            checkGoogleAuthStatus();
+          }, 1000);
+        }
+      }, 1000);
+    } catch (error) {
+      setGoogleAuthStatus({ isAuthenticated: false, error: 'Failed to initiate Google authentication' });
+    }
+  };
+
+  const handleGoogleDisconnect = () => {
+    // For now, just reset the auth status
+    // In a production app, you'd call a logout endpoint
+    setGoogleAuthStatus({ isAuthenticated: false });
+  };
+
   const handleGetData = async () => {
     setIsLoading(true);
     
@@ -461,7 +568,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           throw new Error('Please configure Bot API Token first');
         }
         
-        let response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+        let response = await fetch('http://localhost:3000/api/telegram/get-updates', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: formData.token })
@@ -475,7 +582,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           
           try {
             // Delete webhook first
-            const deleteResponse = await fetch('https://workflownode.onrender.com/api/telegram/delete-webhook', {
+            const deleteResponse = await fetch('http://localhost:3000/api/telegram/delete-webhook', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: formData.token })
@@ -504,7 +611,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
             }
             
             // Retry getUpdates after webhook deletion
-            response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+            response = await fetch('http://localhost:3000/api/telegram/get-updates', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: formData.token })
@@ -629,7 +736,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           throw new Error('Previous Telegram trigger node needs to be configured with a bot token');
         }
         
-        const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+        const response = await fetch('http://localhost:3000/api/telegram/get-updates', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: previousNode.data.token })
@@ -655,7 +762,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           
           if (sourcePreviousNode && sourcePreviousNode.data.type === 'trigger') {
             // Get data from the trigger node
-            const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+            const response = await fetch('http://localhost:3000/api/telegram/get-updates', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: sourcePreviousNode.data.token })
@@ -670,7 +777,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         
         // Now execute the previous node with its input
         if (previousNodeInput) {
-          const response = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
+          const response = await fetch('http://localhost:3000/api/nodes/run-node', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -710,9 +817,9 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     setOutputData(null);
     
     try {
-      if (node.data.type === 'modelNode' || node.data.type === 'aiAgent') {
+      if (node.data.type === 'modelNode' || node.data.type === 'aiAgent' || node.data.type === 'googleDocs') {
         // Process through the node
-        const response = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
+        const response = await fetch('http://localhost:3000/api/nodes/run-node', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -778,7 +885,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           <div className="panel-section flex-1">
             <div className="section-header">PARAMETERS</div>
             <div className="section-content">
-              <DroppableTextInput 
+              <EnhancedTextInput 
                 label="Label" 
                 name="label" 
                 value={formData.label} 
@@ -786,7 +893,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 placeholder="Node label"
                 inputData={inputData}
               />
-              <DroppableTextInput 
+              <EnhancedTextInput 
                 label="Description" 
                 name="description" 
                 value={formData.description} 
@@ -879,6 +986,107 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Fields for Google Docs Node */}
+              {node.data.type === 'googleDocs' && (
+                <>
+                  {/* Google Authentication Status */}
+                  <div className="form-group">
+                    <label>Google Account</label>
+                    <div className="flex items-center gap-2">
+                      {googleAuthStatus === null ? (
+                        <>
+                          <div className="flex-grow bg-gray-100 text-gray-600 px-3 py-2 rounded-md text-sm">
+                            Checking Google connection...
+                          </div>
+                        </>
+                      ) : googleAuthStatus?.isAuthenticated ? (
+                        <>
+                          <div className="flex-grow bg-green-100 text-green-800 px-3 py-2 rounded-md text-sm">
+                            Connected: {googleAuthStatus.email}
+                          </div>
+                          <button 
+                            onClick={handleGoogleDisconnect}
+                            className="bg-red-500 text-white px-3 py-2 text-sm rounded hover:bg-red-600"
+                          >
+                            Disconnect
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex-grow bg-yellow-100 text-yellow-800 px-3 py-2 rounded-md text-sm">
+                            Not connected to Google
+                          </div>
+                          <button 
+                            onClick={handleGoogleConnect}
+                            className="bg-blue-500 text-white px-3 py-2 text-sm rounded hover:bg-blue-600"
+                          >
+                            Connect
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {googleAuthStatus?.error && (
+                      <div className="mt-2 text-sm p-2 rounded-md bg-red-100 text-red-800">
+                        {googleAuthStatus.error}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="action">Action</label>
+                    <select name="action" id="action" value={formData.action} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-white">
+                      <option value="get">Get Document</option>
+                      <option value="update">Update Document</option>
+                      <option value="create">Create Document</option>
+                    </select>
+                  </div>
+
+                  {/* Document URL for Get and Update actions */}
+                  {(formData.action === 'get' || formData.action === 'update') && (
+                    <DroppableTextInput 
+                      label="Document URL" 
+                      name="documentUrl" 
+                      value={formData.documentUrl} 
+                      onChange={handleInputChange}
+                      placeholder="https://docs.google.com/document/d/your-doc-id/edit"
+                      inputData={inputData}
+                    />
+                  )}
+
+                  {/* Document Title for Create action */}
+                  {formData.action === 'create' && (
+                    <DroppableTextInput 
+                      label="Document Title" 
+                      name="documentTitle" 
+                      value={formData.documentTitle} 
+                      onChange={handleInputChange}
+                      placeholder="New Document"
+                      inputData={inputData}
+                    />
+                  )}
+
+                  {/* Content for Update and Create actions */}
+                  {(formData.action === 'update' || formData.action === 'create') && (
+                    <DroppableTextInput 
+                      label="Content" 
+                      name="content" 
+                      value={formData.content} 
+                      onChange={handleInputChange}
+                      rows={5}
+                      placeholder="{{message}} or your content here"
+                      inputData={inputData}
+                    />
+                  )}
+
+                  <div className="text-xs text-gray-500 mb-2">
+                    Google Docs: Get reads document, Update appends content, Create makes new document. Use {"{{variables}}"} for dynamic content.
+                    {!googleAuthStatus?.isAuthenticated && (
+                      <><br />Connect your Google account above to use Google Docs actions.</>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>
