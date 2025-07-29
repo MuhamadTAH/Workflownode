@@ -5,6 +5,181 @@ FRONTEND FILE: src/components/ConfigPanel.js (CORRECTED)
 */
 import React, { useState, useEffect, useRef } from 'react';
 
+// Add CSS styles for drag and drop
+const dragDropStyles = `
+  .drag-field:hover {
+    background-color: #dbeafe !important;
+    transform: scale(1.02);
+    cursor: grab;
+  }
+  
+  .drag-field:active {
+    cursor: grabbing;
+  }
+  
+  .drop-zone {
+    transition: all 0.2s ease;
+  }
+  
+  .drop-zone:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+  }
+  
+  .drop-zone.drag-over {
+    border-color: #10b981 !important;
+    background-color: #f0fdf4 !important;
+    box-shadow: 0 0 0 2px #10b981 !important;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = dragDropStyles;
+  document.head.appendChild(style);
+}
+
+// Draggable JSON Field Component
+const DraggableJSONField = ({ path, value, level = 0 }) => {
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData('text/plain', `{{${path}}}`);
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+
+  const indent = '  '.repeat(level);
+  const isObject = typeof value === 'object' && value !== null && !Array.isArray(value);
+  const isArray = Array.isArray(value);
+  const isPrimitive = !isObject && !isArray;
+
+  if (isPrimitive) {
+    return (
+      <div className="flex items-center hover:bg-blue-50 rounded px-1">
+        <span className="text-gray-600">{indent}</span>
+        <span 
+          className="text-blue-600 font-mono text-sm cursor-grab hover:bg-blue-100 px-1 rounded drag-field"
+          draggable="true"
+          onDragStart={handleDragStart}
+          title={`Drag to insert {{${path}}}`}
+        >
+          {path.split('.').pop()}
+        </span>
+        <span className="text-gray-500">: </span>
+        <span className="text-green-600 font-mono text-sm">
+          {typeof value === 'string' ? `"${value}"` : String(value)}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="text-gray-600 font-mono text-sm">
+        {indent}{path.split('.').pop()}: {isArray ? '[' : '{'}
+      </div>
+      {Object.entries(value).map(([key, val]) => (
+        <DraggableJSONField 
+          key={key} 
+          path={path ? `${path}.${key}` : key} 
+          value={val} 
+          level={level + 1} 
+        />
+      ))}
+      <div className="text-gray-600 font-mono text-sm">
+        {indent}{isArray ? ']' : '}'}
+      </div>
+    </div>
+  );
+};
+
+// Enhanced JSON Viewer with draggable fields
+const DraggableJSONViewer = ({ data }) => {
+  if (!data || typeof data !== 'object') {
+    return (
+      <div className="text-gray-400 text-sm text-center py-4">
+        No JSON data to display
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gray-50 p-3 rounded text-sm font-mono max-h-64 overflow-y-auto">
+      <div className="text-xs text-blue-600 mb-2 font-sans">
+        💡 Drag fields below into text inputs to create {{template}} variables
+      </div>
+      {Object.entries(data).map(([key, value]) => (
+        <DraggableJSONField key={key} path={key} value={value} />
+      ))}
+    </div>
+  );
+};
+
+// Enhanced Text Input with drop support
+const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, className = "" }) => {
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const droppedText = e.dataTransfer.getData('text/plain');
+    
+    // Insert at cursor position or append
+    const input = e.target;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const currentValue = value || '';
+    const newValue = currentValue.slice(0, start) + droppedText + currentValue.slice(end);
+    
+    // Create synthetic event for onChange
+    const syntheticEvent = {
+      target: {
+        name: name,
+        value: newValue,
+        type: rows ? 'textarea' : 'text'
+      }
+    };
+    onChange(syntheticEvent);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const InputComponent = rows ? 'textarea' : 'input';
+  
+  return (
+    <div className="form-group">
+      <label htmlFor={name}>{label}</label>
+      <InputComponent
+        type={rows ? undefined : "text"}
+        name={name}
+        id={name}
+        rows={rows}
+        value={value}
+        onChange={onChange}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        placeholder={placeholder}
+        className={`w-full p-2 border rounded-md drop-zone ${isDragOver ? 'drag-over' : ''} ${className}`}
+        title="Drop template variables here"
+      />
+      {isDragOver && (
+        <div className="text-xs text-green-600 mt-1">
+          📥 Drop here to insert template variable
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Chatbot UI is now part of the ConfigPanel
 const ChatbotInterface = ({ nodeConfig }) => {
     const [messages, setMessages] = useState([]);
@@ -83,7 +258,7 @@ const ChatbotInterface = ({ nodeConfig }) => {
     );
 };
 
-const ConfigPanel = ({ node, onClose }) => {
+const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   const [formData, setFormData] = useState({
       label: node.data.label || '',
       description: node.data.description || '',
@@ -295,7 +470,9 @@ const ConfigPanel = ({ node, onClose }) => {
             debug: {
               currentNodeId: node.id,
               currentNodeType: node.data.type,
-              availableNodes: "Check saved workflow for node connections"
+              totalNodes: nodes?.length || 0,
+              totalEdges: edges?.length || 0,
+              incomingEdges: edges?.filter(edge => edge.target === node.id).length || 0
             }
           });
         }
@@ -310,22 +487,21 @@ const ConfigPanel = ({ node, onClose }) => {
 
   const getPreviousNodeOutput = async () => {
     try {
-      // Check if we can get workflow data from localStorage
-      const savedFlow = localStorage.getItem('workflow-flow');
-      if (!savedFlow) {
-        throw new Error('No workflow found. Please save your workflow first.');
+      // Use the current workflow data passed from parent component
+      if (!nodes || !edges) {
+        throw new Error('No workflow data available. Please create some nodes and connections.');
       }
       
-      const workflow = JSON.parse(savedFlow);
-      const { nodes: allNodes, edges } = workflow;
+      const allNodes = nodes;
+      const workflowEdges = edges;
       
       // Find edges that connect TO this node (incoming connections)
-      const incomingEdges = edges.filter(edge => edge.target === node.id);
+      const incomingEdges = workflowEdges.filter(edge => edge.target === node.id);
       
       console.log('Debug - Looking for previous node:', {
         currentNodeId: node.id,
         incomingEdges: incomingEdges,
-        allEdges: edges
+        allEdges: workflowEdges
       });
       
       if (incomingEdges.length === 0) {
@@ -396,7 +572,7 @@ const ConfigPanel = ({ node, onClose }) => {
         let previousNodeInput = null;
         
         // Find what's connected to the previous node
-        const previousNodeIncomingEdges = edges.filter(edge => edge.target === previousNodeId);
+        const previousNodeIncomingEdges = workflowEdges.filter(edge => edge.target === previousNodeId);
         if (previousNodeIncomingEdges.length > 0) {
           const sourcePreviousId = previousNodeIncomingEdges[0].source;
           const sourcePreviousNode = allNodes.find(n => n.id === sourcePreviousId);
@@ -512,9 +688,7 @@ const ConfigPanel = ({ node, onClose }) => {
                       📁 Cached data from {inputData._metadata.sourceNode} ({new Date(inputData._metadata.lastExecuted).toLocaleTimeString()})
                     </div>
                   )}
-                  <div className="bg-gray-50 p-3 rounded text-sm font-mono max-h-64 overflow-y-auto">
-                    <pre>{JSON.stringify(inputData, null, 2)}</pre>
-                  </div>
+                  <DraggableJSONViewer data={inputData} />
                 </div>
               ) : (
                 <div className="text-gray-400 text-sm text-center py-8">
@@ -528,14 +702,21 @@ const ConfigPanel = ({ node, onClose }) => {
           <div className="panel-section flex-1">
             <div className="section-header">PARAMETERS</div>
             <div className="section-content">
-              <div className="form-group">
-                  <label htmlFor="label">Label</label>
-                  <input type="text" name="label" id="label" value={formData.label} onChange={handleInputChange} />
-              </div>
-              <div className="form-group">
-                  <label htmlFor="description">Description</label>
-                  <textarea name="description" id="description" rows="3" value={formData.description} onChange={handleInputChange}></textarea>
-              </div>
+              <DroppableTextInput 
+                label="Label" 
+                name="label" 
+                value={formData.label} 
+                onChange={handleInputChange}
+                placeholder="Node label"
+              />
+              <DroppableTextInput 
+                label="Description" 
+                name="description" 
+                value={formData.description} 
+                onChange={handleInputChange}
+                rows={3}
+                placeholder="Node description"
+              />
               
               {/* Fields for Model Node */}
               {node.data.type === 'modelNode' && (
@@ -588,10 +769,16 @@ const ConfigPanel = ({ node, onClose }) => {
                       </div>
                     )}
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="promptTemplate">Prompt Template</label>
-                    <textarea name="promptTemplate" id="promptTemplate" rows="4" value={formData.promptTemplate} onChange={handleInputChange} placeholder="You are a helpful assistant. User message: {{message.text}}" className="w-full p-2 border rounded-md"></textarea>
-                    <p className="text-sm text-gray-500 mt-1">Use {"{{message.text}}"} for Telegram message content, {"{{userMessage}}"} for direct input</p>
+                  <DroppableTextInput 
+                    label="Prompt Template" 
+                    name="promptTemplate" 
+                    value={formData.promptTemplate} 
+                    onChange={handleInputChange}
+                    rows={4}
+                    placeholder="You are a helpful assistant. User message: {{message.text}}"
+                  />
+                  <div className="text-xs text-gray-500 mb-2">
+                    💡 Drag fields from the INPUT section to create template variables like {{message.text}}
                   </div>
                 </>
               )}
