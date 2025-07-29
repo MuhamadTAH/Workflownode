@@ -222,16 +222,35 @@ const ConfigPanel = ({ node, onClose }) => {
         if (!response.ok && result.error && result.error.description && result.error.description.includes('webhook is active')) {
           console.log('Webhook conflict detected, attempting to delete webhook...');
           
-          // Delete webhook first
-          const deleteResponse = await fetch('https://workflownode.onrender.com/api/telegram/delete-webhook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: formData.token })
-          });
-          
-          const deleteResult = await deleteResponse.json();
-          if (deleteResponse.ok) {
-            console.log('Webhook deleted successfully, retrying getUpdates...');
+          try {
+            // Delete webhook first
+            const deleteResponse = await fetch('https://workflownode.onrender.com/api/telegram/delete-webhook', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: formData.token })
+            });
+            
+            if (!deleteResponse.ok) {
+              // If delete-webhook endpoint not found, use manual Telegram API call
+              if (deleteResponse.status === 404) {
+                console.log('Using direct Telegram API to delete webhook...');
+                const directDeleteResponse = await fetch(`https://api.telegram.org/bot${formData.token}/deleteWebhook`, {
+                  method: 'POST'
+                });
+                const directResult = await directDeleteResponse.json();
+                
+                if (directResult.ok) {
+                  console.log('Webhook deleted via direct API, retrying getUpdates...');
+                } else {
+                  throw new Error(`Failed to delete webhook: ${directResult.description}`);
+                }
+              } else {
+                throw new Error(`Delete webhook failed with status: ${deleteResponse.status}`);
+              }
+            } else {
+              const deleteResult = await deleteResponse.json();
+              console.log('Webhook deleted successfully, retrying getUpdates...');
+            }
             
             // Retry getUpdates after webhook deletion
             response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
@@ -241,8 +260,10 @@ const ConfigPanel = ({ node, onClose }) => {
             });
             
             result = await response.json();
-          } else {
-            throw new Error(`Failed to delete webhook: ${deleteResult.message}`);
+            
+          } catch (deleteError) {
+            console.error('Error during webhook deletion:', deleteError);
+            throw new Error(`Webhook conflict: ${result.message}. Manual fix needed: Send POST to https://api.telegram.org/bot${formData.token}/deleteWebhook`);
           }
         }
         
