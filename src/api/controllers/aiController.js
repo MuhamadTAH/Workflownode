@@ -10,7 +10,7 @@ const verifyClaudeApiKey = async (req, res) => {
     const { apiKey } = req.body;
 
     if (!apiKey) {
-        return res.status(400).send({ message: 'API Key is required.' });
+        return res.status(400).json({ ok: false, message: 'API Key is required.' });
     }
 
     try {
@@ -34,16 +34,16 @@ const verifyClaudeApiKey = async (req, res) => {
         );
 
         // If the request above does not throw an error, the key is valid.
-        res.status(200).send({ ok: true, message: 'Claude API Key is valid.' });
+        res.status(200).json({ ok: true, message: 'Claude API Key is valid.' });
 
     } catch (error) {
         // The API will return a 401 Unauthorized error for an invalid key.
         if (error.response && error.response.status === 401) {
-            return res.status(401).send({ ok: false, message: 'Invalid Claude API Key.' });
+            return res.status(200).json({ ok: false, message: 'Invalid Claude API Key.' });
         }
         // Handle other potential errors (network, etc.)
         console.error('Claude API key verification failed:', error.message);
-        res.status(500).send({ ok: false, message: 'Failed to verify key. See server logs for details.' });
+        res.status(200).json({ ok: false, message: `Failed to verify key: ${error.message}` });
     }
 };
 
