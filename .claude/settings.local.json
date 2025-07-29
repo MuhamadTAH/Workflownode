@@ -23,7 +23,11 @@
       "Bash(git push:*)",
       "Bash(set PORT=10000)",
       "Bash(pkill:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(set PORT=3002)",
+      "Bash(./start-frontend.bat)",
+      "Bash(curl:*)",
+      "Bash(npx:*)"
     ],
     "deny": []
   }
