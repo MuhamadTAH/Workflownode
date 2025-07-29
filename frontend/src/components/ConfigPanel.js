@@ -340,6 +340,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       apiKey: node.data.apiKey || '',
       systemPrompt: node.data.systemPrompt || 'You are a helpful AI assistant.',
       userPrompt: node.data.userPrompt || '{{message}}',
+      displayFormat: node.data.displayFormat || 'chat',
       promptTemplate: node.data.promptTemplate || 'You are a helpful assistant. User message: {{message.text}}',
       temperature: node.data.temperature || 0.7,
       maxTokens: node.data.maxTokens || 400,
@@ -799,13 +800,29 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
               {node.data.type === 'modelNode' && (
                 <>
                   <div className="form-group">
+                    <label htmlFor="displayFormat">Display Format</label>
+                    <select name="displayFormat" id="displayFormat" value={formData.displayFormat} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-white">
+                      <option value="chat">Chat Interface</option>
+                      <option value="raw">Raw Response</option>
+                    </select>
+                  </div>
+                  <div className="text-xs text-gray-500 mb-2">
+                    💡 Model Node displays AI responses. Connect an AI Agent node to process prompts.
+                  </div>
+                </>
+              )}
+
+              {/* Fields for AI Agent Node */}
+              {node.data.type === 'aiAgent' && (
+                <>
+                  <div className="form-group">
                     <label htmlFor="model">Model</label>
                     <select name="model" id="model" value={formData.model} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-white">
                       <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
                       <option value="gpt-4">GPT-4</option>
                     </select>
                   </div>
-                   <div className="form-group">
+                  <div className="form-group">
                     <label htmlFor="apiKey">API Key</label>
                     <div className="flex items-center gap-2">
                       <input type="password" name="apiKey" id="apiKey" className="flex-grow" value={formData.apiKey} onChange={handleInputChange} placeholder="Enter your Claude API Key"/>
@@ -838,46 +855,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     inputData={inputData}
                   />
                   <div className="text-xs text-gray-500 mb-2">
-                    💡 System Prompt defines the AI's personality. User Prompt processes input data with {"{{variables}}"}.
-                  </div>
-                </>
-              )}
-
-              {/* Fields for AI Agent Node */}
-              {node.data.type === 'aiAgent' && (
-                <>
-                  <div className="form-group">
-                    <label htmlFor="model">Model</label>
-                    <select name="model" id="model" value={formData.model} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-white">
-                      <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                      <option value="gpt-4">GPT-4</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="apiKey">API Key</label>
-                    <div className="flex items-center gap-2">
-                      <input type="password" name="apiKey" id="apiKey" className="flex-grow" value={formData.apiKey} onChange={handleInputChange} placeholder="Enter your Claude API Key"/>
-                      <button onClick={handleVerifyApiKey} disabled={isLoading} className="bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-600 disabled:bg-indigo-300">
-                        {isLoading ? '...' : 'Check'}
-                      </button>
-                    </div>
-                    {apiKeyVerificationStatus && (
-                      <div className={`mt-2 text-sm p-2 rounded-md ${apiKeyVerificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {apiKeyVerificationStatus.message}
-                      </div>
-                    )}
-                  </div>
-                  <DroppableTextInput 
-                    label="Prompt Template" 
-                    name="promptTemplate" 
-                    value={formData.promptTemplate} 
-                    onChange={handleInputChange}
-                    rows={4}
-                    placeholder="You are a helpful assistant. User message: {{message.text}}"
-                    inputData={inputData}
-                  />
-                  <div className="text-xs text-gray-500 mb-2">
-                    💡 Drag fields from the INPUT section to create template variables like {"{{message.text}}"}
+                    💡 System Prompt defines AI personality. User Prompt processes input with {"{{variables}}"}.
                   </div>
                 </>
               )}

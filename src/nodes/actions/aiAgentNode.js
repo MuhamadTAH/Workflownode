@@ -43,22 +43,33 @@ const aiAgentNode = {
                 description: 'API Key for the selected model provider.',
             },
             {
-                displayName: 'Prompt Template',
-                name: 'promptTemplate',
+                displayName: 'System Prompt',
+                name: 'systemPrompt',
                 type: 'string',
                 typeOptions: {
                     rows: 4,
                 },
-                default: 'You are a helpful assistant. User message: {{message.text}}',
+                default: 'You are a helpful AI assistant.',
+                required: false,
+                description: 'System prompt that defines the AI\'s personality and behavior.',
+            },
+            {
+                displayName: 'User Prompt',
+                name: 'userPrompt',
+                type: 'string',
+                typeOptions: {
+                    rows: 3,
+                },
+                default: '{{message}}',
                 required: true,
-                description: 'The template for the prompt. Use {{variable}} for inputs.',
+                description: 'User prompt template. Use {{message}} or other variables from previous nodes.',
             },
         ],
     },
 
     // Execute the AI Agent with real API calls
     async execute(nodeConfig, inputData) {
-        const { apiKey, model, promptTemplate } = nodeConfig;
+        const { apiKey, model, systemPrompt = 'You are a helpful AI assistant.', userPrompt = '{{message}}' } = nodeConfig;
         
         if (!apiKey) {
             throw new Error('API Key is required for AI Agent node.');
@@ -68,15 +79,12 @@ const aiAgentNode = {
             throw new Error('Input data is required for AI Agent node.');
         }
 
-        // Process the prompt template with input data
-        let processedPrompt = promptTemplate;
-        
         // Advanced template replacement for nested JSON paths
-        const replaceTemplate = (template, data, path = '') => {
+        const replaceTemplate = (template, data) => {
             return template.replace(/\{\{([^}]+)\}\}/g, (match, variablePath) => {
                 try {
                     // Navigate through nested object using dot notation
-                    const pathParts = variablePath.split('.');
+                    const pathParts = variablePath.trim().split('.');
                     let value = data;
                     
                     for (const part of pathParts) {
@@ -104,22 +112,29 @@ const aiAgentNode = {
             });
         };
         
-        processedPrompt = replaceTemplate(processedPrompt, inputData);
+        // Process user prompt template with input data
+        const processedUserPrompt = replaceTemplate(userPrompt, inputData);
+
+        if (!processedUserPrompt.trim()) {
+            throw new Error('Processed user message cannot be empty.');
+        }
 
         // For now, we only support Claude. Can add more models later.
         if (model.startsWith('claude')) {
-            const response = await callClaudeApi(apiKey, processedPrompt);
+            const response = await callClaudeApi(apiKey, processedUserPrompt, systemPrompt);
             return { 
                 reply: response,
                 model: model,
-                processedPrompt: processedPrompt
+                systemPrompt: systemPrompt,
+                processedUserPrompt: processedUserPrompt
             };
         } else {
             // Placeholder for other models
             return { 
                 reply: `Response from ${model} is not implemented yet.`,
                 model: model,
-                processedPrompt: processedPrompt
+                systemPrompt: systemPrompt,
+                processedUserPrompt: processedUserPrompt
             };
         }
     },

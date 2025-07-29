@@ -8,14 +8,26 @@ const axios = require('axios');
 
 const callClaudeApi = async (apiKey, userMessage, systemPrompt = 'You are a helpful AI assistant.') => {
     try {
+        // Ensure system prompt is not empty or undefined
+        const finalSystemPrompt = systemPrompt && systemPrompt.trim() ? systemPrompt.trim() : 'You are a helpful AI assistant.';
+        
+        // Debug logging to see what prompts are being sent
+        console.log('🔍 Claude API Call Debug:');
+        console.log('📝 System Prompt:', finalSystemPrompt);
+        console.log('💬 User Message:', userMessage);
+        
+        const requestBody = {
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: userMessage }],
+            system: finalSystemPrompt
+        };
+        
+        console.log('📡 Request Body:', JSON.stringify(requestBody, null, 2));
+        
         const response = await axios.post(
             'https://api.anthropic.com/v1/messages',
-            {
-                model: 'claude-3-5-sonnet-20241022',
-                max_tokens: 1024,
-                messages: [{ role: 'user', content: userMessage }],
-                system: systemPrompt
-            },
+            requestBody,
             {
                 headers: {
                     'x-api-key': apiKey,
