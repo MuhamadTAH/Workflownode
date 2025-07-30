@@ -44,7 +44,7 @@ if (typeof document !== 'undefined') {
 // Draggable JSON Field Component
 const DraggableJSONField = ({ path, value, level = 0 }) => {
   const handleDragStart = (e) => {
-    e.dataTransfer.setData('text/plain', `{{${path}}}');
+    e.dataTransfer.setData('text/plain', '{{' + path + '}}');
     e.dataTransfer.effectAllowed = 'copy';
   };
 
@@ -67,7 +67,7 @@ const DraggableJSONField = ({ path, value, level = 0 }) => {
         </span>
         <span className="text-gray-500">: </span>
         <span className="text-green-600 font-mono text-sm">
-          {typeof value === 'string' ? `"${value}"` : String(value)}
+          {typeof value === 'string' ? '"' + value + '"' : String(value)}
         </span>
       </div>
     );
@@ -81,7 +81,7 @@ const DraggableJSONField = ({ path, value, level = 0 }) => {
       {Object.entries(value).map(([key, val]) => (
         <DraggableJSONField 
           key={key} 
-          path={path ? `${path}.${key}' : key} 
+          path={path ? path + '.' + key : key} 
           value={val} 
           level={level + 1} 
         />
@@ -218,7 +218,7 @@ const EnhancedTextInput = ({ label, name, value, onChange, placeholder, rows, cl
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
-        className={`w-full p-2 border rounded-md ${isFocused ? 'ring-2 ring-blue-200' : ''} ${className}'}
+        className={'w-full p-2 border rounded-md ' + (isFocused ? 'ring-2 ring-blue-200' : '') + ' ' + className}
       />
       {(isFocused || value) && (
         <UniversalLivePreview text={value} data={inputData} isFocused={isFocused} />
@@ -292,7 +292,7 @@ const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, c
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
-        className={`w-full p-2 border rounded-md drop-zone ${isDragOver ? 'drag-over' : ''} ${isFocused ? 'ring-2 ring-blue-200' : ''} ${className}'}
+        className={'w-full p-2 border rounded-md drop-zone ' + (isDragOver ? 'drag-over' : '') + ' ' + (isFocused ? 'ring-2 ring-blue-200' : '') + ' ' + className}
         title="Drop template variables here"
       />
       {isDragOver && (
@@ -361,7 +361,7 @@ const ChatbotInterface = ({ nodeConfig }) => {
         <div className="chatbot-container">
             <div className="chatbot-messages">
                 {messages.map((msg, index) => (
-                    <div key={index} className={`message ${msg.sender} ${msg.isError ? 'error' : ''}'}>
+                    <div key={index} className={'message ' + msg.sender + ' ' + (msg.isError ? 'error' : '')}>
                         {msg.text}
                     </div>
                 ))}
@@ -414,7 +414,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   // Load persisted execution data when component mounts
   useEffect(() => {
-    const nodeExecutionKey = `node-execution-${node.id}';
+    const nodeExecutionKey = 'node-execution-' + node.id;
     const persistedData = localStorage.getItem(nodeExecutionKey);
     
     if (persistedData) {
@@ -450,7 +450,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   const handleClose = () => {
     // Save node execution data to localStorage before closing
     if (inputData || outputData) {
-      const nodeExecutionKey = `node-execution-${node.id}';
+      const nodeExecutionKey = 'node-execution-' + node.id;
       const executionData = {
         nodeId: node.id,
         nodeType: node.data.type,
@@ -611,7 +611,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
               // If delete-webhook endpoint not found, use manual Telegram API call
               if (deleteResponse.status === 404) {
                 console.log('Using direct Telegram API to delete webhook...');
-                const directDeleteResponse = await fetch(`https://api.telegram.org/bot${formData.token}/deleteWebhook`, {
+                const directDeleteResponse = await fetch('https://api.telegram.org/bot' + formData.token + '/deleteWebhook', {
                   method: 'POST'
                 });
                 const directResult = await directDeleteResponse.json();
@@ -619,10 +619,10 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 if (directResult.ok) {
                   console.log('Webhook deleted via direct API, retrying getUpdates...');
                 } else {
-                  throw new Error(`Failed to delete webhook: ${directResult.description}');
+                  throw new Error('Failed to delete webhook: ' + directResult.description);
                 }
               } else {
-                throw new Error(`Delete webhook failed with status: ${deleteResponse.status}');
+                throw new Error('Delete webhook failed with status: ' + deleteResponse.status);
               }
             } else {
               const deleteResult = await deleteResponse.json();
@@ -640,7 +640,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
             
           } catch (deleteError) {
             console.error('Error during webhook deletion:', deleteError);
-            throw new Error(`Webhook conflict: ${result.message}. Manual fix needed: Send POST to https://api.telegram.org/bot${formData.token}/deleteWebhook`);
+            throw new Error('Webhook conflict: ' + result.message + '. Manual fix needed: Send POST to https://api.telegram.org/bot' + formData.token + '/deleteWebhook');
           }
         }
         
@@ -719,7 +719,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       }
 
       // First, check if we have persisted output data for the previous node
-      const nodeExecutionKey = `node-execution-${previousNodeId}';
+      const nodeExecutionKey = 'node-execution-' + previousNodeId;
       const persistedData = localStorage.getItem(nodeExecutionKey);
       
       if (persistedData) {
@@ -812,7 +812,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           if (response.ok) {
             return result;
           } else {
-            throw new Error(`Failed to execute previous node: ${result.message}');
+            throw new Error('Failed to execute previous node: ' + result.message);
           }
         } else {
           return {
@@ -870,7 +870,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     <div className="config-panel-overlay" onClick={handleClose}>
       <div className="config-panel" onClick={(e) => e.stopPropagation()}>
         <div className="panel-header">
-          <h3><i className={`${node.data.icon} mr-2`}></i>{formData.label}</h3>
+          <h3><i className={node.data.icon + ' mr-2'}></i>{formData.label}</h3>
           <button onClick={handleClose} className="close-button">&times;</button>
         </div>
         <div className="panel-content flex gap-4">
@@ -957,7 +957,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       </button>
                     </div>
                     {apiKeyVerificationStatus && (
-                      <div className={`mt-2 text-sm p-2 rounded-md ${apiKeyVerificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}'}>
+                      <div className={'mt-2 text-sm p-2 rounded-md ' + (apiKeyVerificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')}>
                         {apiKeyVerificationStatus.message}
                       </div>
                     )}
@@ -997,10 +997,10 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     </button>
                   </div>
                   {verificationStatus && (
-                    <div className={`mt-2 text-sm p-2 rounded-md ${verificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}'}>
+                    <div className={'mt-2 text-sm p-2 rounded-md ' + (verificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')}>
                       {verificationStatus.ok 
-                        ? `Success! Bot Name: ${verificationStatus.bot.first_name}, ID: ${verificationStatus.bot.id}'
-                        : `Error: ${verificationStatus.message}'
+                        ? 'Success! Bot Name: ' + verificationStatus.bot.first_name + ', ID: ' + verificationStatus.bot.id
+                        : 'Error: ' + verificationStatus.message
                       }
                     </div>
                   )}

@@ -28,7 +28,8 @@
       "Bash(./start-frontend.bat)",
       "Bash(curl:*)",
       "Bash(npx:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
