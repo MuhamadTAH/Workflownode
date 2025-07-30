@@ -12,7 +12,7 @@ const DataStorageNode = require('../../nodes/actions/dataStorageNode');
 
 const runNode = async (req, res) => {
     try {
-        const { node, inputData } = req.body;
+        const { node, inputData, connectedNodes } = req.body;
 
         if (!node || !node.type) {
             return res.status(400).send({ message: 'A valid node object is required.' });
@@ -20,11 +20,14 @@ const runNode = async (req, res) => {
 
         let result;
 
+        console.log('=== Node Execution ===');
+        console.log('Node type:', node.type);
+        console.log('Connected nodes:', connectedNodes ? connectedNodes.length : 0);
 
         // We use a switch statement to handle different node types in the future.
         switch (node.type) {
             case 'aiAgent':
-                result = await aiAgentNode.execute(node.config, inputData);
+                result = await aiAgentNode.execute(node.config, inputData, connectedNodes);
                 break;
             case 'modelNode':
                 result = await modelNode.execute(node.config, inputData);

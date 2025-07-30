@@ -68,7 +68,7 @@ const aiAgentNode = {
     },
 
     // Execute the AI Agent with real API calls
-    async execute(nodeConfig, inputData) {
+    async execute(nodeConfig, inputData, connectedNodes = []) {
         const { apiKey, model, systemPrompt = 'You are a helpful AI assistant.', userPrompt = '{{message}}' } = nodeConfig;
         
         if (!apiKey) {
@@ -77,6 +77,29 @@ const aiAgentNode = {
 
         if (!inputData) {
             throw new Error('Input data is required for AI Agent node.');
+        }
+
+        // Check for connected Data Storage nodes and retrieve their data
+        let dataStorageInfo = '';
+        let availableData = {};
+        
+        if (connectedNodes && connectedNodes.length > 0) {
+            for (const connectedNode of connectedNodes) {
+                if (connectedNode.type === 'dataStorage' && connectedNode.data) {
+                    // Merge data storage data into available data
+                    Object.assign(availableData, connectedNode.data);
+                    
+                    // Create a description of available data for the AI
+                    const dataFields = Object.keys(connectedNode.data);
+                    if (dataFields.length > 0) {
+                        dataStorageInfo += `\n\nAvailable Data Storage Information:\n`;
+                        for (const [key, value] of Object.entries(connectedNode.data)) {
+                            dataStorageInfo += `- ${key}: ${value}\n`;
+                        }
+                        dataStorageInfo += `\nYou can reference this information when answering questions. Use this data to provide accurate, personalized responses.`;
+                    }
+                }
+            }
         }
 
         // Advanced template replacement for nested JSON paths
@@ -112,21 +135,29 @@ const aiAgentNode = {
             });
         };
         
-        // Process user prompt template with input data
-        const processedUserPrompt = replaceTemplate(userPrompt, inputData);
+        // Combine input data with available data storage data
+        const combinedData = { ...inputData, ...availableData };
+        
+        // Process user prompt template with combined data
+        const processedUserPrompt = replaceTemplate(userPrompt, combinedData);
 
         if (!processedUserPrompt.trim()) {
             throw new Error('Processed user message cannot be empty.');
         }
 
+        // Enhanced system prompt with data storage information
+        const enhancedSystemPrompt = systemPrompt + dataStorageInfo;
+
         // For now, we only support Claude. Can add more models later.
         if (model.startsWith('claude')) {
-            const response = await callClaudeApi(apiKey, processedUserPrompt, systemPrompt);
+            const response = await callClaudeApi(apiKey, processedUserPrompt, enhancedSystemPrompt);
             return { 
                 reply: response,
                 model: model,
-                systemPrompt: systemPrompt,
-                processedUserPrompt: processedUserPrompt
+                systemPrompt: enhancedSystemPrompt,
+                processedUserPrompt: processedUserPrompt,
+                availableData: availableData,
+                dataStorageConnected: Object.keys(availableData).length > 0
             };
         } else {
             // Placeholder for other models

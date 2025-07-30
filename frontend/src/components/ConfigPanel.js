@@ -879,6 +879,31 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     }
   };
 
+  // Helper function to find connected Data Storage nodes
+  const findConnectedDataStorageNodes = () => {
+    if (!edges || !nodes) return [];
+    
+    // Find edges that connect to this node
+    const incomingEdges = edges.filter(edge => edge.target === node.id);
+    
+    // Find the source nodes of these edges that are Data Storage nodes
+    const connectedDataStorageNodes = [];
+    for (const edge of incomingEdges) {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      if (sourceNode && sourceNode.data.type === 'dataStorage') {
+        // Get the stored data from the source node
+        const storedData = sourceNode.data.storedData || {};
+        connectedDataStorageNodes.push({
+          type: 'dataStorage',
+          data: storedData,
+          nodeId: sourceNode.id
+        });
+      }
+    }
+    
+    return connectedDataStorageNodes;
+  };
+
   const handlePostData = async () => {
     if (!inputData) return;
     
@@ -887,6 +912,11 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     
     try {
       if (node.data.type === 'modelNode' || node.data.type === 'aiAgent' || node.data.type === 'googleDocs' || node.data.type === 'dataStorage') {
+        // Find connected Data Storage nodes for AI Agent
+        const connectedNodes = node.data.type === 'aiAgent' ? findConnectedDataStorageNodes() : [];
+        
+        console.log('Connected Data Storage nodes:', connectedNodes);
+        
         // Process through the node
         const response = await fetch(config.BACKEND_URL + '/api/nodes/run-node', {
           method: 'POST',
@@ -897,7 +927,8 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
               type: node.data.type,
               config: formData,
             },
-            inputData: inputData
+            inputData: inputData,
+            connectedNodes: connectedNodes
           })
         });
 
@@ -1032,7 +1063,8 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     inputData={inputData}
                   />
                   <div className="text-xs text-gray-500 mb-2">
-                    💡 System Prompt defines AI personality. User Prompt processes input with {"{{variables}}"}.
+                    💡 System Prompt defines AI personality. User Prompt processes input with {"{{variables}}"}.<br/>
+                    🔗 <strong>Smart Data Integration:</strong> When connected to Data Storage nodes, the AI automatically accesses stored information to answer questions intelligently.
                   </div>
                 </>
               )}
