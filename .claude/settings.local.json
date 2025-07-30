@@ -27,7 +27,8 @@
       "Bash(set PORT=3002)",
       "Bash(./start-frontend.bat)",
       "Bash(curl:*)",
-      "Bash(npx:*)"
+      "Bash(npx:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

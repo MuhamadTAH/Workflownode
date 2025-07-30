@@ -4,6 +4,7 @@ FRONTEND FILE: src/components/ConfigPanel.js (CORRECTED)
 =================================================================
 */
 import React, { useState, useEffect, useRef } from 'react';
+import config from '../config';
 
 // Add CSS styles for drag and drop
 const dragDropStyles = `
@@ -329,7 +330,7 @@ const ChatbotInterface = ({ nodeConfig }) => {
         setIsLoading(true);
 
         try {
-            const response = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
+            const response = await fetch(`${config.BACKEND_URL}/api/nodes/run-node', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -482,7 +483,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       setIsLoading(true);
       setApiKeyVerificationStatus(null);
       try {
-          const response = await fetch('https://workflownode.onrender.com/api/ai/verify-claude', {
+          const response = await fetch(`${config.BACKEND_URL}/api/ai/verify-claude', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ apiKey: formData.apiKey })
@@ -503,7 +504,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       setIsLoading(true);
       setVerificationStatus(null);
       try {
-          const response = await fetch('https://workflownode.onrender.com/api/telegram/verify-token', {
+          const response = await fetch(`${config.BACKEND_URL}/api/telegram/verify-token', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: formData.token })
@@ -518,7 +519,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   const checkGoogleAuthStatus = async () => {
     try {
-      const response = await fetch('https://workflownode.onrender.com/auth/status');
+      const response = await fetch(`${config.BACKEND_URL}/auth/status');
       const result = await response.json();
       setGoogleAuthStatus(result);
     } catch (error) {
@@ -528,7 +529,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   const handleGoogleConnect = async () => {
     try {
-      const response = await fetch('https://workflownode.onrender.com/auth/google');
+      const response = await fetch(`${config.BACKEND_URL}/auth/google');
       const result = await response.json();
       
       // Debug: Log the auth URL to console
@@ -551,7 +552,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           }
         } catch (e) {
           // Window.closed check failed due to CORS, just check auth status
-          const authCheck = await fetch('https://workflownode.onrender.com/auth/status');
+          const authCheck = await fetch(`${config.BACKEND_URL}/auth/status');
           const authResult = await authCheck.json();
           if (authResult.isAuthenticated) {
             clearInterval(pollTimer);
@@ -586,7 +587,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           throw new Error('Please configure Bot API Token first');
         }
         
-        let response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+        let response = await fetch(`${config.BACKEND_URL}/api/telegram/get-updates', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: formData.token })
@@ -600,7 +601,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           
           try {
             // Delete webhook first
-            const deleteResponse = await fetch('https://workflownode.onrender.com/api/telegram/delete-webhook', {
+            const deleteResponse = await fetch(`${config.BACKEND_URL}/api/telegram/delete-webhook', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: formData.token })
@@ -629,7 +630,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
             }
             
             // Retry getUpdates after webhook deletion
-            response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+            response = await fetch(`${config.BACKEND_URL}/api/telegram/get-updates', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: formData.token })
@@ -754,7 +755,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           throw new Error('Previous Telegram trigger node needs to be configured with a bot token');
         }
         
-        const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+        const response = await fetch(`${config.BACKEND_URL}/api/telegram/get-updates', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: previousNode.data.token })
@@ -780,7 +781,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           
           if (sourcePreviousNode && sourcePreviousNode.data.type === 'trigger') {
             // Get data from the trigger node
-            const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+            const response = await fetch(`${config.BACKEND_URL}/api/telegram/get-updates', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: sourcePreviousNode.data.token })
@@ -795,7 +796,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         
         // Now execute the previous node with its input
         if (previousNodeInput) {
-          const response = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
+          const response = await fetch(`${config.BACKEND_URL}/api/nodes/run-node', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -837,7 +838,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     try {
       if (node.data.type === 'modelNode' || node.data.type === 'aiAgent' || node.data.type === 'googleDocs') {
         // Process through the node
-        const response = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
+        const response = await fetch(`${config.BACKEND_URL}/api/nodes/run-node', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
