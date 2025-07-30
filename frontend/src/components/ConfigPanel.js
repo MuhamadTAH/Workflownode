@@ -93,6 +93,102 @@ const DraggableJSONField = ({ path, value, level = 0 }) => {
   );
 };
 
+// Memory Visualization Component
+const MemoryVisualization = ({ data }) => {
+  try {
+    // Extract JSON data from the stats string
+    const jsonStart = data.indexOf('\n') + 1;
+    const jsonData = JSON.parse(data.substring(jsonStart));
+    
+    if (jsonData.analytics) {
+      // Single user analytics
+      return (
+        <div className="space-y-3">
+          <div className="text-sm font-semibold text-blue-800">
+            📊 User Analytics: {jsonData.userId}
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="bg-green-50 p-2 rounded">
+              <div className="font-semibold text-green-700">Messages</div>
+              <div className="text-lg font-bold text-green-800">{jsonData.messageCount}</div>
+            </div>
+            
+            <div className="bg-blue-50 p-2 rounded">
+              <div className="font-semibold text-blue-700">Conversation Span</div>
+              <div className="text-sm text-blue-800">{jsonData.analytics.conversationSpan}</div>
+            </div>
+            
+            <div className="bg-purple-50 p-2 rounded">
+              <div className="font-semibold text-purple-700">Avg Message Length</div>
+              <div className="text-sm text-purple-800">{jsonData.analytics.averageUserMessageLength} chars</div>
+            </div>
+            
+            <div className="bg-orange-50 p-2 rounded">
+              <div className="font-semibold text-orange-700">Avg Response Time</div>
+              <div className="text-sm text-orange-800">{jsonData.analytics.averageProcessingTime}</div>
+            </div>
+          </div>
+          
+          <div className="text-xs text-gray-600 space-y-1">
+            <div><strong>Models Used:</strong> {jsonData.analytics.modelsUsed.join(', ') || 'None'}</div>
+            <div><strong>Messages/Day:</strong> {jsonData.analytics.messagesPerDay}</div>
+            <div><strong>Total Characters:</strong> {jsonData.analytics.totalCharacters}</div>
+            <div><strong>Last Activity:</strong> {new Date(jsonData.lastActivity).toLocaleString()}</div>
+          </div>
+        </div>
+      );
+    } else if (jsonData.globalAnalytics) {
+      // Global analytics for all users
+      return (
+        <div className="space-y-3">
+          <div className="text-sm font-semibold text-blue-800">
+            🌐 Global Analytics ({jsonData.totalUsers} users)
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="bg-green-50 p-2 rounded">
+              <div className="font-semibold text-green-700">Total Messages</div>
+              <div className="text-lg font-bold text-green-800">{jsonData.totalMessages}</div>
+            </div>
+            
+            <div className="bg-blue-50 p-2 rounded">
+              <div className="font-semibold text-blue-700">Avg Messages/User</div>
+              <div className="text-lg font-bold text-blue-800">{jsonData.globalAnalytics.averageUserMessages}</div>
+            </div>
+          </div>
+          
+          <div className="text-xs text-gray-600 space-y-1">
+            <div><strong>Total Characters:</strong> {jsonData.globalAnalytics.totalCharactersProcessed}</div>
+            {jsonData.globalAnalytics.mostActiveUser && (
+              <div><strong>Most Active User:</strong> {jsonData.globalAnalytics.mostActiveUser.userId} ({jsonData.globalAnalytics.mostActiveUser.messageCount} messages)</div>
+            )}
+          </div>
+          
+          {jsonData.users.length > 0 && (
+            <div>
+              <div className="text-xs font-semibold text-gray-700 mb-2">User Breakdown:</div>
+              <div className="space-y-1 max-h-20 overflow-y-auto">
+                {jsonData.users.map((user, idx) => (
+                  <div key={idx} className="flex justify-between text-xs bg-gray-50 p-1 rounded">
+                    <span>{user.userId}</span>
+                    <span>{user.messageCount} messages</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+  } catch (error) {
+    console.error('Error parsing memory stats:', error);
+  }
+  
+  // Fallback to raw text display
+  return <pre className="whitespace-pre-wrap text-xs">{data}</pre>;
+};
+
 // Enhanced JSON Viewer with draggable fields
 const DraggableJSONViewer = ({ data }) => {
   if (!data || typeof data !== 'object') {
@@ -420,6 +516,8 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [inputData, setInputData] = useState(null);
   const [outputData, setOutputData] = useState(null);
+  const [memoryActionResult, setMemoryActionResult] = useState(null);
+  const [memoryQuickStats, setMemoryQuickStats] = useState(null);
 
   // Load persisted execution data when component mounts
   useEffect(() => {
@@ -444,6 +542,13 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     }
   }, [node.data.type]);
 
+  // Load quick memory stats for memory-enabled nodes
+  useEffect(() => {
+    if (node.data.type === 'modelNode' || node.data.type === 'aiAgent') {
+      loadQuickMemoryStats();
+    }
+  }, [node.data.type]);
+
   const handleInputChange = (e) => {
       const { name, value, type } = e.target;
       const finalValue = type === 'number' ? parseFloat(value) : value;
@@ -453,6 +558,10 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       }
       if (name === 'token') {
           setVerificationStatus(null);
+      }
+      if (name === 'userId' && (node.data.type === 'modelNode' || node.data.type === 'aiAgent')) {
+          // Reload memory stats when user ID changes
+          setTimeout(() => loadQuickMemoryStats(), 100);
       }
   };
 
@@ -627,6 +736,21 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     // For now, just reset the auth status
     // In a production app, you'd call a logout endpoint
     setGoogleAuthStatus({ isAuthenticated: false });
+  };
+
+  const loadQuickMemoryStats = async () => {
+    try {
+      const userId = formData.userId || 'default';
+      const response = await fetch(config.BACKEND_URL + '/api/nodes/memory/stats?userId=' + userId, {
+        credentials: 'include'
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setMemoryQuickStats(result);
+      }
+    } catch (error) {
+      console.error('Error loading quick memory stats:', error);
+    }
   };
 
   const handleGetData = async () => {
@@ -950,6 +1074,101 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     setIsLoading(false);
   };
 
+  const handleMemoryAction = async (action) => {
+    setIsLoading(true);
+    setMemoryActionResult(null);
+    
+    try {
+      const userId = formData.userId || 'default';
+      
+      switch (action) {
+        case 'stats':
+          const statsResponse = await fetch(config.BACKEND_URL + '/api/nodes/memory/stats?userId=' + userId, {
+            credentials: 'include'
+          });
+          const statsResult = await statsResponse.json();
+          if (statsResponse.ok) {
+            setMemoryActionResult('Memory Stats for ' + userId + ':\n' + JSON.stringify(statsResult, null, 2));
+          } else {
+            setMemoryActionResult('Error: ' + statsResult.message);
+          }
+          break;
+          
+        case 'clear':
+          const confirmed = window.confirm('Are you sure you want to clear conversation memory for user "' + userId + '"?');
+          if (confirmed) {
+            const clearResponse = await fetch(config.BACKEND_URL + '/api/nodes/memory/clear', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ userId })
+            });
+            const clearResult = await clearResponse.json();
+            setMemoryActionResult(clearResult.message || 'Memory cleared');
+          } else {
+            setMemoryActionResult('Memory clear cancelled');
+          }
+          break;
+          
+        case 'export':
+          const exportResponse = await fetch(config.BACKEND_URL + '/api/nodes/memory/export?userId=' + userId, {
+            credentials: 'include'
+          });
+          const exportResult = await exportResponse.json();
+          if (exportResponse.ok) {
+            setMemoryActionResult('Exported conversation data:\n' + exportResult.data);
+            
+            // Also offer to download as file
+            const blob = new Blob([exportResult.data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'conversation-memory-' + userId + '-' + new Date().toISOString().split('T')[0] + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          } else {
+            setMemoryActionResult('Error: ' + exportResult.message);
+          }
+          break;
+          
+        case 'import':
+          const fileInput = document.createElement('input');
+          fileInput.type = 'file';
+          fileInput.accept = '.json';
+          fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              try {
+                const jsonData = await file.text();
+                const importResponse = await fetch(config.BACKEND_URL + '/api/nodes/memory/import', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({ jsonData, userId })
+                });
+                const importResult = await importResponse.json();
+                setMemoryActionResult(importResult.message || 'Memory imported');
+              } catch (error) {
+                setMemoryActionResult('Error importing file: ' + error.message);
+              }
+            }
+          };
+          fileInput.click();
+          setMemoryActionResult('Select a JSON file to import...');
+          break;
+          
+        default:
+          setMemoryActionResult('Unknown action: ' + action);
+      }
+    } catch (error) {
+      setMemoryActionResult('Error: ' + error.message);
+    }
+    
+    setIsLoading(false);
+  };
+
   return (
     <div className="config-panel-overlay" onClick={handleClose}>
       <div className="config-panel" onClick={(e) => e.stopPropagation()}>
@@ -1031,6 +1250,66 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                   <div className="text-xs text-gray-500 mb-2">
                     💡 Model Node displays AI responses with memory. Each User ID has separate conversation history.
                   </div>
+                  
+                  {/* Quick Memory Stats Dashboard */}
+                  {memoryQuickStats && (
+                    <div className="form-group bg-green-50 p-2 rounded-md mb-2">
+                      <div className="text-xs font-semibold text-green-800 mb-1">💾 Memory Usage</div>
+                      <div className="flex gap-3 text-xs">
+                        <div><strong>{memoryQuickStats.messageCount || 0}</strong> messages</div>
+                        {memoryQuickStats.analytics && (
+                          <>
+                            <div><strong>{memoryQuickStats.analytics.averageProcessingTime}</strong> avg response</div>
+                            <div><strong>{memoryQuickStats.analytics.totalCharacters}</strong> chars</div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Memory Management Controls */}
+                  <div className="form-group bg-blue-50 p-3 rounded-md">
+                    <label className="text-sm font-semibold text-blue-800 mb-2 block">🧠 Memory Management</label>
+                    <div className="flex gap-2 mb-2">
+                      <button 
+                        onClick={() => handleMemoryAction('stats')} 
+                        className="bg-blue-500 text-white px-3 py-1 text-sm rounded hover:bg-blue-600"
+                        disabled={isLoading}
+                      >
+                        📊 Stats
+                      </button>
+                      <button 
+                        onClick={() => handleMemoryAction('clear')} 
+                        className="bg-red-500 text-white px-3 py-1 text-sm rounded hover:bg-red-600"
+                        disabled={isLoading}
+                      >
+                        🗑️ Clear
+                      </button>
+                      <button 
+                        onClick={() => handleMemoryAction('export')} 
+                        className="bg-green-500 text-white px-3 py-1 text-sm rounded hover:bg-green-600"
+                        disabled={isLoading}
+                      >
+                        💾 Export
+                      </button>
+                      <button 
+                        onClick={() => handleMemoryAction('import')} 
+                        className="bg-purple-500 text-white px-3 py-1 text-sm rounded hover:bg-purple-600"
+                        disabled={isLoading}
+                      >
+                        📂 Import
+                      </button>
+                    </div>
+                    {memoryActionResult && (
+                      <div className="text-xs p-2 rounded bg-white border max-h-32 overflow-y-auto">
+                        {memoryActionResult.startsWith('Memory Stats') ? (
+                          <MemoryVisualization data={memoryActionResult} />
+                        ) : (
+                          <pre className="whitespace-pre-wrap">{memoryActionResult}</pre>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -1091,6 +1370,66 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                   <div className="text-xs text-gray-500 mb-2">
                     💡 System Prompt defines AI personality. User Prompt processes input with {"{{variables}}"}.<br/>
                     🔗 <strong>Smart Data Integration:</strong> When connected to Data Storage nodes, the AI automatically accesses stored information to answer questions intelligently.
+                  </div>
+                  
+                  {/* Quick Memory Stats Dashboard */}
+                  {memoryQuickStats && (
+                    <div className="form-group bg-green-50 p-2 rounded-md mb-2">
+                      <div className="text-xs font-semibold text-green-800 mb-1">💾 Memory Usage</div>
+                      <div className="flex gap-3 text-xs">
+                        <div><strong>{memoryQuickStats.messageCount || 0}</strong> messages</div>
+                        {memoryQuickStats.analytics && (
+                          <>
+                            <div><strong>{memoryQuickStats.analytics.averageProcessingTime}</strong> avg response</div>
+                            <div><strong>{memoryQuickStats.analytics.totalCharacters}</strong> chars</div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Memory Management Controls */}
+                  <div className="form-group bg-blue-50 p-3 rounded-md">
+                    <label className="text-sm font-semibold text-blue-800 mb-2 block">🧠 Memory Management</label>
+                    <div className="flex gap-2 mb-2">
+                      <button 
+                        onClick={() => handleMemoryAction('stats')} 
+                        className="bg-blue-500 text-white px-3 py-1 text-sm rounded hover:bg-blue-600"
+                        disabled={isLoading}
+                      >
+                        📊 Stats
+                      </button>
+                      <button 
+                        onClick={() => handleMemoryAction('clear')} 
+                        className="bg-red-500 text-white px-3 py-1 text-sm rounded hover:bg-red-600"
+                        disabled={isLoading}
+                      >
+                        🗑️ Clear
+                      </button>
+                      <button 
+                        onClick={() => handleMemoryAction('export')} 
+                        className="bg-green-500 text-white px-3 py-1 text-sm rounded hover:bg-green-600"
+                        disabled={isLoading}
+                      >
+                        💾 Export
+                      </button>
+                      <button 
+                        onClick={() => handleMemoryAction('import')} 
+                        className="bg-purple-500 text-white px-3 py-1 text-sm rounded hover:bg-purple-600"
+                        disabled={isLoading}
+                      >
+                        📂 Import
+                      </button>
+                    </div>
+                    {memoryActionResult && (
+                      <div className="text-xs p-2 rounded bg-white border max-h-32 overflow-y-auto">
+                        {memoryActionResult.startsWith('Memory Stats') ? (
+                          <MemoryVisualization data={memoryActionResult} />
+                        ) : (
+                          <pre className="whitespace-pre-wrap">{memoryActionResult}</pre>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </>
               )}

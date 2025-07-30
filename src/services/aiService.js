@@ -7,6 +7,8 @@ This service handles all communications with external AI APIs.
 const axios = require('axios');
 
 const callClaudeApi = async (apiKey, userMessage, systemPrompt = 'You are a helpful AI assistant.', conversationHistory = []) => {
+    const startTime = Date.now(); // Start timing
+    
     try {
         // Ensure system prompt is not empty or undefined
         const finalSystemPrompt = systemPrompt && systemPrompt.trim() ? systemPrompt.trim() : 'You are a helpful AI assistant.';
@@ -59,7 +61,14 @@ const callClaudeApi = async (apiKey, userMessage, systemPrompt = 'You are a help
 
         // Extract the text content from Claude's response
         if (response.data && response.data.content && response.data.content.length > 0) {
-            return response.data.content[0].text;
+            const endTime = Date.now();
+            const processingTime = endTime - startTime;
+            
+            // Return both the response and processing time
+            return {
+                text: response.data.content[0].text,
+                processingTime: processingTime
+            };
         } else {
             throw new Error('Invalid response structure from Claude API.');
         }

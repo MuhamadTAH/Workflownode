@@ -339,9 +339,59 @@ BASE_URL=https://workflownode.onrender.com
 - **Implementation**: Complete Passport.js with session-based authentication
 - **Status**: Production-ready with cross-origin cookie support
 
+## 🎯 Latest Features Added (2025-07-30)
+
+### 📦 **Data Storage Node**
+- **Purpose**: Store personal information and data for other nodes to use
+- **Features**: Dynamic key-value storage, drag-and-drop compatible
+- **Location**: `src/nodes/actions/dataStorageNode.js`
+- **UI**: Add/remove data fields with visual controls
+
+### 🤖 **Intelligent Data Storage Integration**
+- **AI Agent Enhancement**: Automatically accesses connected Data Storage nodes
+- **Smart Context**: AI receives stored data in system prompt
+- **Real-time Integration**: No manual template setup required
+- **Example**: "Do you have PC with $500?" → AI checks stored product data
+
+### 🧠 **Conversation Memory System**
+- **Backend**: `src/nodes/actions/modelNode.js` - Memory storage per user ID
+- **AI Service**: `src/services/aiService.js` - Conversation history in API calls
+- **Frontend**: User ID fields in ConfigPanel for memory isolation
+- **Features**: 
+  - 20 messages per user stored
+  - 10 recent messages sent to Claude API
+  - Automatic memory management
+  - Per-user conversation isolation
+
+### 🔄 **Node Architecture Updates**
+- **Controller**: `src/api/controllers/nodeController.js` - Connected nodes support
+- **Frontend**: Auto-detection of connected Data Storage nodes
+- **Memory Integration**: AI Agent ↔ Model Node memory sharing
+- **Enhanced Logging**: Comprehensive debugging for node connections
+
+### 🛠 **Technical Implementation**
+```
+Data Storage → AI Agent → Model Node
+     ↓            ↓          ↓
+ Store Data → Smart AI → Memory
+```
+
+**Data Flow:**
+1. **Data Storage**: Stores products, info, settings
+2. **AI Agent**: Automatically accesses stored data + conversation memory
+3. **Model Node**: Displays responses + stores conversation history
+
+**Memory Structure:**
+```javascript
+conversationMemory = {
+  "user_id_1": [...20_messages],
+  "user_id_2": [...20_messages]
+}
+```
+
 ---
 
 *Last updated: 2025-07-30*  
-*Major features: Google Docs integration, OAuth2 authentication, Document automation*  
-*Claude AI assisted with complete workflow automation implementation including Google Drive integration*  
-*OAuth2 debugging session: 4 credential updates, complete Passport.js implementation*
+*Major features: Google Docs integration, OAuth2 authentication, Document automation, Data Storage, Conversation Memory*  
+*Claude AI assisted with complete workflow automation implementation including Google Drive integration + intelligent data management*  
+*Latest: Data Storage Node, Smart AI Integration, Conversation Memory System*

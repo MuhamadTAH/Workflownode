@@ -156,15 +156,21 @@ const aiAgentNode = {
         // For now, we only support Claude. Can add more models later.
         if (model.startsWith('claude')) {
             const response = await callClaudeApi(apiKey, processedUserPrompt, enhancedSystemPrompt, conversationHistory);
+            
+            // Handle both old string format and new object format with timing
+            const responseText = typeof response === 'string' ? response : response.text;
+            const processingTime = typeof response === 'object' ? response.processingTime : null;
+            
             return { 
-                reply: response,
+                reply: responseText,
                 model: model,
                 systemPrompt: enhancedSystemPrompt,
                 processedUserPrompt: processedUserPrompt,
                 availableData: availableData,
                 dataStorageConnected: Object.keys(availableData).length > 0,
                 userId: userId,
-                userMessage: processedUserPrompt
+                userMessage: processedUserPrompt,
+                processingTime: processingTime
             };
         } else {
             // Placeholder for other models

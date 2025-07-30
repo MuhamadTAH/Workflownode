@@ -51,6 +51,58 @@ const runNode = async (req, res) => {
     }
 };
 
+// Memory management endpoints
+const getMemoryStats = async (req, res) => {
+    try {
+        const { userId = 'all' } = req.query;
+        const stats = modelNode.getMemoryStats(userId);
+        res.status(200).json(stats);
+    } catch (error) {
+        console.error('Error getting memory stats:', error.message);
+        res.status(500).send({ message: 'Failed to get memory stats.', error: error.message });
+    }
+};
+
+const clearMemory = async (req, res) => {
+    try {
+        const { userId = 'default' } = req.body;
+        const success = modelNode.clearMemory(userId);
+        res.status(200).json({ success, message: `Memory cleared for ${userId === 'all' ? 'all users' : 'user: ' + userId}` });
+    } catch (error) {
+        console.error('Error clearing memory:', error.message);
+        res.status(500).send({ message: 'Failed to clear memory.', error: error.message });
+    }
+};
+
+const exportMemory = async (req, res) => {
+    try {
+        const { userId = 'all' } = req.query;
+        const memoryData = modelNode.exportMemory(userId);
+        res.status(200).json({ data: memoryData, userId });
+    } catch (error) {
+        console.error('Error exporting memory:', error.message);
+        res.status(500).send({ message: 'Failed to export memory.', error: error.message });
+    }
+};
+
+const importMemory = async (req, res) => {
+    try {
+        const { jsonData, userId = null } = req.body;
+        if (!jsonData) {
+            return res.status(400).send({ message: 'JSON data is required for import.' });
+        }
+        const success = modelNode.importMemory(jsonData, userId);
+        res.status(200).json({ success, message: success ? 'Memory imported successfully' : 'Failed to import memory' });
+    } catch (error) {
+        console.error('Error importing memory:', error.message);
+        res.status(500).send({ message: 'Failed to import memory.', error: error.message });
+    }
+};
+
 module.exports = {
     runNode,
+    getMemoryStats,
+    clearMemory,
+    exportMemory,
+    importMemory,
 };
