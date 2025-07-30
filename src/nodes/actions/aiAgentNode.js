@@ -161,6 +161,18 @@ const aiAgentNode = {
             const responseText = typeof response === 'string' ? response : response.text;
             const processingTime = typeof response === 'object' ? response.processingTime : null;
             
+            // Store conversation in memory for future reference
+            const conversationEntry = {
+                timestamp: new Date().toISOString(),
+                user: processedUserPrompt,
+                ai: responseText,
+                userMessageLength: processedUserPrompt.length,
+                aiResponseLength: responseText.length,
+                model: model,
+                processingTime: processingTime
+            };
+            modelNode.addToMemory(userId, conversationEntry);
+            
             return { 
                 reply: responseText,
                 model: model,

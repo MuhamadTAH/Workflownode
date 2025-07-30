@@ -230,6 +230,25 @@ const modelNode = {
             return false;
         }
     },
+
+    // Helper function to add conversation entry to memory (used by AI Agent)
+    addToMemory(userId, conversationEntry) {
+        // Initialize memory for user if it doesn't exist
+        if (!conversationMemory[userId]) {
+            conversationMemory[userId] = [];
+        }
+
+        // Add the conversation entry
+        conversationMemory[userId].push(conversationEntry);
+
+        // Keep only last 20 messages to manage memory
+        if (conversationMemory[userId].length > 20) {
+            conversationMemory[userId] = conversationMemory[userId].slice(-20);
+        }
+
+        console.log(`Added conversation entry for user ${userId}. Total messages: ${conversationMemory[userId].length}`);
+        return true;
+    },
 };
 
 module.exports = modelNode;

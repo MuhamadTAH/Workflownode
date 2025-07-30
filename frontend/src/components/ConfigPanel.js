@@ -744,12 +744,28 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       const response = await fetch(config.BACKEND_URL + '/api/nodes/memory/stats?userId=' + userId, {
         credentials: 'include'
       });
+      
+      // Check if response is HTML (404 error) instead of JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        console.warn('Memory stats endpoint not available yet (likely not deployed)');
+        setMemoryQuickStats({ 
+          messageCount: 0, 
+          error: 'Memory stats not available - endpoint not deployed yet' 
+        });
+        return;
+      }
+      
       const result = await response.json();
       if (response.ok) {
         setMemoryQuickStats(result);
       }
     } catch (error) {
       console.error('Error loading quick memory stats:', error);
+      setMemoryQuickStats({ 
+        messageCount: 0, 
+        error: 'Memory stats unavailable' 
+      });
     }
   };
 
@@ -1086,6 +1102,14 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           const statsResponse = await fetch(config.BACKEND_URL + '/api/nodes/memory/stats?userId=' + userId, {
             credentials: 'include'
           });
+          
+          // Check if response is HTML (404 error) instead of JSON
+          const contentType = statsResponse.headers.get('content-type');
+          if (contentType && contentType.includes('text/html')) {
+            setMemoryActionResult('Memory management endpoints are not yet deployed to Render.\n\nThe new memory features were just committed but need time to deploy.\n\nPlease wait a few minutes for the deployment to complete, then try again.');
+            break;
+          }
+          
           const statsResult = await statsResponse.json();
           if (statsResponse.ok) {
             setMemoryActionResult('Memory Stats for ' + userId + ':\n' + JSON.stringify(statsResult, null, 2));
