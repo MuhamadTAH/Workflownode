@@ -6,20 +6,40 @@ This service handles all communications with external AI APIs.
 */
 const axios = require('axios');
 
-const callClaudeApi = async (apiKey, userMessage, systemPrompt = 'You are a helpful AI assistant.') => {
+const callClaudeApi = async (apiKey, userMessage, systemPrompt = 'You are a helpful AI assistant.', conversationHistory = []) => {
     try {
         // Ensure system prompt is not empty or undefined
         const finalSystemPrompt = systemPrompt && systemPrompt.trim() ? systemPrompt.trim() : 'You are a helpful AI assistant.';
         
+        // Build messages array with conversation history
+        const messages = [];
+        
+        // Add conversation history (last 10 messages to stay within limits)
+        if (conversationHistory && conversationHistory.length > 0) {
+            const recentHistory = conversationHistory.slice(-10);
+            for (const exchange of recentHistory) {
+                if (exchange.user) {
+                    messages.push({ role: 'user', content: exchange.user });
+                }
+                if (exchange.ai) {
+                    messages.push({ role: 'assistant', content: exchange.ai });
+                }
+            }
+        }
+        
+        // Add current user message
+        messages.push({ role: 'user', content: userMessage });
+        
         // Debug logging to see what prompts are being sent
         console.log('🔍 Claude API Call Debug:');
         console.log('📝 System Prompt:', finalSystemPrompt);
-        console.log('💬 User Message:', userMessage);
+        console.log('💬 Current Message:', userMessage);
+        console.log('🧠 Conversation History:', conversationHistory ? conversationHistory.length : 0, 'messages');
         
         const requestBody = {
             model: 'claude-3-5-sonnet-20241022',
             max_tokens: 1024,
-            messages: [{ role: 'user', content: userMessage }],
+            messages: messages,
             system: finalSystemPrompt
         };
         

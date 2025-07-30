@@ -402,7 +402,9 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       documentTitle: node.data.documentTitle || 'New Document',
       content: node.data.content || '{{message}}',
       // Data Storage specific fields
-      storedData: node.data.storedData || {}
+      storedData: node.data.storedData || {},
+      // Memory fields
+      userId: node.data.userId || 'default'
   });
   
   // Initialize storedData if it doesn't exist for dataStorage nodes
@@ -1008,6 +1010,18 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
               {node.data.type === 'modelNode' && (
                 <>
                   <div className="form-group">
+                    <label htmlFor="userId">User ID (for memory)</label>
+                    <input 
+                      type="text" 
+                      name="userId" 
+                      id="userId" 
+                      value={formData.userId} 
+                      onChange={handleInputChange} 
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                      placeholder="default" 
+                    />
+                  </div>
+                  <div className="form-group">
                     <label htmlFor="displayFormat">Display Format</label>
                     <select name="displayFormat" id="displayFormat" value={formData.displayFormat} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-white">
                       <option value="chat">Chat Interface</option>
@@ -1015,7 +1029,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     </select>
                   </div>
                   <div className="text-xs text-gray-500 mb-2">
-                    💡 Model Node displays AI responses. Connect an AI Agent node to process prompts.
+                    💡 Model Node displays AI responses with memory. Each User ID has separate conversation history.
                   </div>
                 </>
               )}
@@ -1023,6 +1037,18 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
               {/* Fields for AI Agent Node */}
               {node.data.type === 'aiAgent' && (
                 <>
+                  <div className="form-group">
+                    <label htmlFor="userId">User ID (for memory)</label>
+                    <input 
+                      type="text" 
+                      name="userId" 
+                      id="userId" 
+                      value={formData.userId} 
+                      onChange={handleInputChange} 
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                      placeholder="default" 
+                    />
+                  </div>
                   <div className="form-group">
                     <label htmlFor="model">Model</label>
                     <select name="model" id="model" value={formData.model} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-white">

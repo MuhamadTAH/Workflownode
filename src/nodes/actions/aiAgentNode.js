@@ -148,16 +148,23 @@ const aiAgentNode = {
         // Enhanced system prompt with data storage information
         const enhancedSystemPrompt = systemPrompt + dataStorageInfo;
 
+        // Get conversation history from Model Node if available
+        const modelNode = require('./modelNode');
+        const userId = nodeConfig.userId || 'default';
+        const conversationHistory = modelNode.getConversationHistory(userId);
+
         // For now, we only support Claude. Can add more models later.
         if (model.startsWith('claude')) {
-            const response = await callClaudeApi(apiKey, processedUserPrompt, enhancedSystemPrompt);
+            const response = await callClaudeApi(apiKey, processedUserPrompt, enhancedSystemPrompt, conversationHistory);
             return { 
                 reply: response,
                 model: model,
                 systemPrompt: enhancedSystemPrompt,
                 processedUserPrompt: processedUserPrompt,
                 availableData: availableData,
-                dataStorageConnected: Object.keys(availableData).length > 0
+                dataStorageConnected: Object.keys(availableData).length > 0,
+                userId: userId,
+                userMessage: processedUserPrompt
             };
         } else {
             // Placeholder for other models
