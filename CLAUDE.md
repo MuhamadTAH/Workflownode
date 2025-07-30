@@ -271,8 +271,70 @@ BASE_URL=https://workflownode.onrender.com
 - ✅ **HTTPS endpoints**: All production APIs use secure connections
 - ✅ **Token management**: Authentication tokens handled server-side only
 
+## Google Docs OAuth2 Debugging Session
+
+### Issue: Google OAuth2 Authentication Not Working
+**Date**: July 30, 2025  
+**Problem**: OAuth2 popup completes successfully but ConfigPanel doesn't detect authentication  
+**Root Cause**: OAuth callback endpoint not being reached properly
+
+### Debugging Attempts Made:
+
+#### Attempt 1: Template Literal Syntax Errors (SUCCESS ✅)
+- **Issue**: Frontend compilation failing due to template literals in ConfigPanel.js
+- **Solution**: Converted all template literals to string concatenation
+- **Files Modified**: `frontend/src/components/ConfigPanel.js`
+- **Result**: Frontend now compiles successfully
+- **Commits**: 4144f3f, 30c28ec
+
+#### Attempt 2: Cross-Origin-Opener-Policy (COOP) Issues (PARTIAL ✅)
+- **Issue**: `window.closed` check blocked by COOP policy
+- **Solution**: Removed dependency on `window.closed`, implemented pure polling
+- **Files Modified**: `frontend/src/components/ConfigPanel.js`
+- **Result**: No more COOP errors, but authentication still not detected
+
+#### Attempt 3: OAuth Callback Debugging (IN PROGRESS 🔄)
+- **Issue**: OAuth callback endpoint never being called
+- **Current Status**: Backend shows no callback hits, suggesting Google OAuth config issue
+- **Files Modified**: 
+  - `server.js` - Enhanced OAuth callback with detailed logging
+  - `.env` - Updated OAuth credentials 3 times
+- **Test File Created**: `test-oauth.html` for isolated OAuth testing
+
+### OAuth Credentials History:
+1. **First Set**: [REDACTED-CLIENT-ID-1] + [REDACTED-SECRET-1]
+2. **Second Set**: [REDACTED-CLIENT-ID-2] + [REDACTED-SECRET-2]
+3. **Current Set**: [REDACTED-CLIENT-ID-3] + [REDACTED-SECRET-3]
+
+### Current OAuth Configuration:
+- **Client ID**: [CONFIGURED IN .env FILE]
+- **Client Secret**: [CONFIGURED IN .env FILE]
+- **Redirect URI**: `http://localhost:10000/oauth2callback`
+- **Required Google Console Settings**:
+  - Authorized JavaScript origins: `http://localhost:3005`, `http://localhost:10000`
+  - Authorized redirect URIs: `http://localhost:10000/oauth2callback`
+
+### Enhanced Debugging Features Added:
+- **Backend OAuth Callback**: Detailed logging with request query parameters
+- **Frontend Polling**: 1-second polling with comprehensive console logging
+- **Auth Status Endpoint**: Enhanced with token existence checking
+- **Test Page**: Standalone OAuth test (`test-oauth.html`)
+
+### Next Steps Needed:
+1. Verify Google Cloud Console OAuth2 client configuration
+2. Test OAuth URL directly in browser
+3. Check if OAuth callback endpoint receives any requests
+4. Verify Google OAuth consent screen is properly configured
+
+### Files Modified During Session:
+- `frontend/src/components/ConfigPanel.js` - Fixed template literals, improved OAuth polling
+- `server.js` - Enhanced OAuth callback debugging
+- `.env` - Updated OAuth credentials (3 iterations)
+- `test-oauth.html` - Created OAuth testing tool
+
 ---
 
 *Last updated: 2025-07-30*  
 *Major features: Google Docs integration, OAuth2 authentication, Document automation*  
-*Claude AI assisted with complete workflow automation implementation including Google Drive integration*
+*Claude AI assisted with complete workflow automation implementation including Google Drive integration*  
+*OAuth2 debugging session: 3 credential updates, 5+ debugging attempts*

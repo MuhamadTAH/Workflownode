@@ -30,7 +30,8 @@
       "Bash(npx:*)",
       "Bash(ls:*)",
       "Bash(grep:*)",
-      "Bash(node server.js)"
+      "Bash(node server.js)",
+      "Bash(tasklist)"
     ],
     "deny": []
   }

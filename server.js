@@ -11,6 +11,11 @@ const { google } = require('googleapis');
 dotenv.config();
 
 // Initialize Google OAuth2 Client
+console.log('Initializing OAuth2 client with:');
+console.log('CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Present' : 'Missing');
+console.log('CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Present' : 'Missing');
+console.log('REDIRECT_URI:', process.env.REDIRECT_URI);
+
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
@@ -53,20 +58,85 @@ app.get('/auth/google', (req, res) => {
 });
 
 app.get('/oauth2callback', async (req, res) => {
-  const { code } = req.query;
+  console.log('=== OAuth callback HIT ===');
+  console.log('Full request query:', req.query);
+  
+  const { code, error } = req.query;
+  
+  if (error) {
+    console.log('OAuth error received:', error);
+    return res.status(400).send(`
+      <html>
+        <body>
+          <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+            <h2>❌ OAuth Error</h2>
+            <p>Error: ${error}</p>
+            <p>Please check your Google OAuth configuration.</p>
+          </div>
+        </body>
+      </html>
+    `);
+  }
+  
+  console.log('OAuth callback received with code:', code ? 'Present' : 'Missing');
+  
+  if (!code) {
+    return res.status(400).send(`
+      <html>
+        <body>
+          <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+            <h2>❌ No Authorization Code</h2>
+            <p>No authorization code received from Google.</p>
+            <p>Please try the authentication flow again.</p>
+          </div>
+        </body>
+      </html>
+    `);
+  }
+  
   try {
+    console.log('Attempting to exchange code for tokens...');
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
     // Store tokens globally
     global.tokens = tokens;
-    res.send('<script>window.close();</script>');
+    console.log('OAuth tokens stored successfully:', Object.keys(tokens));
+    
+    // Send a success page that closes automatically
+    res.send(`
+      <html>
+        <body>
+          <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+            <h2>✅ Authentication Successful!</h2>
+            <p>You can close this window now.</p>
+            <script>
+              setTimeout(() => {
+                window.close();
+              }, 2000);
+            </script>
+          </div>
+        </body>
+      </html>
+    `);
   } catch (error) {
     console.error('Error getting OAuth2 tokens:', error);
-    res.status(500).send('Authentication failed');
+    res.status(500).send(`
+      <html>
+        <body>
+          <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+            <h2>❌ Authentication Failed</h2>
+            <p>Error: ${error.message}</p>
+            <p>Please try again.</p>
+          </div>
+        </body>
+      </html>
+    `);
   }
 });
 
 app.get('/auth/status', async (req, res) => {
+  console.log('Auth status check - tokens exist:', !!global.tokens);
+  
   if (!global.tokens) {
     return res.json({ isAuthenticated: false });
   }
@@ -75,13 +145,14 @@ app.get('/auth/status', async (req, res) => {
     oauth2Client.setCredentials(global.tokens);
     const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
     const userInfo = await oauth2.userinfo.get();
+    console.log('Auth status check successful - user:', userInfo.data.email);
     res.json({ 
       isAuthenticated: true, 
       email: userInfo.data.email 
     });
   } catch (error) {
     console.error('Error checking auth status:', error);
-    res.json({ isAuthenticated: false });
+    res.json({ isAuthenticated: false, error: error.message });
   }
 });
 

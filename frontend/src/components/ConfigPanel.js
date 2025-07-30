@@ -535,28 +535,28 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       // Open Google OAuth in a new window
       const authWindow = window.open(result.url, 'google-auth', 'width=500,height=600');
       
-      // Alternative approach: Check auth status periodically instead of window.closed
+      // Check auth status periodically (can't rely on window.closed due to COOP)
       const pollTimer = setInterval(async () => {
         try {
-          // Try to check if window is closed (will show warning but still works)
-          if (authWindow.closed) {
-            clearInterval(pollTimer);
-            // Check auth status after window closes
-            setTimeout(() => {
-              checkGoogleAuthStatus();
-            }, 1000);
-            return;
-          }
-        } catch (e) {
-          // Window.closed check failed due to CORS, just check auth status
+          console.log('Polling auth status...');
           const authCheck = await fetch(config.BACKEND_URL + '/auth/status');
           const authResult = await authCheck.json();
+          console.log('Auth check result:', authResult);
+          
           if (authResult.isAuthenticated) {
+            console.log('Authentication successful! Updating status...');
             clearInterval(pollTimer);
+            try {
+              authWindow.close();
+            } catch (e) {
+              console.log('Could not close auth window (this is normal):', e.message);
+            }
             setGoogleAuthStatus(authResult);
           }
+        } catch (e) {
+          console.error('Error in auth polling:', e);
         }
-      }, 2000); // Check every 2 seconds
+      }, 1000); // Check every 1 second for faster detection
       
       // Fallback: Stop polling after 5 minutes
       setTimeout(() => {
