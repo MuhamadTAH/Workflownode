@@ -29,7 +29,8 @@
       "Bash(curl:*)",
       "Bash(npx:*)",
       "Bash(ls:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(node server.js)"
     ],
     "deny": []
   }
