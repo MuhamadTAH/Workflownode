@@ -58,6 +58,14 @@ const Sidebar = ({ onSave, onRestore, onActivate }) => {
         />
         <DraggableNode 
           nodeInfo={{ 
+              label: 'Data Storage', 
+              icon: 'fa-solid fa-database', 
+              description: 'Store and retrieve personal data',
+              type: 'dataStorage'
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
               label: 'Telegram Trigger', 
               icon: 'fa-brands fa-telegram', 
               description: 'Starts workflow on a new message',

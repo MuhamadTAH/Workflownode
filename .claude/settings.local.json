@@ -32,7 +32,8 @@
       "Bash(grep:*)",
       "Bash(node server.js)",
       "Bash(tasklist)",
-      "Bash(cmd //c:*)"
+      "Bash(cmd //c:*)",
+      "Bash(git reset:*)"
     ],
     "deny": []
   }

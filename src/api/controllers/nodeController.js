@@ -8,6 +8,7 @@ This controller contains the logic to execute a specific node.
 const aiAgentNode = require('../../nodes/actions/aiAgentNode');
 const modelNode = require('../../nodes/actions/modelNode');
 const googleDocsNode = require('../../nodes/actions/googleDocsNode');
+const DataStorageNode = require('../../nodes/actions/dataStorageNode');
 
 const runNode = async (req, res) => {
     try {
@@ -30,6 +31,10 @@ const runNode = async (req, res) => {
                 break;
             case 'googleDocs':
                 result = await googleDocsNode.execute(node.config, inputData);
+                break;
+            case 'dataStorage':
+                const dataStorageInstance = new DataStorageNode(node.config);
+                result = await dataStorageInstance.process(inputData);
                 break;
             default:
                 return res.status(400).send({ message: `Node type "${node.type}" is not supported.` });

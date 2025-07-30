@@ -400,8 +400,17 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       action: node.data.action || 'get',
       documentUrl: node.data.documentUrl || '',
       documentTitle: node.data.documentTitle || 'New Document',
-      content: node.data.content || '{{message}}'
+      content: node.data.content || '{{message}}',
+      // Data Storage specific fields
+      storedData: node.data.storedData || {}
   });
+  
+  // Initialize storedData if it doesn't exist for dataStorage nodes
+  useEffect(() => {
+    if (node.data.type === 'dataStorage' && !formData.storedData) {
+      setFormData(prev => ({ ...prev, storedData: {} }));
+    }
+  }, [node.data.type, formData.storedData]);
   
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [apiKeyVerificationStatus, setApiKeyVerificationStatus] = useState(null);
@@ -877,7 +886,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     setOutputData(null);
     
     try {
-      if (node.data.type === 'modelNode' || node.data.type === 'aiAgent' || node.data.type === 'googleDocs') {
+      if (node.data.type === 'modelNode' || node.data.type === 'aiAgent' || node.data.type === 'googleDocs' || node.data.type === 'dataStorage') {
         // Process through the node
         const response = await fetch(config.BACKEND_URL + '/api/nodes/run-node', {
           method: 'POST',
@@ -1146,6 +1155,87 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     {!googleAuthStatus?.isAuthenticated && (
                       <><br />Connect your Google account above to use Google Docs actions.</>
                     )}
+                  </div>
+                </>
+              )}
+
+              {/* Fields for Data Storage Node */}
+              {node.data.type === 'dataStorage' && (
+                <>
+                  <div className="form-group">
+                    <label>Action</label>
+                    <select
+                      name="action"
+                      value={formData.action}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-md"
+                    >
+                      <option value="retrieve">Retrieve Data</option>
+                      <option value="store">Store Data</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Stored Data Fields</label>
+                    <div className="text-xs text-gray-500 mb-2">
+                      Add key-value pairs of data you want to store. Other nodes can access these fields.
+                    </div>
+                    
+                    {/* Dynamic fields for stored data */}
+                    <div className="space-y-2">
+                      {formData.storedData && Object.entries(formData.storedData).map(([key, value], index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            placeholder="Field name (e.g., name, email)"
+                            value={key}
+                            onChange={(e) => {
+                              const newStoredData = { ...formData.storedData };
+                              delete newStoredData[key];
+                              newStoredData[e.target.value] = value;
+                              setFormData(prev => ({ ...prev, storedData: newStoredData }));
+                            }}
+                            className="flex-1 p-2 border border-gray-300 rounded text-sm"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Value"
+                            value={value}
+                            onChange={(e) => {
+                              const newStoredData = { ...formData.storedData };
+                              newStoredData[key] = e.target.value;
+                              setFormData(prev => ({ ...prev, storedData: newStoredData }));
+                            }}
+                            className="flex-1 p-2 border border-gray-300 rounded text-sm"
+                          />
+                          <button
+                            onClick={() => {
+                              const newStoredData = { ...formData.storedData };
+                              delete newStoredData[key];
+                              setFormData(prev => ({ ...prev, storedData: newStoredData }));
+                            }}
+                            className="bg-red-500 text-white px-2 py-1 text-sm rounded hover:bg-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      
+                      <button
+                        onClick={() => {
+                          const newStoredData = { ...formData.storedData, ['newField']: '' };
+                          setFormData(prev => ({ ...prev, storedData: newStoredData }));
+                        }}
+                        className="bg-green-500 text-white px-3 py-2 text-sm rounded hover:bg-green-600"
+                      >
+                        + Add Field
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-gray-500 mb-2">
+                    Data Storage: Store personal information, settings, or any data that other nodes can access. 
+                    Use drag-and-drop from output to create templates like {"{{name}}"} or {"{{email}}"}.
                   </div>
                 </>
               )}
