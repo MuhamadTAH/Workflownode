@@ -186,10 +186,7 @@ const UniversalLivePreview = ({ text, data, isFocused }) => {
   );
 };
 
-// Keep the old TemplatePreview for backward compatibility
-const TemplatePreview = ({ template, data }) => {
-  return <UniversalLivePreview text={template} data={data} isFocused={true} />;
-};
+// Template preview functionality moved to UniversalLivePreview
 
 // Enhanced Text Input with live preview (for regular inputs)
 const EnhancedTextInput = ({ label, name, value, onChange, placeholder, rows, className = "", inputData, type = "text" }) => {
@@ -625,7 +622,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 throw new Error('Delete webhook failed with status: ' + deleteResponse.status);
               }
             } else {
-              const deleteResult = await deleteResponse.json();
               console.log('Webhook deleted successfully, retrying getUpdates...');
             }
             
