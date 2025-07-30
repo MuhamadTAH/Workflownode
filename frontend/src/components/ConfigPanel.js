@@ -61,7 +61,7 @@ const DraggableJSONField = ({ path, value, level = 0 }) => {
           className="text-blue-600 font-mono text-sm cursor-grab hover:bg-blue-100 px-1 rounded drag-field"
           draggable="true"
           onDragStart={handleDragStart}
-          title={`Drag to insert {{${path}}}'}
+          title={'Drag to insert {{' + path + '}}'}
         >
           {path.split('.').pop()}
         </span>
