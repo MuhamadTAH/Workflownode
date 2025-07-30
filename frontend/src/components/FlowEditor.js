@@ -13,7 +13,7 @@ import 'reactflow/dist/style.css';
 // Corrected import paths for a flat structure
 import Sidebar from './Sidebar';
 import CustomNode from './CustomNode';
-import ConfigPanel from './ConfigPanel';
+import  from './ConfigPanel';
 import './CustomNode.css';
 import './ConfigPanel.css';
 

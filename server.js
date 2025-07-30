@@ -6,6 +6,9 @@ BACKEND FILE: server.js (UPDATED)
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const session = require('express-session');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { google } = require('googleapis');
 
 dotenv.config();
@@ -22,8 +25,7 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.REDIRECT_URI
 );
 
-// Store tokens in memory (in production, use a database)
-let tokens = null;
+// Tokens are now stored in user sessions
 
 const webhookRoutes = require('./src/api/routes/webhooks');
 const workflowRoutes = require('./src/api/routes/workflows');
@@ -34,7 +36,62 @@ const aiRoutes = require('./src/api/routes/ai'); // <-- Import new routes
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-app.use(cors());
+// Configure CORS with credentials
+app.use(cors({
+  origin: [
+    'http://localhost:3005', 
+    'http://localhost:3000', 
+    'https://workflownode.onrender.com',
+    'https://workflownode-1.onrender.com' // Add frontend URL
+  ],
+  credentials: true
+}));
+
+// Configure session with secure cookies for Render
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-workflow-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false, // Changed to false for better security
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // true on Render (HTTPS)
+    httpOnly: true,
+    sameSite: 'none', // Required for cross-origin cookies on Render
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport serialization
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+
+passport.deserializeUser((obj, done) => {
+  done(null, obj);
+});
+
+// Google OAuth Strategy
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: process.env.REDIRECT_URI
+}, async (accessToken, refreshToken, profile, done) => {
+  // Store both profile and tokens
+  const user = {
+    id: profile.id,
+    name: profile.displayName,
+    email: profile.emails[0].value,
+    tokens: {
+      access_token: accessToken,
+      refresh_token: refreshToken
+    }
+  };
+  return done(null, user);
+}));
+
 app.use(express.json());
 
 app.get('/', (req, res) => {
@@ -48,66 +105,37 @@ app.use('/api/nodes', nodeRoutes);
 app.use('/api/ai', aiRoutes); // <-- Register new routes
 
 // Google OAuth2 Authentication Routes
-app.get('/auth/google', (req, res) => {
-  const scopes = ['https://www.googleapis.com/auth/documents'];
-  const url = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: scopes,
-  });
-  res.json({ url });
-});
+// Google OAuth routes using Passport
+app.get('/auth/google', 
+  passport.authenticate('google', { 
+    scope: ['profile', 'email', 'https://www.googleapis.com/auth/documents'],
+    accessType: 'offline',
+    prompt: 'consent'
+  })
+);
 
-app.get('/oauth2callback', async (req, res) => {
-  console.log('=== OAuth callback HIT ===');
-  console.log('Full request query:', req.query);
-  
-  const { code, error } = req.query;
-  
-  if (error) {
-    console.log('OAuth error received:', error);
-    return res.status(400).send(`
-      <html>
-        <body>
-          <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-            <h2>❌ OAuth Error</h2>
-            <p>Error: ${error}</p>
-            <p>Please check your Google OAuth configuration.</p>
-          </div>
-        </body>
-      </html>
-    `);
-  }
-  
-  console.log('OAuth callback received with code:', code ? 'Present' : 'Missing');
-  
-  if (!code) {
-    return res.status(400).send(`
-      <html>
-        <body>
-          <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-            <h2>❌ No Authorization Code</h2>
-            <p>No authorization code received from Google.</p>
-            <p>Please try the authentication flow again.</p>
-          </div>
-        </body>
-      </html>
-    `);
-  }
-  
-  try {
-    console.log('Attempting to exchange code for tokens...');
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
-    // Store tokens globally
-    global.tokens = tokens;
-    console.log('OAuth tokens stored successfully:', Object.keys(tokens));
+app.get('/oauth2callback',
+  passport.authenticate('google', {
+    failureRedirect: '/',
+    session: true
+  }),
+  function (req, res) {
+    console.log('=== OAuth callback successful ===');
+    console.log('👤 User authenticated:', req.user.email);
+    console.log('🔐 Session ID:', req.sessionID);
+    console.log('🍪 Setting session cookie for user:', req.user.name);
     
-    // Send a success page that closes automatically
+    // Redirect back to frontend after successful authentication
+    const frontendUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://workflownode-1.onrender.com' 
+      : 'http://localhost:3005';
+      
     res.send(`
       <html>
         <body>
           <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
             <h2>✅ Authentication Successful!</h2>
+            <p>Welcome ${req.user.name}!</p>
             <p>You can close this window now.</p>
             <script>
               setTimeout(() => {
@@ -118,49 +146,35 @@ app.get('/oauth2callback', async (req, res) => {
         </body>
       </html>
     `);
-  } catch (error) {
-    console.error('Error getting OAuth2 tokens:', error);
-    res.status(500).send(`
-      <html>
-        <body>
-          <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-            <h2>❌ Authentication Failed</h2>
-            <p>Error: ${error.message}</p>
-            <p>Please try again.</p>
-          </div>
-        </body>
-      </html>
-    `);
   }
-});
+);
 
-app.get('/auth/status', async (req, res) => {
-  console.log('Auth status check - tokens exist:', !!global.tokens);
+app.get('/auth/status', (req, res) => {
+  console.log('=== Auth Status Check ===');
+  console.log('🧪 Cookies:', req.headers.cookie || 'No cookies');
+  console.log('🔐 Session ID:', req.sessionID || 'No session ID');
+  console.log('👤 User authenticated:', !!req.user);
+  console.log('📧 Session passport user:', req.user ? req.user.email : 'None');
   
-  if (!global.tokens) {
+  if (!req.user) {
+    console.log('❌ User not authenticated - returning false');
     return res.json({ isAuthenticated: false });
   }
   
-  try {
-    oauth2Client.setCredentials(global.tokens);
-    const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
-    const userInfo = await oauth2.userinfo.get();
-    console.log('Auth status check successful - user:', userInfo.data.email);
-    res.json({ 
-      isAuthenticated: true, 
-      email: userInfo.data.email 
-    });
-  } catch (error) {
-    console.error('Error checking auth status:', error);
-    res.json({ isAuthenticated: false, error: error.message });
-  }
+  console.log('✅ User authenticated - returning user info');
+  // Return user info from Passport session
+  res.json({ 
+    isAuthenticated: true, 
+    email: req.user.email,
+    name: req.user.name
+  });
 });
 
 // Google Docs API Routes
 app.post('/api/get-doc', async (req, res) => {
   const { docUrl } = req.body;
   
-  if (!global.tokens) {
+  if (!req.user || !req.user.tokens) {
     return res.status(401).json({ error: 'Not authenticated with Google' });
   }
   
@@ -172,7 +186,7 @@ app.post('/api/get-doc', async (req, res) => {
     }
     const documentId = match[1];
     
-    oauth2Client.setCredentials(global.tokens);
+    oauth2Client.setCredentials(req.user.tokens);
     const docs = google.docs({ version: 'v1', auth: oauth2Client });
     
     const doc = await docs.documents.get({ documentId });
@@ -205,7 +219,7 @@ app.post('/api/get-doc', async (req, res) => {
 app.post('/api/update-doc', async (req, res) => {
   const { docUrl, content } = req.body;
   
-  if (!global.tokens) {
+  if (!req.user || !req.user.tokens) {
     return res.status(401).json({ error: 'Not authenticated with Google' });
   }
   
@@ -217,7 +231,7 @@ app.post('/api/update-doc', async (req, res) => {
     }
     const documentId = match[1];
     
-    oauth2Client.setCredentials(global.tokens);
+    oauth2Client.setCredentials(req.user.tokens);
     const docs = google.docs({ version: 'v1', auth: oauth2Client });
     
     // First get the document to find the end index
@@ -247,12 +261,12 @@ app.post('/api/update-doc', async (req, res) => {
 app.post('/api/create-doc', async (req, res) => {
   const { title } = req.body;
   
-  if (!global.tokens) {
+  if (!req.user || !req.user.tokens) {
     return res.status(401).json({ error: 'Not authenticated with Google' });
   }
   
   try {
-    oauth2Client.setCredentials(global.tokens);
+    oauth2Client.setCredentials(req.user.tokens);
     const docs = google.docs({ version: 'v1', auth: oauth2Client });
     
     const doc = await docs.documents.create({

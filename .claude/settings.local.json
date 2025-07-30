@@ -31,7 +31,8 @@
       "Bash(ls:*)",
       "Bash(grep:*)",
       "Bash(node server.js)",
-      "Bash(tasklist)"
+      "Bash(tasklist)",
+      "Bash(cmd //c:*)"
     ],
     "deny": []
   }

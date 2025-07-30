@@ -1,6 +1,6 @@
 /*
 =================================================================
-FRONTEND FILE: src/components/ConfigPanel.js (CORRECTED)
+FRONTEND FILE: src/components/.js (CORRECTED)
 =================================================================
 */
 import React, { useState, useEffect, useRef } from 'react';
@@ -304,7 +304,7 @@ const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, c
   );
 };
 
-// Chatbot UI is now part of the ConfigPanel
+// Chatbot UI is now part of the 
 const ChatbotInterface = ({ nodeConfig }) => {
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState('');
@@ -330,6 +330,7 @@ const ChatbotInterface = ({ nodeConfig }) => {
             const response = await fetch(config.BACKEND_URL + '/api/nodes/run-node', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({
                     node: {
                         type: 'modelNode',
@@ -516,7 +517,9 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   const checkGoogleAuthStatus = async () => {
     try {
-      const response = await fetch(config.BACKEND_URL + '/auth/status');
+      const response = await fetch(config.BACKEND_URL + '/auth/status', {
+        credentials: 'include'
+      });
       const result = await response.json();
       setGoogleAuthStatus(result);
     } catch (error) {
@@ -526,42 +529,83 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   const handleGoogleConnect = async () => {
     try {
-      const response = await fetch(config.BACKEND_URL + '/auth/google');
-      const result = await response.json();
+      // Open Google OAuth directly (Passport handles the redirect)
+      const authUrl = config.BACKEND_URL + '/auth/google';
+      console.log('Opening Google Auth URL:', authUrl);
       
-      // Debug: Log the auth URL to console
-      console.log('Google Auth URL:', result.url);
+      const authWindow = window.open(authUrl, 'google-auth', 'width=500,height=600');
       
-      // Open Google OAuth in a new window
-      const authWindow = window.open(result.url, 'google-auth', 'width=500,height=600');
+      // Check if popup was blocked
+      if (!authWindow) {
+        console.error('Popup was blocked by browser');
+        return;
+      }
       
-      // Check auth status periodically (can't rely on window.closed due to COOP)
-      const pollTimer = setInterval(async () => {
+      console.log('Google OAuth popup opened, waiting for user to complete login...');
+      
+      // Method 1: Try to detect popup closure (works in some browsers, fails with COOP)
+      const checkClosed = setInterval(() => {
         try {
-          console.log('Polling auth status...');
-          const authCheck = await fetch(config.BACKEND_URL + '/auth/status');
-          const authResult = await authCheck.json();
-          console.log('Auth check result:', authResult);
-          
-          if (authResult.isAuthenticated) {
-            console.log('Authentication successful! Updating status...');
-            clearInterval(pollTimer);
-            try {
-              authWindow.close();
-            } catch (e) {
-              console.log('Could not close auth window (this is normal):', e.message);
-            }
-            setGoogleAuthStatus(authResult);
+          if (authWindow.closed) {
+            console.log('Popup window closed, checking authentication...');
+            clearInterval(checkClosed);
+            
+            // Check auth status once after popup closes
+            setTimeout(async () => {
+              try {
+                const authCheck = await fetch(config.BACKEND_URL + '/auth/status', {
+                  credentials: 'include'
+                });
+                const authResult = await authCheck.json();
+                console.log('Final auth check result:', authResult);
+                setGoogleAuthStatus(authResult);
+              } catch (e) {
+                console.error('Error checking final auth status:', e);
+                setGoogleAuthStatus({ isAuthenticated: false, error: 'Failed to verify authentication' });
+              }
+            }, 500); // Small delay to ensure session is saved
           }
         } catch (e) {
-          console.error('Error in auth polling:', e);
+          // COOP (Cross-Origin-Opener-Policy) blocks window.closed - this is expected and harmless
+          // The fallback polling method will handle authentication detection
         }
-      }, 1000); // Check every 1 second for faster detection
+      }, 1000); // Check less frequently to reduce COOP console noise
       
-      // Fallback: Stop polling after 5 minutes
-      setTimeout(() => {
-        clearInterval(pollTimer);
-      }, 300000);
+      // Method 2: Fallback polling (starts after 3 seconds to allow login time)
+      const fallbackTimer = setTimeout(() => {
+        console.log('Starting fallback polling for authentication...');
+        const pollTimer = setInterval(async () => {
+          try {
+            console.log('Polling auth status...');
+            const authCheck = await fetch(config.BACKEND_URL + '/auth/status', {
+              credentials: 'include'
+            });
+            const authResult = await authCheck.json();
+            console.log('Auth check result:', authResult);
+            
+            if (authResult.isAuthenticated) {
+              console.log('Authentication successful! Updating status...');
+              clearInterval(pollTimer);
+              clearInterval(checkClosed);
+              try {
+                authWindow.close();
+              } catch (e) {
+                console.log('Could not close auth window (this is normal):', e.message);
+              }
+              setGoogleAuthStatus(authResult);
+            }
+          } catch (e) {
+            console.error('Error in auth polling:', e);
+          }
+        }, 2000); // Poll every 2 seconds
+        
+        // Clear polling after 60 seconds to prevent infinite polling
+        setTimeout(() => {
+          clearInterval(pollTimer);
+          clearInterval(checkClosed);
+          console.log('Auth polling timeout reached');
+        }, 60000);
+      }, 3000); // Wait 3 seconds before starting fallback polling
       
     } catch (error) {
       setGoogleAuthStatus({ isAuthenticated: false, error: 'Failed to initiate Google authentication' });
@@ -795,6 +839,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           const response = await fetch(config.BACKEND_URL + '/api/nodes/run-node', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
               node: {
                 type: previousNode.data.type,
@@ -837,6 +882,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         const response = await fetch(config.BACKEND_URL + '/api/nodes/run-node', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             node: {
               type: node.data.type,
