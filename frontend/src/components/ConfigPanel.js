@@ -44,7 +44,7 @@ if (typeof document !== 'undefined') {
 // Draggable JSON Field Component
 const DraggableJSONField = ({ path, value, level = 0 }) => {
   const handleDragStart = (e) => {
-    e.dataTransfer.setData('text/plain', `{{${path}}}`);
+    e.dataTransfer.setData('text/plain', `{{${path}}}');
     e.dataTransfer.effectAllowed = 'copy';
   };
 
@@ -61,7 +61,7 @@ const DraggableJSONField = ({ path, value, level = 0 }) => {
           className="text-blue-600 font-mono text-sm cursor-grab hover:bg-blue-100 px-1 rounded drag-field"
           draggable="true"
           onDragStart={handleDragStart}
-          title={`Drag to insert {{${path}}}`}
+          title={`Drag to insert {{${path}}}'}
         >
           {path.split('.').pop()}
         </span>
@@ -81,7 +81,7 @@ const DraggableJSONField = ({ path, value, level = 0 }) => {
       {Object.entries(value).map(([key, val]) => (
         <DraggableJSONField 
           key={key} 
-          path={path ? `${path}.${key}` : key} 
+          path={path ? `${path}.${key}' : key} 
           value={val} 
           level={level + 1} 
         />
@@ -218,7 +218,7 @@ const EnhancedTextInput = ({ label, name, value, onChange, placeholder, rows, cl
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
-        className={`w-full p-2 border rounded-md ${isFocused ? 'ring-2 ring-blue-200' : ''} ${className}`}
+        className={`w-full p-2 border rounded-md ${isFocused ? 'ring-2 ring-blue-200' : ''} ${className}'}
       />
       {(isFocused || value) && (
         <UniversalLivePreview text={value} data={inputData} isFocused={isFocused} />
@@ -292,7 +292,7 @@ const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, c
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
-        className={`w-full p-2 border rounded-md drop-zone ${isDragOver ? 'drag-over' : ''} ${isFocused ? 'ring-2 ring-blue-200' : ''} ${className}`}
+        className={`w-full p-2 border rounded-md drop-zone ${isDragOver ? 'drag-over' : ''} ${isFocused ? 'ring-2 ring-blue-200' : ''} ${className}'}
         title="Drop template variables here"
       />
       {isDragOver && (
@@ -330,7 +330,7 @@ const ChatbotInterface = ({ nodeConfig }) => {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${config.BACKEND_URL}/api/nodes/run-node', {
+            const response = await fetch(config.BACKEND_URL + '/api/nodes/run-node', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -351,7 +351,7 @@ const ChatbotInterface = ({ nodeConfig }) => {
             setMessages(prev => [...prev, botMessage]);
 
         } catch (error) {
-            const errorMessage = { sender: 'bot', text: `Error: ${error.message}`, isError: true };
+            const errorMessage = { sender: 'bot', text: 'Error: ' + error.message, isError: true };
             setMessages(prev => [...prev, errorMessage]);
         }
         setIsLoading(false);
@@ -361,7 +361,7 @@ const ChatbotInterface = ({ nodeConfig }) => {
         <div className="chatbot-container">
             <div className="chatbot-messages">
                 {messages.map((msg, index) => (
-                    <div key={index} className={`message ${msg.sender} ${msg.isError ? 'error' : ''}`}>
+                    <div key={index} className={`message ${msg.sender} ${msg.isError ? 'error' : ''}'}>
                         {msg.text}
                     </div>
                 ))}
@@ -414,7 +414,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   // Load persisted execution data when component mounts
   useEffect(() => {
-    const nodeExecutionKey = `node-execution-${node.id}`;
+    const nodeExecutionKey = `node-execution-${node.id}';
     const persistedData = localStorage.getItem(nodeExecutionKey);
     
     if (persistedData) {
@@ -450,7 +450,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   const handleClose = () => {
     // Save node execution data to localStorage before closing
     if (inputData || outputData) {
-      const nodeExecutionKey = `node-execution-${node.id}`;
+      const nodeExecutionKey = `node-execution-${node.id}';
       const executionData = {
         nodeId: node.id,
         nodeType: node.data.type,
@@ -483,7 +483,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       setIsLoading(true);
       setApiKeyVerificationStatus(null);
       try {
-          const response = await fetch(`${config.BACKEND_URL}/api/ai/verify-claude', {
+          const response = await fetch(config.BACKEND_URL + '/api/ai/verify-claude', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ apiKey: formData.apiKey })
@@ -504,7 +504,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       setIsLoading(true);
       setVerificationStatus(null);
       try {
-          const response = await fetch(`${config.BACKEND_URL}/api/telegram/verify-token', {
+          const response = await fetch(config.BACKEND_URL + '/api/telegram/verify-token', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: formData.token })
@@ -519,7 +519,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   const checkGoogleAuthStatus = async () => {
     try {
-      const response = await fetch(`${config.BACKEND_URL}/auth/status');
+      const response = await fetch(config.BACKEND_URL + '/auth/status');
       const result = await response.json();
       setGoogleAuthStatus(result);
     } catch (error) {
@@ -529,7 +529,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   const handleGoogleConnect = async () => {
     try {
-      const response = await fetch(`${config.BACKEND_URL}/auth/google');
+      const response = await fetch(config.BACKEND_URL + '/auth/google');
       const result = await response.json();
       
       // Debug: Log the auth URL to console
@@ -552,7 +552,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           }
         } catch (e) {
           // Window.closed check failed due to CORS, just check auth status
-          const authCheck = await fetch(`${config.BACKEND_URL}/auth/status');
+          const authCheck = await fetch(config.BACKEND_URL + '/auth/status');
           const authResult = await authCheck.json();
           if (authResult.isAuthenticated) {
             clearInterval(pollTimer);
@@ -587,7 +587,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           throw new Error('Please configure Bot API Token first');
         }
         
-        let response = await fetch(`${config.BACKEND_URL}/api/telegram/get-updates', {
+        let response = await fetch(config.BACKEND_URL + '/api/telegram/get-updates', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: formData.token })
@@ -601,7 +601,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           
           try {
             // Delete webhook first
-            const deleteResponse = await fetch(`${config.BACKEND_URL}/api/telegram/delete-webhook', {
+            const deleteResponse = await fetch(config.BACKEND_URL + '/api/telegram/delete-webhook', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: formData.token })
@@ -619,10 +619,10 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 if (directResult.ok) {
                   console.log('Webhook deleted via direct API, retrying getUpdates...');
                 } else {
-                  throw new Error(`Failed to delete webhook: ${directResult.description}`);
+                  throw new Error(`Failed to delete webhook: ${directResult.description}');
                 }
               } else {
-                throw new Error(`Delete webhook failed with status: ${deleteResponse.status}`);
+                throw new Error(`Delete webhook failed with status: ${deleteResponse.status}');
               }
             } else {
               const deleteResult = await deleteResponse.json();
@@ -630,7 +630,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
             }
             
             // Retry getUpdates after webhook deletion
-            response = await fetch(`${config.BACKEND_URL}/api/telegram/get-updates', {
+            response = await fetch(config.BACKEND_URL + '/api/telegram/get-updates', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: formData.token })
@@ -719,7 +719,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       }
 
       // First, check if we have persisted output data for the previous node
-      const nodeExecutionKey = `node-execution-${previousNodeId}`;
+      const nodeExecutionKey = `node-execution-${previousNodeId}';
       const persistedData = localStorage.getItem(nodeExecutionKey);
       
       if (persistedData) {
@@ -755,7 +755,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           throw new Error('Previous Telegram trigger node needs to be configured with a bot token');
         }
         
-        const response = await fetch(`${config.BACKEND_URL}/api/telegram/get-updates', {
+        const response = await fetch(config.BACKEND_URL + '/api/telegram/get-updates', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: previousNode.data.token })
@@ -781,7 +781,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           
           if (sourcePreviousNode && sourcePreviousNode.data.type === 'trigger') {
             // Get data from the trigger node
-            const response = await fetch(`${config.BACKEND_URL}/api/telegram/get-updates', {
+            const response = await fetch(config.BACKEND_URL + '/api/telegram/get-updates', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: sourcePreviousNode.data.token })
@@ -796,7 +796,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         
         // Now execute the previous node with its input
         if (previousNodeInput) {
-          const response = await fetch(`${config.BACKEND_URL}/api/nodes/run-node', {
+          const response = await fetch(config.BACKEND_URL + '/api/nodes/run-node', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -812,7 +812,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           if (response.ok) {
             return result;
           } else {
-            throw new Error(`Failed to execute previous node: ${result.message}`);
+            throw new Error(`Failed to execute previous node: ${result.message}');
           }
         } else {
           return {
@@ -838,7 +838,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     try {
       if (node.data.type === 'modelNode' || node.data.type === 'aiAgent' || node.data.type === 'googleDocs') {
         // Process through the node
-        const response = await fetch(`${config.BACKEND_URL}/api/nodes/run-node', {
+        const response = await fetch(config.BACKEND_URL + '/api/nodes/run-node', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -957,7 +957,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       </button>
                     </div>
                     {apiKeyVerificationStatus && (
-                      <div className={`mt-2 text-sm p-2 rounded-md ${apiKeyVerificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      <div className={`mt-2 text-sm p-2 rounded-md ${apiKeyVerificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}'}>
                         {apiKeyVerificationStatus.message}
                       </div>
                     )}
@@ -997,10 +997,10 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     </button>
                   </div>
                   {verificationStatus && (
-                    <div className={`mt-2 text-sm p-2 rounded-md ${verificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    <div className={`mt-2 text-sm p-2 rounded-md ${verificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}'}>
                       {verificationStatus.ok 
-                        ? `Success! Bot Name: ${verificationStatus.bot.first_name}, ID: ${verificationStatus.bot.id}`
-                        : `Error: ${verificationStatus.message}`
+                        ? `Success! Bot Name: ${verificationStatus.bot.first_name}, ID: ${verificationStatus.bot.id}'
+                        : `Error: ${verificationStatus.message}'
                       }
                     </div>
                   )}
