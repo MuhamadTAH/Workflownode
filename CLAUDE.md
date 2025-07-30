@@ -16,6 +16,7 @@ This is a **workflow automation tool** with a React frontend and Express backend
 - **Telegram bot integration** for messaging workflows
 - **Real-time chatbot interface** within model nodes
 - **Webhook handling** for external integrations
+- **🆕 Google Docs integration** with OAuth2 authentication
 - **🆕 Drag-and-drop template variables** for dynamic prompts
 - **🆕 Live template preview** with real JSON data
 - **🆕 Advanced node chaining** with persistent data flow
@@ -42,6 +43,14 @@ This is a **workflow automation tool** with a React frontend and Express backend
   - **Advanced template system** with nested JSON support
   - **Template variable replacement** (e.g., `{{message.text}}` → actual text)
   - Real Claude API integration instead of mock responses
+
+- **Google Docs Node** (`src/nodes/actions/googleDocsNode.js`)
+  - **Complete Google Drive integration** with OAuth2 authentication
+  - **Three actions**: Get Document, Update Document, Create Document
+  - **Template variable support** for dynamic content creation
+  - **Real-time authentication status** with connect/disconnect UI
+  - **Document URL parsing** and automatic ID extraction
+  - **Secure credential management** via environment variables
 
 ## Major Features Added
 
@@ -84,6 +93,16 @@ This is a **workflow automation tool** with a React frontend and Express backend
 - **Fallback to direct API** if backend endpoint unavailable
 - **Better error messages** with specific guidance
 
+### 🔥 Google Docs Integration
+**Problem**: Users needed document automation capabilities
+**Solution**: Complete Google Docs integration system:
+- **OAuth2 authentication** with popup window flow
+- **Three document operations**: Read existing docs, append content, create new docs
+- **Real-time auth status** with visual indicators (connected/disconnected)
+- **Template variable support** with drag-and-drop functionality
+- **Secure credential management** using environment variables
+- **Production-ready** with Render deployment support
+
 ## Recent Major Updates
 
 ### Advanced Template Replacement Engine
@@ -116,18 +135,35 @@ This is a **workflow automation tool** with a React frontend and Express backend
 - `/api/telegram` - Telegram bot operations  
 - `/api/nodes` - Node execution
 - `/api/ai` - AI service integration
+- `/auth/google` - Google OAuth2 authentication endpoints
+- `/api/get-doc` - Google Docs document retrieval
+- `/api/update-doc` - Google Docs document updates
+- `/api/create-doc` - Google Docs document creation
 
 ### Key API Calls
-- `POST /api/nodes/run-node` - Execute any node type
+- `POST /api/nodes/run-node` - Execute any node type (including Google Docs)
 - `POST /api/ai/verify-claude` - Verify Claude API key
 - `POST /api/telegram/verify-token` - Verify Telegram bot token
 - `POST /api/telegram/get-updates` - Fetch recent Telegram messages
 - `POST /api/telegram/delete-webhook` - Remove active webhooks
 - `POST /api/workflows/{id}/activate` - Activate workflow
+- `GET /auth/google` - Initiate Google OAuth2 flow
+- `GET /auth/status` - Check Google authentication status
+- `GET /oauth2callback` - Handle Google OAuth2 callback
+- `POST /api/get-doc` - Retrieve Google Docs content
+- `POST /api/update-doc` - Append content to Google Docs
+- `POST /api/create-doc` - Create new Google Docs document
 
 ## Advanced Data Flow
 ```
-Telegram API → Trigger Node → [Persistent Storage] → AI Agent → [Template Processing] → Model Node → Output
+Telegram API → Trigger Node → [Persistent Storage] → AI Agent → [Template Processing] → Google Docs → Output
+```
+
+### Alternative Workflows:
+```
+Telegram API → AI Agent → Google Docs (Create Document)
+Telegram API → AI Agent → Google Docs (Update Existing)  
+Google Docs (Get) → AI Agent → Model Node (Chat Response)
 ```
 
 ### Node Execution Chain:
@@ -135,7 +171,8 @@ Telegram API → Trigger Node → [Persistent Storage] → AI Agent → [Templat
 2. **Data Persistence**: Saves input/output to localStorage
 3. **AI Agent**: Gets cached trigger output, processes with templates
 4. **Template Engine**: Replaces `{{variables}}` with real JSON values
-5. **Model Node**: Receives processed AI output for final response
+5. **Google Docs Node**: Authenticates with OAuth2 and performs document operations
+6. **Model Node**: Receives processed output for final response or chat interaction
 
 ### Data Persistence Strategy:
 - **Node execution data**: `node-execution-{nodeId}` in localStorage
@@ -144,10 +181,20 @@ Telegram API → Trigger Node → [Persistent Storage] → AI Agent → [Templat
 - **Automatic cleanup**: Old data replaced with new executions
 
 ## Development Setup
-- **Frontend**: `cd frontend && npm start` (runs on localhost:3000)
-- **Backend**: `npm start` (deployed on Render)
+- **Frontend**: `cd frontend && npm start` (runs on localhost:3005)
+- **Backend**: Deployed on Render at `https://workflownode.onrender.com`
 - **Git**: Main branch auto-deploys to Render on push
+- **Google OAuth**: Requires environment variables in Render dashboard
 - **Testing**: Use browser dev tools to inspect data flow
+
+### Environment Variables Required:
+```
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret  
+REDIRECT_URI=https://workflownode.onrender.com/oauth2callback
+PORT=10000
+BASE_URL=https://workflownode.onrender.com
+```
 
 ## File Structure
 ```
@@ -162,10 +209,17 @@ Telegram API → Trigger Node → [Persistent Storage] → AI Agent → [Templat
 ├── src/
 │   ├── api/routes/ (Express routes)
 │   ├── api/controllers/ (Route handlers with webhook management)
-│   ├── nodes/ (Node definitions with advanced template processing)
+│   ├── nodes/
+│   │   ├── actions/
+│   │   │   ├── aiAgentNode.js (AI processing with templates)
+│   │   │   ├── googleDocsNode.js (Google Docs integration)
+│   │   │   ├── modelNode.js (AI chat interface)
+│   │   │   └── llmNode.js (Legacy LLM node)
+│   │   └── triggers/
+│   │       └── telegramTrigger.js (Telegram webhook trigger)
 │   ├── services/ (External API integrations)
 │   └── config/ (Configuration management)
-└── server.js (Express server entry point)
+└── server.js (Express server with Google OAuth2 endpoints)
 ```
 
 ## Current Capabilities
@@ -175,10 +229,15 @@ Telegram API → Trigger Node → [Persistent Storage] → AI Agent → [Templat
 ✅ **Live preview** of template processing with real data  
 ✅ **Advanced node chaining** with persistent data flow  
 ✅ **AI integration** with Claude API for intelligent responses  
+✅ **Google Docs integration** with OAuth2 authentication
+✅ **Document automation** (read, write, create) with template variables
 ✅ **3-column ConfigPanel** for better UX  
 ✅ **Smart error handling** and user guidance  
+✅ **Production deployment** on Render with secure credential management
 
 ## Testing Workflow
+
+### Basic Workflow:
 1. **Create workflow**: Telegram Trigger → AI Agent → Model Node
 2. **Configure Telegram**: Set bot token, system auto-handles webhooks
 3. **Get data**: Click GET to fetch real messages, data persists
@@ -187,14 +246,33 @@ Telegram API → Trigger Node → [Persistent Storage] → AI Agent → [Templat
 6. **Chain execution**: Each node receives output from previous node
 7. **Test end-to-end**: Full workflow from Telegram to AI response
 
+### Google Docs Integration Workflow:
+1. **Create workflow**: Telegram Trigger → AI Agent → Google Docs
+2. **Connect Google**: Click "Connect" button in Google Docs ConfigPanel
+3. **Authenticate**: Complete OAuth2 flow in popup window
+4. **Configure action**: Choose Get/Update/Create document operation
+5. **Set parameters**: Add document URL or title, configure content with templates
+6. **Test execution**: Click GET → POST to see document operations in action
+7. **Verify results**: Check Google Drive for created/updated documents
+
 ## Known Issues & Solutions
 - **Webhook conflicts**: Auto-resolved with smart deletion
 - **Template syntax**: JSX requires `{"{{variable}}"}` format in strings
 - **Data persistence**: Handled automatically, no manual saves needed
 - **API rate limits**: Cached data reduces API calls
+- **Google OAuth redirect**: Must add `https://workflownode.onrender.com/oauth2callback` to Google Cloud Console
+- **Environment variables**: Google credentials must be set in Render dashboard
+- **Cross-origin warnings**: Normal browser security warnings in OAuth popup, doesn't affect functionality
+
+## Security Best Practices
+- ✅ **Credentials isolation**: `.env` files excluded from Git repository
+- ✅ **Environment variables**: Secrets stored securely in Render dashboard
+- ✅ **OAuth2 flow**: Secure authentication with Google's official API
+- ✅ **HTTPS endpoints**: All production APIs use secure connections
+- ✅ **Token management**: Authentication tokens handled server-side only
 
 ---
 
-*Last updated: 2025-07-29*  
-*Major features: Drag-and-drop templates, Live preview, Advanced node chaining*  
-*Claude AI assisted with complete workflow automation implementation*
+*Last updated: 2025-07-30*  
+*Major features: Google Docs integration, OAuth2 authentication, Document automation*  
+*Claude AI assisted with complete workflow automation implementation including Google Drive integration*
