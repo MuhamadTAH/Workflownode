@@ -66,6 +66,14 @@ const Sidebar = ({ onSave, onRestore, onActivate }) => {
         />
         <DraggableNode 
           nodeInfo={{ 
+              label: 'Telegram Send Message', 
+              icon: 'fa-solid fa-paper-plane', 
+              description: 'Send message to Telegram chat',
+              type: 'telegramSendMessage'
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
               label: 'Telegram Trigger', 
               icon: 'fa-brands fa-telegram', 
               description: 'Starts workflow on a new message',

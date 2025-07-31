@@ -1053,7 +1053,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     setOutputData(null);
     
     try {
-      if (node.data.type === 'modelNode' || node.data.type === 'aiAgent' || node.data.type === 'googleDocs' || node.data.type === 'dataStorage') {
+      if (node.data.type === 'modelNode' || node.data.type === 'aiAgent' || node.data.type === 'googleDocs' || node.data.type === 'dataStorage' || node.data.type === 'telegramSendMessage') {
         // Find connected Data Storage nodes for AI Agent
         const connectedNodes = node.data.type === 'aiAgent' ? findConnectedDataStorageNodes() : [];
         
@@ -1657,6 +1657,117 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                   <div className="text-xs text-gray-500 mb-2">
                     Data Storage: Store personal information, settings, or any data that other nodes can access. 
                     Use drag-and-drop from output to create templates like {"{{name}}"} or {"{{email}}"}.
+                  </div>
+                </>
+              )}
+
+              {/* Fields for Telegram Send Message Node */}
+              {node.data.type === 'telegramSendMessage' && (
+                <>
+                  <div className="text-xs text-gray-500 mb-4">
+                    💬 Send Message: Send messages to Telegram chats. Use templates like {"{{message.chat.id}}"} to get chat ID from previous nodes.
+                  </div>
+
+                  <div className="form-group">
+                    <label>Bot Token *</label>
+                    <input
+                      type="password"
+                      name="token"
+                      value={formData.token || ''}
+                      onChange={handleInputChange}
+                      placeholder="Your Telegram Bot API Token"
+                      className="input-field"
+                      required
+                    />
+                    <div className="text-xs text-gray-400 mt-1">
+                      Get this from @BotFather on Telegram
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Chat ID *</label>
+                    <input
+                      type="text"
+                      name="chatId"
+                      value={formData.chatId || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g. {{message.chat.id}} or 123456789"
+                      className="input-field droppable-input"
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      onFocus={handleInputFocus}
+                      onBlur={handleInputBlur}
+                      required
+                    />
+                    <div className="text-xs text-gray-400 mt-1">
+                      Use {"{{message.chat.id}}"} to reply to the same chat, or enter a specific chat ID
+                    </div>
+                    {showPreview && focusedInput === 'chatId' && (
+                      <div className="live-preview">
+                        <div className="text-xs text-gray-600 mb-1">Live Preview:</div>
+                        <div className="text-xs bg-gradient-to-r from-blue-50 to-purple-50 p-2 rounded border">
+                          {replaceTemplate(formData.chatId || '', inputData)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label>Message Text *</label>
+                    <textarea
+                      name="messageText"
+                      value={formData.messageText || ''}
+                      onChange={handleInputChange}
+                      placeholder="Hello! You sent: {{message.text}}"
+                      className="input-field droppable-input"
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      onFocus={handleInputFocus}
+                      onBlur={handleInputBlur}
+                      rows="4"
+                      required
+                    />
+                    <div className="text-xs text-gray-400 mt-1">
+                      Use {"{{message.text}}"} to include the original message, or other templates
+                    </div>
+                    {showPreview && focusedInput === 'messageText' && (
+                      <div className="live-preview">
+                        <div className="text-xs text-gray-600 mb-1">Live Preview:</div>
+                        <div className="text-xs bg-gradient-to-r from-blue-50 to-purple-50 p-2 rounded border">
+                          {replaceTemplate(formData.messageText || '', inputData)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label>Parse Mode</label>
+                    <select
+                      name="parseMode"
+                      value={formData.parseMode || 'Markdown'}
+                      onChange={handleInputChange}
+                      className="input-field"
+                    >
+                      <option value="">None</option>
+                      <option value="Markdown">Markdown</option>
+                      <option value="HTML">HTML</option>
+                    </select>
+                    <div className="text-xs text-gray-400 mt-1">
+                      How to format the message text
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="disableNotification"
+                        checked={formData.disableNotification || false}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      <span>Silent Message (No notification)</span>
+                    </label>
                   </div>
                 </>
               )}
