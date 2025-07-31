@@ -196,7 +196,10 @@ const MemoryVisualization = ({ data }) => {
 
 // Enhanced JSON Viewer with draggable fields
 const DraggableJSONViewer = ({ data, nodePrefix = '' }) => {
+  console.log('🔍 DraggableJSONViewer received data:', { data, nodePrefix, type: typeof data });
+  
   if (!data || typeof data !== 'object') {
+    console.log('⚠️ DraggableJSONViewer: No valid data to display');
     return (
       <div className="text-gray-400 text-sm text-center py-4">
         No JSON data to display
@@ -1084,6 +1087,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       // If a specific previous node is selected, load its data
       if (selectedNodeId) {
         const nodeData = loadDataFromNode(selectedNodeId);
+        console.log('🔍 Loading data from selected node:', { selectedNodeId, nodeData });
         if (nodeData) {
           setInputData(nodeData);
         } else {
@@ -1163,11 +1167,13 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         // Get the most recent message
         if (result.updates && result.updates.length > 0) {
           const latestUpdate = result.updates[result.updates.length - 1];
+          console.log('🔍 Setting inputData for trigger:', latestUpdate);
           setInputData(latestUpdate);
           // For trigger nodes, automatically set output data same as input (they pass-through)
           setOutputData(latestUpdate);
         } else {
           const noDataMessage = { message: "No recent messages found. Send a message to your bot first." };
+          console.log('🔍 No updates found, setting default message:', noDataMessage);
           setInputData(noDataMessage);
           setOutputData(noDataMessage);
         }
