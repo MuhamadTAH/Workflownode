@@ -121,12 +121,21 @@ class WorkflowExecutor {
                             console.log('Extracted trigger message data:', JSON.stringify(currentData, null, 2));
                         }
                     } else {
-                        // Create enhanced input data that includes original trigger data
+                        // Create enhanced input data that includes original trigger data and previous node outputs
                         const enhancedInputData = {
                             ...currentData,
                             _originalTrigger: originalTriggerData,
                             _telegram: originalTriggerData // Alias for templates
                         };
+                        
+                        // Add node-prefixed data for template access
+                        if (i > 1) { // Skip trigger node (index 0) and first action node (index 1)
+                            const previousNode = executionOrder[i - 1].node;
+                            const nodeTypePrefix = this.getNodePrefix(previousNode.data.type);
+                            if (nodeTypePrefix) {
+                                enhancedInputData[nodeTypePrefix] = currentData;
+                            }
+                        }
                         
                         console.log('Enhanced input data for node:', JSON.stringify(enhancedInputData, null, 2));
                         
@@ -316,6 +325,19 @@ class WorkflowExecutor {
     getExecutionHistory(workflowId, limit = 5) {
         const history = this.executionHistory.get(workflowId) || [];
         return history.slice(-limit).reverse(); // Return most recent first
+    }
+
+    // Get node prefix for template access
+    getNodePrefix(nodeType) {
+        const prefixMap = {
+            'trigger': 'telegram',
+            'aiAgent': 'aiAgent',
+            'modelNode': 'model',
+            'googleDocs': 'googleDocs',
+            'dataStorage': 'storage',
+            'telegramSendMessage': 'sendMessage'
+        };
+        return prefixMap[nodeType] || null;
     }
 }
 
