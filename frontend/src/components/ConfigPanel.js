@@ -45,7 +45,6 @@ if (typeof document !== 'undefined') {
 const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '' }) => {
   const handleDragStart = (e) => {
     const templateVariable = nodePrefix ? `{{${nodePrefix}.${path}}}` : '{{' + path + '}}';
-    console.log('🐢 Drag started:', templateVariable);
     e.dataTransfer.setData('text/plain', templateVariable);
     e.dataTransfer.effectAllowed = 'copy';
   };
@@ -63,7 +62,7 @@ const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '' }) => {
           className="text-blue-600 font-mono text-sm cursor-grab hover:bg-blue-100 px-1 rounded drag-field select-none"
           draggable={true}
           onDragStart={handleDragStart}
-          onDragEnd={(e) => console.log('🐢 Drag ended')}
+          onDragEnd={(e) => {}}
           title={`Drag to insert ${nodePrefix ? `{{${nodePrefix}.${path}}}` : '{{' + path + '}}'}`}
           style={{ userSelect: 'none' }}
         >
@@ -196,10 +195,7 @@ const MemoryVisualization = ({ data }) => {
 
 // Enhanced JSON Viewer with draggable fields
 const DraggableJSONViewer = ({ data, nodePrefix = '' }) => {
-  console.log('🔍 DraggableJSONViewer received data:', { data, nodePrefix, type: typeof data });
-  
   if (!data || typeof data !== 'object') {
-    console.log('⚠️ DraggableJSONViewer: No valid data to display');
     return (
       <div className="text-gray-400 text-sm text-center py-4">
         No JSON data to display
@@ -387,7 +383,6 @@ const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, c
     e.preventDefault();
     setIsDragOver(false);
     const droppedText = e.dataTransfer.getData('text/plain');
-    console.log('🎯 Drop received:', droppedText);
     
     // Insert at cursor position or append
     const input = e.target;
@@ -395,8 +390,6 @@ const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, c
     const end = input.selectionEnd || 0;
     const currentValue = value || '';
     const newValue = currentValue.slice(0, start) + droppedText + currentValue.slice(end);
-    
-    console.log('🎯 New value after drop:', newValue);
     
     // Create synthetic event for onChange
     const syntheticEvent = {
@@ -413,14 +406,12 @@ const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, c
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
     if (!isDragOver) {
-      console.log('🎯 Drag over detected on', name);
       setIsDragOver(true);
     }
   };
 
   const handleDragLeave = (e) => {
     e.preventDefault();
-    console.log('🎯 Drag leave on', name);
     setIsDragOver(false);
   };
 
@@ -545,21 +536,7 @@ const ChatbotInterface = ({ nodeConfig }) => {
 };
 
 const ConfigPanel = ({ node, onClose, nodes, edges }) => {
-  // Debug: Track node data changes on every render
-  console.log('🔧 ConfigPanel render for node:', {
-    id: node.id,
-    type: node.data.type,
-    label: node.data.label,
-    allNodeData: node.data,
-    renderTime: new Date().toISOString()
-  });
   const [formData, setFormData] = useState(() => {
-    console.log('🔧 Initializing formData for node:', {
-      nodeId: node.id,
-      nodeType: node.data.type,
-      nodeLabel: node.data.label,
-      allNodeData: node.data
-    });
     
     return {
       label: node.data.label || '',
@@ -652,13 +629,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         delete parsedConfig.label;
         delete parsedConfig.type; // Also preserve node type
         
-        console.log('🔧 Loading saved config (preserving label and type):', {
-          nodeId: node.id,
-          originalLabel: node.data.label,
-          originalType: node.data.type,
-          savedConfigHadLabel: 'label' in JSON.parse(savedConfig),
-          savedConfigHadType: 'type' in JSON.parse(savedConfig)
-        });
         
         setFormData(prev => ({ ...prev, ...parsedConfig }));
       } catch (error) {
@@ -670,16 +640,11 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   // Find ALL connected previous nodes (for input selection dropdown) - MEMOIZED
   const findAllConnectedPreviousNodes = useCallback(() => {
     if (!edges || !nodes) {
-      console.log('⚠️ findAllConnectedPreviousNodes: Missing edges or nodes');
       return [];
     }
 
     const connectedNodes = [];
     const visited = new Set();
-    
-    console.log('🔍 Starting findAllConnectedPreviousNodes for node:', node.id);
-    console.log('All edges:', edges.map(e => `${e.source} → ${e.target}`));
-    console.log('All nodes:', nodes.map(n => `${n.id} (${n.data.type}: ${n.data.label})`));
     
     // Recursive function to find all upstream nodes
     const findUpstreamNodes = (currentNodeId) => {
@@ -687,13 +652,10 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       visited.add(currentNodeId);
       
       const incomingEdges = edges.filter(edge => edge.target === currentNodeId);
-      console.log(`Checking incoming edges for ${currentNodeId}:`, incomingEdges.map(e => `${e.source} → ${e.target}`));
       
       for (const edge of incomingEdges) {
         const sourceNode = nodes.find(n => n.id === edge.source);
         if (sourceNode) {
-          console.log(`Found source node: ${sourceNode.id} (${sourceNode.data.type}: ${sourceNode.data.label})`);
-          
           // Check if this node has execution data
           const nodeExecutionKey = 'node-execution-' + sourceNode.id;
           const executionData = localStorage.getItem(nodeExecutionKey);
@@ -702,15 +664,12 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
             try {
               const parsed = JSON.parse(executionData);
               if (parsed.outputData || parsed.inputData) {
-                console.log(`✅ Adding node with data: ${sourceNode.id}`);
                 connectedNodes.push({
                   id: sourceNode.id,
                   label: sourceNode.data.label || sourceNode.data.type,
                   type: sourceNode.data.type,
                   hasData: !!(parsed.outputData || parsed.inputData)
                 });
-              } else {
-                console.log(`⚠️ Node ${sourceNode.id} has execution data but no input/output data`);
               }
             } catch (error) {
               console.error('Error parsing node execution data:', error);
@@ -1107,7 +1066,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       // If a specific previous node is selected, load its data
       if (selectedNodeId) {
         const nodeData = loadDataFromNode(selectedNodeId);
-        console.log('🔍 Loading data from selected node:', { selectedNodeId, nodeData });
         if (nodeData) {
           setInputData(nodeData);
         } else {
@@ -1187,13 +1145,11 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         // Get the most recent message
         if (result.updates && result.updates.length > 0) {
           const latestUpdate = result.updates[result.updates.length - 1];
-          console.log('🔍 Setting inputData for trigger:', latestUpdate);
           setInputData(latestUpdate);
           // For trigger nodes, automatically set output data same as input (they pass-through)
           setOutputData(latestUpdate);
         } else {
           const noDataMessage = { message: "No recent messages found. Send a message to your bot first." };
-          console.log('🔍 No updates found, setting default message:', noDataMessage);
           setInputData(noDataMessage);
           setOutputData(noDataMessage);
         }
@@ -1433,11 +1389,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   // Get the node prefix for the currently selected input source - MEMOIZED
   const getCurrentNodePrefix = useMemo(() => {
     const selectedNode = availableNodes.find(n => n.id === selectedNodeId);
-    console.log('🏷️ Getting node prefix:', {
-      selectedNodeId: selectedNodeId,
-      selectedNode: selectedNode ? { id: selectedNode.id, label: selectedNode.label, type: selectedNode.type } : 'Not found',
-      availableNodesCount: availableNodes.length
-    });
     
     if (!selectedNode) return '';
     
@@ -1448,11 +1399,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     if (prefix === 'modelNode') prefix = 'model';
     if (prefix === 'dataStorage') prefix = 'storage';
     if (prefix === 'telegramSendMessage') prefix = 'sendMessage';
-    
-    console.log('🏷️ Node prefix result:', {
-      originalType: selectedNode.type,
-      convertedPrefix: prefix
-    });
     
     return prefix;
   }, [availableNodes, selectedNodeId]);
