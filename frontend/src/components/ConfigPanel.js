@@ -1681,7 +1681,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                         required
                       />
                       <button 
-                        onClick={handleVerifyToken} 
+                        onClick={handleCheckToken} 
                         disabled={isLoading || !formData.token}
                         className="bg-blue-500 text-white px-3 py-2 text-sm rounded hover:bg-blue-600 disabled:bg-blue-300"
                       >
