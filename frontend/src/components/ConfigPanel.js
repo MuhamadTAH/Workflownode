@@ -731,7 +731,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     });
     
     setAvailableNodes(connectedNodes);
-  }, [edges, nodes, findAllConnectedPreviousNodes]);
+  }, [edges, nodes, node.id]);
 
   // Separate effect to handle node selection to avoid infinite loops
   useEffect(() => {
@@ -771,12 +771,18 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       // This assumes there's a way to update the node in the parent component
       if (node.data) {
         const beforeUpdate = { ...node.data };
-        Object.assign(node.data, newFormData);
+        
+        // IMPORTANT: Never overwrite the node type - preserve it
+        const safeFormData = { ...newFormData };
+        delete safeFormData.type; // Remove type from form data to prevent overwriting
+        
+        Object.assign(node.data, safeFormData);
         
         console.log('💾 Node data updated:', {
           before: beforeUpdate,
           after: { ...node.data },
-          typeChanged: beforeUpdate.type !== node.data.type
+          preservedType: node.data.type,
+          formDataHadType: 'type' in newFormData
         });
       }
       
