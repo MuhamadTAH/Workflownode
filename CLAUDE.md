@@ -1,5 +1,13 @@
 # Workflow Node Project - Claude AI Documentation
 
+## 🚨 IMPORTANT DEVELOPMENT RULE 🚨
+**MANDATORY**: Every time you make ANY backend-related edit (server.js, src/ files, API routes, controllers, services, nodes, etc.), you MUST immediately commit and push the changes to GitHub using:
+1. `git add .`
+2. `git commit -m "descriptive message"`  
+3. `git push origin main`
+
+This ensures the deployed backend on Render stays synchronized with development changes.
+
 ## Project Overview
 This is a **workflow automation tool** with a React frontend and Express backend, similar to Zapier or n8n. It provides a visual workflow builder for creating automation workflows with drag-and-drop nodes.
 
@@ -184,6 +192,7 @@ Google Docs (Get) → AI Agent → Model Node (Chat Response)
 - **Frontend**: `cd frontend && npm start` (runs on localhost:3005)
 - **Backend**: Deployed on Render at `https://workflownode.onrender.com`
 - **Git**: Main branch auto-deploys to Render on push
+- **🔄 CRITICAL**: After ANY backend edit, immediately run: `git add . && git commit -m "message" && git push origin main`
 - **Google OAuth**: Requires environment variables in Render dashboard
 - **Testing**: Use browser dev tools to inspect data flow
 
