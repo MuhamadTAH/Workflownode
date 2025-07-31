@@ -20,6 +20,12 @@ class WorkflowExecutor {
     // Register a workflow for automatic execution
     registerWorkflow(workflowId, workflowConfig) {
         console.log(`Registering workflow ${workflowId} for automatic execution`);
+        console.log('Workflow config received:', {
+            nodes: workflowConfig.nodes?.length || 0,
+            edges: workflowConfig.edges?.length || 0,
+            nodeTypes: workflowConfig.nodes?.map(n => `${n.data.type} (${n.id})`) || [],
+            edgeConnections: workflowConfig.edges?.map(e => `${e.source} → ${e.target}`) || []
+        });
         
         // Validate workflow structure
         if (!workflowConfig.nodes || !workflowConfig.edges) {
@@ -32,6 +38,8 @@ class WorkflowExecutor {
             throw new Error('Workflow must contain a trigger node');
         }
 
+        console.log(`Found trigger node: ${triggerNode.data.label || triggerNode.data.type} (${triggerNode.id})`);
+
         // Store workflow configuration
         this.activeWorkflows.set(workflowId, {
             ...workflowConfig,
@@ -40,7 +48,7 @@ class WorkflowExecutor {
             registeredAt: new Date().toISOString()
         });
 
-        console.log(`Workflow ${workflowId} registered successfully`);
+        console.log(`Workflow ${workflowId} registered successfully with ${workflowConfig.nodes.length} nodes and ${workflowConfig.edges.length} edges`);
         return true;
     }
 
@@ -172,20 +180,37 @@ class WorkflowExecutor {
         const executionOrder = [];
         const visited = new Set();
         
+        console.log('Building execution order from workflow:', {
+            totalNodes: nodes.length,
+            totalEdges: edges.length,
+            nodes: nodes.map(n => `${n.data.type} (${n.id})`),
+            edges: edges.map(e => `${e.source} → ${e.target}`)
+        });
+        
         // Find trigger node (starting point)
         const triggerNode = nodes.find(node => node.data.type === 'trigger');
         if (!triggerNode) {
             throw new Error('No trigger node found in workflow');
         }
 
+        console.log(`Starting execution order with trigger: ${triggerNode.id}`);
+
         // Recursive function to build execution order
         const addToOrder = (nodeId) => {
-            if (visited.has(nodeId)) return;
+            console.log(`Processing node: ${nodeId}`);
+            if (visited.has(nodeId)) {
+                console.log(`Node ${nodeId} already visited, skipping`);
+                return;
+            }
             visited.add(nodeId);
 
             const node = nodes.find(n => n.id === nodeId);
-            if (!node) return;
+            if (!node) {
+                console.log(`Node ${nodeId} not found in nodes array`);
+                return;
+            }
 
+            console.log(`Adding node to execution order: ${node.data.type} (${node.id})`);
             executionOrder.push({
                 node,
                 inputEdges: edges.filter(edge => edge.target === nodeId)
@@ -193,12 +218,21 @@ class WorkflowExecutor {
 
             // Find and add connected nodes
             const outgoingEdges = edges.filter(edge => edge.source === nodeId);
+            console.log(`Found ${outgoingEdges.length} outgoing edges from ${nodeId}:`, outgoingEdges.map(e => `${e.source} → ${e.target}`));
+            
             for (const edge of outgoingEdges) {
+                console.log(`Following edge: ${edge.source} → ${edge.target}`);
                 addToOrder(edge.target);
             }
         };
 
         addToOrder(triggerNode.id);
+        
+        console.log(`Final execution order: ${executionOrder.length} nodes`);
+        executionOrder.forEach((step, i) => {
+            console.log(`Step ${i + 1}: ${step.node.data.type} (${step.node.id})`);
+        });
+        
         return executionOrder;
     }
 
