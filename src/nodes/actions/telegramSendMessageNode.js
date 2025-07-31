@@ -87,7 +87,7 @@ const telegramSendMessageNode = {
                     // Skip the node prefix and use the rest of the path
                     if (['telegram', 'aiAgent', 'model', 'storage', 'sendMessage'].includes(nodePrefix)) {
                         const actualPath = pathParts.slice(1).join('.');
-                        const value = this.getNestedValue(data, actualPath);
+                        const value = telegramSendMessageNode.getNestedValue(data, actualPath);
                         if (value !== undefined && value !== null) {
                             if (typeof value === 'object') {
                                 return JSON.stringify(value);
@@ -98,7 +98,7 @@ const telegramSendMessageNode = {
                 }
                 
                 // Handle regular templates (without node prefix)
-                const value = this.getNestedValue(data, path.trim());
+                const value = telegramSendMessageNode.getNestedValue(data, path.trim());
                 if (value !== undefined && value !== null) {
                     if (typeof value === 'object') {
                         return JSON.stringify(value);
@@ -125,15 +125,18 @@ const telegramSendMessageNode = {
 
     async execute(nodeConfig, inputData) {
         console.log('=== Executing Telegram Send Message node ===');
-        console.log('Node config:', {
-            token: token ? '***' + token.slice(-4) : 'missing',
-            chatId: nodeConfig.chatId,
-            messageText: nodeConfig.messageText,
-            parseMode: nodeConfig.parseMode
-        });
-        console.log('Input data:', inputData);
+        console.log('Node config received:', JSON.stringify(nodeConfig, null, 2));
+        console.log('Input data received:', JSON.stringify(inputData, null, 2));
         
         const { token, chatId, messageText, parseMode, disableNotification } = nodeConfig;
+        
+        console.log('Extracted values:', {
+            token: token ? '***' + token.slice(-4) : 'MISSING',
+            chatId: chatId || 'MISSING',
+            messageText: messageText || 'MISSING',
+            parseMode: parseMode || 'none',
+            disableNotification: disableNotification || false
+        });
 
         // Validate required fields
         if (!token) {
@@ -148,8 +151,8 @@ const telegramSendMessageNode = {
         console.log('Original chatId template:', chatId);
         console.log('Original messageText template:', messageText);
         
-        const processedChatId = this.replaceTemplate(chatId, inputData);
-        const processedMessage = this.replaceTemplate(messageText, inputData);
+        const processedChatId = telegramSendMessageNode.replaceTemplate(chatId, inputData);
+        const processedMessage = telegramSendMessageNode.replaceTemplate(messageText, inputData);
         
         console.log('Processed chatId:', processedChatId);
         console.log('Processed messageText:', processedMessage);

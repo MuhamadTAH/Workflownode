@@ -576,7 +576,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   const [memoryActionResult, setMemoryActionResult] = useState(null);
   const [memoryQuickStats, setMemoryQuickStats] = useState(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
-  const [selectedNodeId, setSelectedNodeId] = useState('current'); // 'current' or a node ID
+  const [selectedNodeId, setSelectedNodeId] = useState(''); // Selected node ID
   const [availableNodes, setAvailableNodes] = useState([]); // List of connected nodes
 
   // Load persisted execution data when component mounts
@@ -629,11 +629,13 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     const connectedNodes = findAllConnectedPreviousNodes();
     setAvailableNodes(connectedNodes);
     
-    // If no node is selected or the selected node is no longer available, default to current
-    if (selectedNodeId !== 'current' && !connectedNodes.find(n => n.id === selectedNodeId)) {
-      setSelectedNodeId('current');
+    // If no node is selected or the selected node is no longer available, select the first available node
+    if (!selectedNodeId || !connectedNodes.find(n => n.id === selectedNodeId)) {
+      if (connectedNodes.length > 0) {
+        setSelectedNodeId(connectedNodes[0].id);
+      }
     }
-  }, [edges, nodes]);
+  }, [edges, nodes, selectedNodeId]);
 
   // Auto-save function
   const autoSaveConfig = async (newFormData) => {
@@ -892,8 +894,8 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   // Function to load data from a specific node
   const loadDataFromNode = (nodeId) => {
-    if (nodeId === 'current') {
-      return null; // Will trigger normal GET behavior
+    if (!nodeId) {
+      return null; // No node selected
     }
     
     // Load data from the selected previous node
@@ -922,8 +924,8 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     const nodeData = loadDataFromNode(newNodeId);
     if (nodeData) {
       setInputData(nodeData);
-    } else if (newNodeId === 'current') {
-      // Clear input data if switching back to current
+    } else {
+      // Clear input data if no data available
       setInputData(null);
     }
   };
@@ -933,7 +935,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     
     try {
       // If a specific previous node is selected, load its data
-      if (selectedNodeId !== 'current') {
+      if (selectedNodeId) {
         const nodeData = loadDataFromNode(selectedNodeId);
         if (nodeData) {
           setInputData(nodeData);
@@ -1257,10 +1259,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   // Get the node prefix for the currently selected input source
   const getCurrentNodePrefix = () => {
-    if (selectedNodeId === 'current') {
-      return ''; // Current node gets no prefix (old behavior)
-    }
-    
     const selectedNode = availableNodes.find(n => n.id === selectedNodeId);
     if (!selectedNode) return '';
     
@@ -1622,7 +1620,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     onChange={handleNodeSelectionChange}
                     className="text-xs px-2 py-1 border border-gray-300 rounded bg-white"
                   >
-                    <option value="current">🔄 Current Node</option>
                     {availableNodes.map(node => (
                       <option key={node.id} value={node.id}>
                         {node.type === 'trigger' ? '🔌' : '⚙️'} {node.label}
@@ -1639,7 +1636,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
               {inputData ? (
                 <div>
                   {/* Show data source indicator */}
-                  {selectedNodeId !== 'current' && (
+                  {selectedNodeId && (
                     <div className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded mb-2">
                       📊 Viewing data from: {availableNodes.find(n => n.id === selectedNodeId)?.label || 'Selected Node'}
                     </div>
