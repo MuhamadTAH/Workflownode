@@ -45,6 +45,7 @@ if (typeof document !== 'undefined') {
 const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '' }) => {
   const handleDragStart = (e) => {
     const templateVariable = nodePrefix ? `{{${nodePrefix}.${path}}}` : '{{' + path + '}}';
+    console.log('🐢 Drag started:', templateVariable);
     e.dataTransfer.setData('text/plain', templateVariable);
     e.dataTransfer.effectAllowed = 'copy';
   };
@@ -59,10 +60,12 @@ const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '' }) => {
       <div className="flex items-center hover:bg-blue-50 rounded px-1">
         <span className="text-gray-600">{indent}</span>
         <span 
-          className="text-blue-600 font-mono text-sm cursor-grab hover:bg-blue-100 px-1 rounded drag-field"
-          draggable="true"
+          className="text-blue-600 font-mono text-sm cursor-grab hover:bg-blue-100 px-1 rounded drag-field select-none"
+          draggable={true}
           onDragStart={handleDragStart}
+          onDragEnd={(e) => console.log('🐢 Drag ended')}
           title={`Drag to insert ${nodePrefix ? `{{${nodePrefix}.${path}}}` : '{{' + path + '}}'}`}
+          style={{ userSelect: 'none' }}
         >
           {path.split('.').pop()}
         </span>
@@ -381,13 +384,16 @@ const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, c
     e.preventDefault();
     setIsDragOver(false);
     const droppedText = e.dataTransfer.getData('text/plain');
+    console.log('🎯 Drop received:', droppedText);
     
     // Insert at cursor position or append
     const input = e.target;
-    const start = input.selectionStart;
-    const end = input.selectionEnd;
+    const start = input.selectionStart || 0;
+    const end = input.selectionEnd || 0;
     const currentValue = value || '';
     const newValue = currentValue.slice(0, start) + droppedText + currentValue.slice(end);
+    
+    console.log('🎯 New value after drop:', newValue);
     
     // Create synthetic event for onChange
     const syntheticEvent = {
@@ -403,11 +409,15 @@ const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, c
   const handleDragOver = (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
-    setIsDragOver(true);
+    if (!isDragOver) {
+      console.log('🎯 Drag over detected on', name);
+      setIsDragOver(true);
+    }
   };
 
   const handleDragLeave = (e) => {
     e.preventDefault();
+    console.log('🎯 Drag leave on', name);
     setIsDragOver(false);
   };
 
