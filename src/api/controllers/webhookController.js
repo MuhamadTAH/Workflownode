@@ -22,6 +22,13 @@ const handleTelegramWebhook = async (req, res) => {
         // Check if this workflow is registered for automatic execution
         const workflowStatus = workflowExecutor.getWorkflowStatus(workflowId);
         
+        console.log(`🔍 Checking workflow ${workflowId} status:`, {
+            isRegistered: workflowStatus.isRegistered,
+            isActive: workflowStatus.isActive,
+            registeredAt: workflowStatus.registeredAt,
+            totalExecutions: workflowStatus.totalExecutions
+        });
+        
         if (workflowStatus.isRegistered && workflowStatus.isActive) {
             console.log(`🚀 Auto-executing workflow ${workflowId}...`);
             

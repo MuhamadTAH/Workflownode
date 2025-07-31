@@ -31,7 +31,11 @@ const webhookRoutes = require('./src/api/routes/webhooks');
 const workflowRoutes = require('./src/api/routes/workflows');
 const telegramRoutes = require('./src/api/routes/telegram');
 const nodeRoutes = require('./src/api/routes/nodes');
-const aiRoutes = require('./src/api/routes/ai'); // <-- Import new routes
+const aiRoutes = require('./src/api/routes/ai');
+
+// Initialize workflow executor service
+const workflowExecutor = require('./src/services/workflowExecutor');
+console.log('✅ Workflow Executor service initialized'); // <-- Import new routes
 
 const app = express();
 const PORT = process.env.PORT || 10000;
