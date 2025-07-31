@@ -96,35 +96,12 @@ const FlowEditorComponent = () => {
           alert('Please configure the Telegram Trigger node with your Bot API Token first.');
           return;
       }
-
-      // Validate workflow has at least one action node
-      const actionNodes = nodes.filter(n => n.data.type !== 'trigger');
-      if (actionNodes.length === 0) {
-          alert('Workflow must contain at least one action node (AI Agent, Model Node, etc.)');
-          return;
-      }
-
-      // Check for node connections
-      if (edges.length === 0) {
-          alert('Please connect your nodes to create a workflow chain.');
-          return;
-      }
       
       try {
-          const workflowData = {
-              nodes: nodes,
-              edges: edges
-          };
-
-          console.log('Activating workflow with data:', workflowData);
-          
           const response = await fetch('https://workflownode.onrender.com/api/workflows/123/activate', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                  triggerNode,
-                  workflow: workflowData
-              })
+              body: JSON.stringify({ triggerNode })
           });
           
           const result = await response.json();
@@ -132,29 +109,10 @@ const FlowEditorComponent = () => {
               throw new Error(result.message || 'Failed to activate workflow.');
           }
           
-          alert(`✅ ${result.message}\n\n🚀 Auto-execution enabled!\n📊 Nodes: ${result.workflowNodes}\n🔗 Edges: ${result.workflowEdges}\n\nSend a message to your Telegram bot to test the automatic workflow!`);
+          alert(result.message);
       } catch (error) {
           console.error('Activation Error:', error);
-          alert(`❌ Error: ${error.message}`);
-      }
-  };
-
-  const onDeactivate = async () => {
-      try {
-          const response = await fetch('https://workflownode.onrender.com/api/workflows/123/deactivate', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
-          });
-          
-          const result = await response.json();
-          if (!response.ok) {
-              throw new Error(result.message || 'Failed to deactivate workflow.');
-          }
-          
-          alert(`✅ ${result.message}\n\n⏹️ Auto-execution disabled.`);
-      } catch (error) {
-          console.error('Deactivation Error:', error);
-          alert(`❌ Error: ${error.message}`);
+          alert(`Error: ${error.message}`);
       }
   };
   
@@ -205,7 +163,7 @@ const FlowEditorComponent = () => {
 
   return (
     <div className="flex h-screen w-screen bg-white" style={{ fontFamily: 'sans-serif' }}>
-      <Sidebar onSave={onSave} onRestore={onRestore} onActivate={onActivate} onDeactivate={onDeactivate} />
+      <Sidebar onSave={onSave} onRestore={onRestore} onActivate={onActivate} />
       <div className="flex-grow h-full" ref={reactFlowWrapper}>
         <ReactFlow
           nodes={nodes}
@@ -224,7 +182,14 @@ const FlowEditorComponent = () => {
         </ReactFlow>
       </div>
       {/* This now correctly renders the ConfigPanel for all nodes */}
-      {selectedNode && <ConfigPanel node={selectedNode} onClose={onPanelClose} nodes={nodes} edges={edges} />}
+      {selectedNode && (
+        <ConfigPanel
+          node={selectedNode}
+          onClose={onPanelClose}
+          nodes={nodes}
+          edges={edges}
+        />
+      )}
     </div>
   );
 };
