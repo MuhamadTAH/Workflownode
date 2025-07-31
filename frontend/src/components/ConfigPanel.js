@@ -524,6 +524,8 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   const [memoryActionResult, setMemoryActionResult] = useState(null);
   const [memoryQuickStats, setMemoryQuickStats] = useState(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
+  const [selectedNodeId, setSelectedNodeId] = useState('current'); // 'current' or a node ID
+  const [availableNodes, setAvailableNodes] = useState([]); // List of connected nodes
 
   // Load persisted execution data when component mounts
   useEffect(() => {
@@ -569,6 +571,17 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       }
     }
   }, [node.id]);
+
+  // Update available nodes when edges or nodes change
+  useEffect(() => {
+    const connectedNodes = findAllConnectedPreviousNodes();
+    setAvailableNodes(connectedNodes);
+    
+    // If no node is selected or the selected node is no longer available, default to current
+    if (selectedNodeId !== 'current' && !connectedNodes.find(n => n.id === selectedNodeId)) {
+      setSelectedNodeId('current');
+    }
+  }, [edges, nodes]);
 
   // Auto-save function
   const autoSaveConfig = async (newFormData) => {
@@ -825,10 +838,61 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     }
   };
 
+  // Function to load data from a specific node
+  const loadDataFromNode = (nodeId) => {
+    if (nodeId === 'current') {
+      return null; // Will trigger normal GET behavior
+    }
+    
+    // Load data from the selected previous node
+    const nodeExecutionKey = 'node-execution-' + nodeId;
+    const executionData = localStorage.getItem(nodeExecutionKey);
+    
+    if (executionData) {
+      try {
+        const parsed = JSON.parse(executionData);
+        return parsed.outputData || parsed.inputData || null;
+      } catch (error) {
+        console.error('Error loading data from node:', error);
+        return null;
+      }
+    }
+    
+    return null;
+  };
+
+  // Handle node selection change
+  const handleNodeSelectionChange = (e) => {
+    const newNodeId = e.target.value;
+    setSelectedNodeId(newNodeId);
+    
+    // Load data from the selected node
+    const nodeData = loadDataFromNode(newNodeId);
+    if (nodeData) {
+      setInputData(nodeData);
+    } else if (newNodeId === 'current') {
+      // Clear input data if switching back to current
+      setInputData(null);
+    }
+  };
+
   const handleGetData = async () => {
     setIsLoading(true);
     
     try {
+      // If a specific previous node is selected, load its data
+      if (selectedNodeId !== 'current') {
+        const nodeData = loadDataFromNode(selectedNodeId);
+        if (nodeData) {
+          setInputData(nodeData);
+        } else {
+          setInputData({ error: 'No data available from selected node' });
+        }
+        setIsLoading(false);
+        return;
+      }
+      
+      // Otherwise, execute normal GET behavior for current node
       if (node.data.type === 'trigger') {
         // For Telegram trigger, get recent messages using bot token
         if (!formData.token) {
@@ -1102,6 +1166,59 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     return connectedDataStorageNodes;
   };
 
+  // Find ALL connected previous nodes (for input selection dropdown)
+  const findAllConnectedPreviousNodes = () => {
+    if (!edges || !nodes) return [];
+
+    const connectedNodes = [];
+    const visited = new Set();
+    
+    // Recursive function to find all upstream nodes
+    const findUpstreamNodes = (currentNodeId) => {
+      if (visited.has(currentNodeId)) return;
+      visited.add(currentNodeId);
+      
+      const incomingEdges = edges.filter(edge => edge.target === currentNodeId);
+      
+      for (const edge of incomingEdges) {
+        const sourceNode = nodes.find(n => n.id === edge.source);
+        if (sourceNode) {
+          // Check if this node has execution data
+          const nodeExecutionKey = 'node-execution-' + sourceNode.id;
+          const executionData = localStorage.getItem(nodeExecutionKey);
+          
+          if (executionData) {
+            try {
+              const parsed = JSON.parse(executionData);
+              if (parsed.outputData || parsed.inputData) {
+                connectedNodes.push({
+                  id: sourceNode.id,
+                  label: sourceNode.data.label || sourceNode.data.type,
+                  type: sourceNode.data.type,
+                  hasData: !!(parsed.outputData || parsed.inputData)
+                });
+              }
+            } catch (error) {
+              console.error('Error parsing node execution data:', error);
+            }
+          }
+          
+          // Recursively find nodes connected to this one
+          findUpstreamNodes(sourceNode.id);
+        }
+      }
+    };
+    
+    findUpstreamNodes(node.id);
+    
+    // Sort by node type (triggers first, then actions)
+    return connectedNodes.sort((a, b) => {
+      if (a.type === 'trigger' && b.type !== 'trigger') return -1;
+      if (a.type !== 'trigger' && b.type === 'trigger') return 1;
+      return a.label.localeCompare(b.label);
+    });
+  };
+
   const handlePostData = async () => {
     if (!inputData) return;
     
@@ -1272,7 +1389,23 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           {/* LEFT SECTION - INPUT */}
           <div className="panel-section flex-1">
             <div className="section-header flex justify-between items-center">
-              <span>INPUT</span>
+              <div className="flex items-center gap-2">
+                <span>INPUT</span>
+                {availableNodes.length > 0 && (
+                  <select 
+                    value={selectedNodeId} 
+                    onChange={handleNodeSelectionChange}
+                    className="text-xs px-2 py-1 border border-gray-300 rounded bg-white"
+                  >
+                    <option value="current">🔄 Current Node</option>
+                    {availableNodes.map(node => (
+                      <option key={node.id} value={node.id}>
+                        {node.type === 'trigger' ? '🔌' : '⚙️'} {node.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
               <button onClick={handleGetData} disabled={isLoading} className="bg-green-500 text-white px-3 py-1 text-sm rounded hover:bg-green-600 disabled:bg-green-300">
                 {isLoading ? '...' : 'GET'}
               </button>
@@ -1280,6 +1413,12 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
             <div className="section-content">
               {inputData ? (
                 <div>
+                  {/* Show data source indicator */}
+                  {selectedNodeId !== 'current' && (
+                    <div className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded mb-2">
+                      📊 Viewing data from: {availableNodes.find(n => n.id === selectedNodeId)?.label || 'Selected Node'}
+                    </div>
+                  )}
                   {inputData._metadata?.fromCache && (
                     <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mb-2">
                       📁 Cached data from {inputData._metadata.sourceNode} ({new Date(inputData._metadata.lastExecuted).toLocaleTimeString()})
