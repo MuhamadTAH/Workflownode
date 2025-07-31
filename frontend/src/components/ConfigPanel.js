@@ -1670,18 +1670,35 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
                   <div className="form-group">
                     <label>Bot Token *</label>
-                    <input
-                      type="password"
-                      name="token"
-                      value={formData.token || ''}
-                      onChange={handleInputChange}
-                      placeholder="Your Telegram Bot API Token"
-                      className="input-field"
-                      required
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        name="token"
+                        value={formData.token || ''}
+                        onChange={handleInputChange}
+                        placeholder="Your Telegram Bot API Token"
+                        className="input-field flex-grow"
+                        required
+                      />
+                      <button 
+                        onClick={handleVerifyToken} 
+                        disabled={isLoading || !formData.token}
+                        className="bg-blue-500 text-white px-3 py-2 text-sm rounded hover:bg-blue-600 disabled:bg-blue-300"
+                      >
+                        {isLoading ? '...' : 'Check'}
+                      </button>
+                    </div>
                     <div className="text-xs text-gray-400 mt-1">
                       Get this from @BotFather on Telegram
                     </div>
+                    {verificationStatus && (
+                      <div className={'mt-2 text-sm p-2 rounded-md ' + (verificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')}>
+                        {verificationStatus.ok 
+                          ? `✅ Bot verified: @${verificationStatus.bot?.username || 'Unknown'} (${verificationStatus.bot?.first_name || 'No name'})`
+                          : `❌ ${verificationStatus.message}`
+                        }
+                      </div>
+                    )}
                   </div>
 
                   <div className="form-group">
