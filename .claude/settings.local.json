@@ -33,7 +33,11 @@
       "Bash(node server.js)",
       "Bash(tasklist)",
       "Bash(cmd //c:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(find:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run build:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }

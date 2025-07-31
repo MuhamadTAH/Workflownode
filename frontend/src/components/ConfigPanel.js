@@ -42,9 +42,10 @@ if (typeof document !== 'undefined') {
 }
 
 // Draggable JSON Field Component
-const DraggableJSONField = ({ path, value, level = 0 }) => {
+const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '' }) => {
   const handleDragStart = (e) => {
-    e.dataTransfer.setData('text/plain', '{{' + path + '}}');
+    const templateVariable = nodePrefix ? `{{${nodePrefix}.${path}}}` : '{{' + path + '}}';
+    e.dataTransfer.setData('text/plain', templateVariable);
     e.dataTransfer.effectAllowed = 'copy';
   };
 
@@ -61,7 +62,7 @@ const DraggableJSONField = ({ path, value, level = 0 }) => {
           className="text-blue-600 font-mono text-sm cursor-grab hover:bg-blue-100 px-1 rounded drag-field"
           draggable="true"
           onDragStart={handleDragStart}
-          title={'Drag to insert {{' + path + '}}'}
+          title={`Drag to insert ${nodePrefix ? `{{${nodePrefix}.${path}}}` : '{{' + path + '}}'}`}
         >
           {path.split('.').pop()}
         </span>
@@ -83,7 +84,8 @@ const DraggableJSONField = ({ path, value, level = 0 }) => {
           key={key} 
           path={path ? path + '.' + key : key} 
           value={val} 
-          level={level + 1} 
+          level={level + 1}
+          nodePrefix={nodePrefix}
         />
       ))}
       <div className="text-gray-600 font-mono text-sm">
@@ -190,7 +192,7 @@ const MemoryVisualization = ({ data }) => {
 };
 
 // Enhanced JSON Viewer with draggable fields
-const DraggableJSONViewer = ({ data }) => {
+const DraggableJSONViewer = ({ data, nodePrefix = '' }) => {
   if (!data || typeof data !== 'object') {
     return (
       <div className="text-gray-400 text-sm text-center py-4">
@@ -202,54 +204,104 @@ const DraggableJSONViewer = ({ data }) => {
   return (
     <div className="bg-gray-50 p-3 rounded text-sm font-mono max-h-64 overflow-y-auto">
       <div className="text-xs text-blue-600 mb-2 font-sans">
-        💡 Drag fields below into text inputs to create {"{{template}}"} variables
+        💡 Drag fields below into text inputs to create {nodePrefix ? `{{${nodePrefix}.field}}` : '{{template}}'} variables
+        {nodePrefix && (
+          <div className="text-xs text-purple-600 mt-1 font-semibold">
+            🏷️ Source: {nodePrefix} node data
+          </div>
+        )}
       </div>
       {Object.entries(data).map(([key, value]) => (
-        <DraggableJSONField key={key} path={key} value={value} />
+        <DraggableJSONField key={key} path={key} value={value} nodePrefix={nodePrefix} />
       ))}
     </div>
   );
 };
 
 // Universal Live Preview Component - Shows preview for all text inputs
-const UniversalLivePreview = ({ text, data, isFocused }) => {
+const UniversalLivePreview = ({ text, data, isFocused, nodeMapping = null }) => {
   if (!text) return null;
 
-  // Function to replace template variables with actual data
-  const processTemplate = (template, data) => {
-    if (!template || !data) return template || '';
+  // Function to replace template variables with actual data (enhanced for node-prefixed templates)
+  const processTemplate = (template, fallbackData, nodeMapping) => {
+    if (!template) return template || '';
     
     return template.replace(/\{\{([^}]+)\}\}/g, (match, variablePath) => {
       try {
-        // Navigate through nested object using dot notation
         const pathParts = variablePath.trim().split('.');
-        let value = data;
         
-        for (const part of pathParts) {
-          if (value && typeof value === 'object' && part in value) {
-            value = value[part];
-          } else {
-            return match; // Keep original if path not found
+        // Check if this is a node-prefixed template (e.g., telegram.message.text)
+        if (pathParts.length > 1 && nodeMapping) {
+          const nodeName = pathParts[0];
+          const fieldPath = pathParts.slice(1).join('.');
+          
+          if (nodeMapping[nodeName]) {
+            // Get data from the specific node
+            const nodeId = nodeMapping[nodeName].id;
+            const nodeExecutionKey = 'node-execution-' + nodeId;
+            const executionData = localStorage.getItem(nodeExecutionKey);
+            
+            if (executionData) {
+              try {
+                const parsed = JSON.parse(executionData);
+                const nodeData = parsed.outputData || parsed.inputData;
+                
+                if (nodeData) {
+                  let value = nodeData;
+                  const fieldParts = fieldPath.split('.');
+                  
+                  for (const part of fieldParts) {
+                    if (value && typeof value === 'object' && part in value) {
+                      value = value[part];
+                    } else {
+                      return match; // Keep original if path not found
+                    }
+                  }
+                  
+                  // Convert value to string
+                  if (typeof value === 'string') {
+                    return value;
+                  } else if (typeof value === 'number' || typeof value === 'boolean') {
+                    return String(value);
+                  } else if (typeof value === 'object') {
+                    return JSON.stringify(value, null, 2);
+                  }
+                }
+              } catch (error) {
+                console.error('Error parsing node data for preview:', error);
+              }
+            }
+          }
+        } else if (fallbackData) {
+          // Regular template without node prefix - use fallback data
+          let value = fallbackData;
+          
+          for (const part of pathParts) {
+            if (value && typeof value === 'object' && part in value) {
+              value = value[part];
+            } else {
+              return match; // Keep original if path not found
+            }
+          }
+          
+          // Convert value to string
+          if (typeof value === 'string') {
+            return value;
+          } else if (typeof value === 'number' || typeof value === 'boolean') {
+            return String(value);
+          } else if (typeof value === 'object') {
+            return JSON.stringify(value, null, 2);
           }
         }
         
-        // Convert value to string, handling different types
-        if (typeof value === 'string') {
-          return value;
-        } else if (typeof value === 'number' || typeof value === 'boolean') {
-          return String(value);
-        } else if (typeof value === 'object') {
-          return JSON.stringify(value, null, 2);
-        } else {
-          return match; // Keep original if unable to convert
-        }
+        return match; // Keep original if unable to resolve
       } catch (error) {
         return match; // Keep original on error
       }
     });
   };
 
-  const processedText = processTemplate(text, data);
+  const processedText = processTemplate(text, data, nodeMapping);
   const hasTemplateVars = /\{\{[^}]+\}\}/.test(text);
   const textChanged = processedText !== text;
 
@@ -285,7 +337,7 @@ const UniversalLivePreview = ({ text, data, isFocused }) => {
 // Template preview functionality moved to UniversalLivePreview
 
 // Enhanced Text Input with live preview (for regular inputs)
-const EnhancedTextInput = ({ label, name, value, onChange, placeholder, rows, className = "", inputData, type = "text" }) => {
+const EnhancedTextInput = ({ label, name, value, onChange, placeholder, rows, className = "", inputData, type = "text", nodeMapping = null }) => {
   const [isFocused, setIsFocused] = useState(false);
 
   const handleFocus = (e) => {
@@ -314,14 +366,14 @@ const EnhancedTextInput = ({ label, name, value, onChange, placeholder, rows, cl
         className={'w-full p-2 border rounded-md ' + (isFocused ? 'ring-2 ring-blue-200' : '') + ' ' + className}
       />
       {(isFocused || value) && (
-        <UniversalLivePreview text={value} data={inputData} isFocused={isFocused} />
+        <UniversalLivePreview text={value} data={inputData} isFocused={isFocused} nodeMapping={nodeMapping} />
       )}
     </div>
   );
 };
 
 // Enhanced Text Input with drop support and live preview
-const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, className = "", inputData }) => {
+const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, className = "", inputData, nodeMapping = null }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -394,7 +446,7 @@ const DroppableTextInput = ({ label, name, value, onChange, placeholder, rows, c
         </div>
       )}
       {(isFocused || value) && (
-        <UniversalLivePreview text={value} data={inputData} isFocused={isFocused} />
+        <UniversalLivePreview text={value} data={inputData} isFocused={isFocused} nodeMapping={nodeMapping} />
       )}
     </div>
   );
@@ -1166,6 +1218,179 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     return connectedDataStorageNodes;
   };
 
+  // Create node name mapping for template prefixes
+  const createNodeNameMapping = () => {
+    if (!nodes) return {};
+    
+    const mapping = {};
+    
+    // Add current node
+    mapping['current'] = {
+      id: node.id,
+      label: node.data.label || node.data.type,
+      type: node.data.type
+    };
+    
+    // Add all connected nodes with simplified names
+    const connectedNodes = findAllConnectedPreviousNodes();
+    connectedNodes.forEach(connectedNode => {
+      const sourceNode = nodes.find(n => n.id === connectedNode.id);
+      if (sourceNode) {
+        // Create simple name from node type
+        let simpleName = sourceNode.data.type;
+        if (simpleName === 'trigger') simpleName = 'telegram'; // telegram trigger -> telegram
+        if (simpleName === 'aiAgent') simpleName = 'aiAgent';
+        if (simpleName === 'modelNode') simpleName = 'model';
+        if (simpleName === 'dataStorage') simpleName = 'storage';
+        if (simpleName === 'telegramSendMessage') simpleName = 'sendMessage';
+        
+        mapping[simpleName] = {
+          id: sourceNode.id,
+          label: sourceNode.data.label || sourceNode.data.type,
+          type: sourceNode.data.type
+        };
+      }
+    });
+    
+    return mapping;
+  };
+
+  // Get the node prefix for the currently selected input source
+  const getCurrentNodePrefix = () => {
+    if (selectedNodeId === 'current') {
+      return ''; // Current node gets no prefix (old behavior)
+    }
+    
+    const selectedNode = availableNodes.find(n => n.id === selectedNodeId);
+    if (!selectedNode) return '';
+    
+    // Convert node type to prefix name
+    let prefix = selectedNode.type;
+    if (prefix === 'trigger') prefix = 'telegram';
+    if (prefix === 'aiAgent') prefix = 'aiAgent';
+    if (prefix === 'modelNode') prefix = 'model';
+    if (prefix === 'dataStorage') prefix = 'storage';
+    if (prefix === 'telegramSendMessage') prefix = 'sendMessage';
+    
+    return prefix;
+  };
+
+  // Enhanced template replacement with node prefixes
+  const replaceNodePrefixedTemplate = (template, fallbackData = null) => {
+    if (!template || typeof template !== 'string') return template;
+    
+    const nodeMapping = createNodeNameMapping();
+    let result = template;
+    
+    try {
+      // Replace node-prefixed templates like {{telegram.message.text}}
+      result = result.replace(/\{\{([^}]+)\}\}/g, (match, path) => {
+        const pathParts = path.trim().split('.');
+        
+        if (pathParts.length > 1) {
+          // This is a node-prefixed template
+          const nodeName = pathParts[0];
+          const fieldPath = pathParts.slice(1).join('.');
+          
+          if (nodeMapping[nodeName]) {
+            // Get data from the specific node
+            const nodeId = nodeMapping[nodeName].id;
+            const nodeExecutionKey = 'node-execution-' + nodeId;
+            const executionData = localStorage.getItem(nodeExecutionKey);
+            
+            if (executionData) {
+              try {
+                const parsed = JSON.parse(executionData);
+                const nodeData = parsed.outputData || parsed.inputData;
+                
+                if (nodeData) {
+                  const value = getNestedValue(nodeData, fieldPath);
+                  if (value !== undefined && value !== null) {
+                    return typeof value === 'object' ? JSON.stringify(value) : String(value);
+                  }
+                }
+              } catch (error) {
+                console.error('Error parsing node data for template:', error);
+              }
+            }
+          }
+        } else {
+          // This is a regular template, use fallback data if provided
+          if (fallbackData) {
+            const value = getNestedValue(fallbackData, path.trim());
+            if (value !== undefined && value !== null) {
+              return typeof value === 'object' ? JSON.stringify(value) : String(value);
+            }
+          }
+        }
+        
+        return match; // Keep original if not found
+      });
+    } catch (error) {
+      console.error('Error in node-prefixed template replacement:', error);
+      return template;
+    }
+    
+    return result;
+  };
+
+  // Helper function to get nested object values
+  const getNestedValue = (obj, path) => {
+    return path.split('.').reduce((current, key) => {
+      return current && current[key] !== undefined ? current[key] : undefined;
+    }, obj);
+  };
+
+  // Generate available template options for user guidance
+  const getAvailableTemplateOptions = () => {
+    const nodeMapping = createNodeNameMapping();
+    const options = [];
+    
+    Object.keys(nodeMapping).forEach(nodeName => {
+      const nodeInfo = nodeMapping[nodeName];
+      
+      // Get sample data structure from the node
+      const nodeExecutionKey = 'node-execution-' + nodeInfo.id;
+      const executionData = localStorage.getItem(nodeExecutionKey);
+      
+      if (executionData) {
+        try {
+          const parsed = JSON.parse(executionData);
+          const nodeData = parsed.outputData || parsed.inputData;
+          
+          if (nodeData && typeof nodeData === 'object') {
+            // Generate sample template paths
+            const generatePaths = (obj, prefix = '', depth = 0) => {
+              if (depth > 2) return; // Limit depth to avoid too many options
+              
+              Object.keys(obj).forEach(key => {
+                const newPrefix = prefix ? `${prefix}.${key}` : key;
+                const value = obj[key];
+                
+                if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                  generatePaths(value, newPrefix, depth + 1);
+                } else {
+                  options.push({
+                    template: `{{${nodeName}.${newPrefix}}}`,
+                    description: `${nodeInfo.label}: ${newPrefix}`,
+                    nodeType: nodeInfo.type,
+                    sampleValue: Array.isArray(value) ? '[Array]' : String(value).substring(0, 50)
+                  });
+                }
+              });
+            };
+            
+            generatePaths(nodeData);
+          }
+        } catch (error) {
+          console.error('Error generating template options:', error);
+        }
+      }
+    });
+    
+    return options.slice(0, 20); // Limit to 20 most relevant options
+  };
+
   // Find ALL connected previous nodes (for input selection dropdown)
   const findAllConnectedPreviousNodes = () => {
     if (!edges || !nodes) return [];
@@ -1424,7 +1649,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       📁 Cached data from {inputData._metadata.sourceNode} ({new Date(inputData._metadata.lastExecuted).toLocaleTimeString()})
                     </div>
                   )}
-                  <DraggableJSONViewer data={inputData} />
+                  <DraggableJSONViewer data={inputData} nodePrefix={getCurrentNodePrefix()} />
                 </div>
               ) : (
                 <div className="text-gray-400 text-sm text-center py-8">
@@ -1445,6 +1670,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 onChange={handleInputChange}
                 placeholder="Node label"
                 inputData={inputData}
+                nodeMapping={createNodeNameMapping()}
               />
               <EnhancedTextInput 
                 label="Description" 
@@ -1454,6 +1680,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 rows={3}
                 placeholder="Node description"
                 inputData={inputData}
+                nodeMapping={createNodeNameMapping()}
               />
               
               {/* Fields for Model Node */}
@@ -1588,6 +1815,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     rows={4}
                     placeholder="You are a helpful AI assistant."
                     inputData={inputData}
+                    nodeMapping={createNodeNameMapping()}
                   />
                   <DroppableTextInput 
                     label="User Prompt" 
@@ -1597,6 +1825,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     rows={3}
                     placeholder="{{message}}"
                     inputData={inputData}
+                    nodeMapping={createNodeNameMapping()}
                   />
                   <div className="text-xs text-gray-500 mb-2">
                     💡 System Prompt defines AI personality. User Prompt processes input with {"{{variables}}"}.<br/>
@@ -1750,6 +1979,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       onChange={handleInputChange}
                       placeholder="https://docs.google.com/document/d/your-doc-id/edit"
                       inputData={inputData}
+                      nodeMapping={createNodeNameMapping()}
                     />
                   )}
 
@@ -1762,6 +1992,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       onChange={handleInputChange}
                       placeholder="New Document"
                       inputData={inputData}
+                      nodeMapping={createNodeNameMapping()}
                     />
                   )}
 
@@ -1775,6 +2006,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       rows={5}
                       placeholder="{{message}} or your content here"
                       inputData={inputData}
+                      nodeMapping={createNodeNameMapping()}
                     />
                   )}
 
@@ -1928,8 +2160,20 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       required
                     />
                     <div className="text-xs text-gray-400 mt-1">
-                      Use {"{{message.chat.id}}"} to reply to the same chat, or enter a specific chat ID
+                      <div>💡 Use node-prefixed templates:</div>
+                      <div>• {"{{telegram.message.chat.id}}"} - Telegram chat ID</div>
+                      <div>• {"{{aiAgent.reply}}"} - AI response</div>
+                      <div>• {"{{storage.fieldName}}"} - Data storage field</div>
                     </div>
+                    {/* Live preview for node-prefixed templates */}
+                    {formData.chatId && formData.chatId.includes('{{') && (
+                      <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                        <div className="font-semibold text-blue-800 mb-1">🔍 Template Preview:</div>
+                        <div className="font-mono text-blue-700 bg-white p-1 rounded">
+                          {replaceNodePrefixedTemplate(formData.chatId)}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="form-group">
@@ -1944,8 +2188,20 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       required
                     />
                     <div className="text-xs text-gray-400 mt-1">
-                      Use {"{{message.text}}"} to include the original message, or other templates
+                      <div>💡 Use node-prefixed templates:</div>
+                      <div>• {"{{telegram.message.text}}"} - Original Telegram message</div>
+                      <div>• {"{{aiAgent.reply}}"} - AI Agent response</div>
+                      <div>• {"{{storage.userName}}"} - Data from storage</div>
                     </div>
+                    {/* Live preview for node-prefixed templates */}
+                    {formData.messageText && formData.messageText.includes('{{') && (
+                      <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                        <div className="font-semibold text-blue-800 mb-1">🔍 Template Preview:</div>
+                        <div className="font-mono text-blue-700 bg-white p-1 rounded max-h-20 overflow-y-auto">
+                          {replaceNodePrefixedTemplate(formData.messageText)}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="form-group">

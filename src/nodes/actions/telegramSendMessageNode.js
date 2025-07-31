@@ -68,7 +68,7 @@ const telegramSendMessageNode = {
         ],
     },
 
-    // Template replacement function (similar to AI Agent)
+    // Enhanced template replacement function (supports node-prefixed templates)
     replaceTemplate(template, data) {
         if (!template || typeof template !== 'string') return template;
         if (!data || typeof data !== 'object') return template;
@@ -76,8 +76,28 @@ const telegramSendMessageNode = {
         let result = template;
         
         try {
-            // Replace templates like {{message.text}}, {{message.chat.id}}, etc.
+            // Replace templates like {{message.text}}, {{telegram.message.chat.id}}, etc.
             result = result.replace(/\{\{([^}]+)\}\}/g, (match, path) => {
+                const pathParts = path.trim().split('.');
+                
+                // Handle node-prefixed templates (e.g., telegram.message.chat.id)
+                if (pathParts.length > 1) {
+                    const nodePrefix = pathParts[0];
+                    
+                    // Skip the node prefix and use the rest of the path
+                    if (['telegram', 'aiAgent', 'model', 'storage', 'sendMessage'].includes(nodePrefix)) {
+                        const actualPath = pathParts.slice(1).join('.');
+                        const value = this.getNestedValue(data, actualPath);
+                        if (value !== undefined && value !== null) {
+                            if (typeof value === 'object') {
+                                return JSON.stringify(value);
+                            }
+                            return String(value);
+                        }
+                    }
+                }
+                
+                // Handle regular templates (without node prefix)
                 const value = this.getNestedValue(data, path.trim());
                 if (value !== undefined && value !== null) {
                     if (typeof value === 'object') {
@@ -85,6 +105,7 @@ const telegramSendMessageNode = {
                     }
                     return String(value);
                 }
+                
                 return match; // Keep original if not found
             });
         } catch (error) {
@@ -103,7 +124,14 @@ const telegramSendMessageNode = {
     },
 
     async execute(nodeConfig, inputData) {
-        console.log('Executing Telegram Send Message node:', nodeConfig);
+        console.log('=== Executing Telegram Send Message node ===');
+        console.log('Node config:', {
+            token: token ? '***' + token.slice(-4) : 'missing',
+            chatId: nodeConfig.chatId,
+            messageText: nodeConfig.messageText,
+            parseMode: nodeConfig.parseMode
+        });
+        console.log('Input data:', inputData);
         
         const { token, chatId, messageText, parseMode, disableNotification } = nodeConfig;
 
@@ -116,11 +144,18 @@ const telegramSendMessageNode = {
         }
 
         // Process templates with input data
+        console.log('Processing templates...');
+        console.log('Original chatId template:', chatId);
+        console.log('Original messageText template:', messageText);
+        
         const processedChatId = this.replaceTemplate(chatId, inputData);
         const processedMessage = this.replaceTemplate(messageText, inputData);
+        
+        console.log('Processed chatId:', processedChatId);
+        console.log('Processed messageText:', processedMessage);
 
         if (!processedChatId) {
-            throw new Error('Chat ID is required (processed value is empty)');
+            throw new Error('Chat ID is required (processed value is empty). Original template: ' + chatId);
         }
 
         try {

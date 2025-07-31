@@ -24,7 +24,7 @@ const DraggableNode = ({ nodeInfo }) => {
   );
 };
 
-const Sidebar = ({ onSave, onRestore, onActivate }) => {
+const Sidebar = ({ onSave, onRestore, onActivate, onDeactivate }) => {
   return (
     <aside className="border-r-2 border-gray-200 p-4 text-sm bg-gray-50 w-72 h-screen shadow-lg z-10 flex flex-col">
       <div>
@@ -84,18 +84,22 @@ const Sidebar = ({ onSave, onRestore, onActivate }) => {
       <div className="mt-auto">
         <div className="mb-4 font-bold text-lg text-gray-700">Actions</div>
         <button onClick={onActivate} className="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors mb-2">
-          Activate Flow
+          🚀 Activate Flow
+        </button>
+        <button onClick={onDeactivate} className="w-full bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors mb-2">
+          ⏹️ Deactivate Flow
         </button>
         <button onClick={onSave} className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors mb-2">
-          Save Flow
+          💾 Save Flow
         </button>
-        <button onClick={onRestore} className="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">
-          Load Flow
+        <button onClick={onRestore} className="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors mb-2">
+          📁 Load Flow
         </button>
         <div className="text-xs text-gray-400 mt-4">
-          <p><b>Multi-Select:</b> Hold Shift + Click nodes.</p>
-          <p><b>Copy:</b> Ctrl/Cmd + C</p>
-          <p><b>Paste:</b> Ctrl/Cmd + V</p>
+          <p><b>🚀 Activate:</b> Enable auto-execution when Telegram messages arrive</p>
+          <p><b>⏹️ Deactivate:</b> Stop auto-execution (manual mode)</p>
+          <p><b>Multi-Select:</b> Hold Shift + Click nodes</p>
+          <p><b>Copy:</b> Ctrl/Cmd + C | <b>Paste:</b> Ctrl/Cmd + V</p>
         </div>
       </div>
     </aside>

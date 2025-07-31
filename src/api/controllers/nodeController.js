@@ -51,7 +51,12 @@ const runNode = async (req, res) => {
 
     } catch (error) {
         console.error('Error running node:', error.message);
-        res.status(500).send({ message: 'Failed to run node.', error: error.message });
+        console.error('Full error details:', error);
+        res.status(500).send({ 
+            message: 'Failed to run node.', 
+            error: error.message,
+            details: error.stack ? error.stack.split('\n').slice(0, 3).join('\n') : 'No stack trace'
+        });
     }
 };
 
