@@ -532,6 +532,13 @@ const ChatbotInterface = ({ nodeConfig }) => {
 };
 
 const ConfigPanel = ({ node, onClose, nodes, edges }) => {
+  // Debug: Track node data changes
+  console.log('🔧 ConfigPanel opened for node:', {
+    id: node.id,
+    type: node.data.type,
+    label: node.data.label,
+    allNodeData: node.data
+  });
   const [formData, setFormData] = useState({
       label: node.data.label || '',
       description: node.data.description || '',
@@ -646,12 +653,20 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         setSelectedNodeId(connectedNodes[0].id);
       }
     }
-  }, [edges, nodes, selectedNodeId]);
+  }, [edges, nodes]);
 
   // Auto-save function
   const autoSaveConfig = async (newFormData) => {
     try {
       setAutoSaveStatus('saving');
+      
+      console.log('💾 Auto-saving config for node:', {
+        nodeId: node.id,
+        currentNodeType: node.data.type,
+        currentNodeLabel: node.data.label,
+        newFormData: newFormData,
+        hasTypeInFormData: 'type' in newFormData
+      });
       
       // Save to localStorage immediately
       const configKey = `node-config-${node.id}`;
@@ -660,7 +675,14 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       // Also update the node data in the workflow
       // This assumes there's a way to update the node in the parent component
       if (node.data) {
+        const beforeUpdate = { ...node.data };
         Object.assign(node.data, newFormData);
+        
+        console.log('💾 Node data updated:', {
+          before: beforeUpdate,
+          after: { ...node.data },
+          typeChanged: beforeUpdate.type !== node.data.type
+        });
       }
       
       // Simulate brief delay to show saving status
