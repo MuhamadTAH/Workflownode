@@ -1373,8 +1373,8 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     return connectedDataStorageNodes;
   };
 
-  // Create node name mapping for template prefixes
-  const createNodeNameMapping = () => {
+  // Create node name mapping for template prefixes - MEMOIZED
+  const createNodeNameMapping = useMemo(() => {
     if (!nodes) return {};
     
     const mapping = {};
@@ -1408,7 +1408,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     });
     
     return mapping;
-  };
+  }, [nodes, node.id, node.data.label, node.data.type, findAllConnectedPreviousNodes]);
 
   // Get the node prefix for the currently selected input source - MEMOIZED
   const getCurrentNodePrefix = useMemo(() => {
@@ -1441,7 +1441,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   const replaceNodePrefixedTemplate = (template, fallbackData = null) => {
     if (!template || typeof template !== 'string') return template;
     
-    const nodeMapping = createNodeNameMapping();
+    const nodeMapping = createNodeNameMapping;
     let result = template;
     
     try {
@@ -1505,7 +1505,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   // Generate available template options for user guidance
   const getAvailableTemplateOptions = () => {
-    const nodeMapping = createNodeNameMapping();
+    const nodeMapping = createNodeNameMapping;
     const options = [];
     
     Object.keys(nodeMapping).forEach(nodeName => {
@@ -1778,7 +1778,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 onChange={handleInputChange}
                 placeholder="Node label"
                 inputData={inputData}
-                nodeMapping={createNodeNameMapping()}
+                nodeMapping={createNodeNameMapping}
               />
               <EnhancedTextInput 
                 label="Description" 
@@ -1788,7 +1788,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 rows={3}
                 placeholder="Node description"
                 inputData={inputData}
-                nodeMapping={createNodeNameMapping()}
+                nodeMapping={createNodeNameMapping}
               />
               
               {/* Fields for Model Node */}
@@ -1923,7 +1923,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     rows={4}
                     placeholder="You are a helpful AI assistant."
                     inputData={inputData}
-                    nodeMapping={createNodeNameMapping()}
+                    nodeMapping={createNodeNameMapping}
                   />
                   <DroppableTextInput 
                     label="User Prompt" 
@@ -1933,7 +1933,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     rows={3}
                     placeholder="{{message}}"
                     inputData={inputData}
-                    nodeMapping={createNodeNameMapping()}
+                    nodeMapping={createNodeNameMapping}
                   />
                   <div className="text-xs text-gray-500 mb-2">
                     💡 System Prompt defines AI personality. User Prompt processes input with {"{{variables}}"}.<br/>
@@ -2087,7 +2087,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       onChange={handleInputChange}
                       placeholder="https://docs.google.com/document/d/your-doc-id/edit"
                       inputData={inputData}
-                      nodeMapping={createNodeNameMapping()}
+                      nodeMapping={createNodeNameMapping}
                     />
                   )}
 
@@ -2100,7 +2100,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       onChange={handleInputChange}
                       placeholder="New Document"
                       inputData={inputData}
-                      nodeMapping={createNodeNameMapping()}
+                      nodeMapping={createNodeNameMapping}
                     />
                   )}
 
@@ -2114,7 +2114,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       rows={5}
                       placeholder="{{message}} or your content here"
                       inputData={inputData}
-                      nodeMapping={createNodeNameMapping()}
+                      nodeMapping={createNodeNameMapping}
                     />
                   )}
 
