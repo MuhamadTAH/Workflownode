@@ -532,14 +532,23 @@ const ChatbotInterface = ({ nodeConfig }) => {
 };
 
 const ConfigPanel = ({ node, onClose, nodes, edges }) => {
-  // Debug: Track node data changes
-  console.log('🔧 ConfigPanel opened for node:', {
+  // Debug: Track node data changes on every render
+  console.log('🔧 ConfigPanel render for node:', {
     id: node.id,
     type: node.data.type,
     label: node.data.label,
-    allNodeData: node.data
+    allNodeData: node.data,
+    renderTime: new Date().toISOString()
   });
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => {
+    console.log('🔧 Initializing formData for node:', {
+      nodeId: node.id,
+      nodeType: node.data.type,
+      nodeLabel: node.data.label,
+      allNodeData: node.data
+    });
+    
+    return {
       label: node.data.label || '',
       description: node.data.description || '',
       model: node.data.model || 'claude-3-5-sonnet-20241022',
@@ -702,6 +711,16 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   const handleInputChange = (e) => {
       const { name, value, type, checked } = e.target;
       const finalValue = type === 'checkbox' ? checked : (type === 'number' ? parseFloat(value) : value);
+      
+      console.log('📝 Input changed:', {
+        nodeId: node.id,
+        nodeType: node.data.type,
+        fieldName: name,
+        oldValue: formData[name],
+        newValue: finalValue,
+        isNodeTypeSpecific: (node.data.type === 'trigger' && ['chatId', 'messageText', 'parseMode'].includes(name)) ||
+                           (node.data.type === 'telegramSendMessage' && ['token'].includes(name))
+      });
       
       const newFormData = { ...formData, [name]: finalValue };
       setFormData(newFormData);
