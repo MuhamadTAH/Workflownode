@@ -160,6 +160,18 @@ const telegramSendMessageNode = {
         console.log('Processing templates...');
         console.log('Original chatId template:', chatId);
         console.log('Original messageText template:', messageText);
+        console.log('Available template data structure:');
+        console.log('- Main data keys:', Object.keys(inputData));
+        console.log('- _telegram keys:', inputData._telegram ? Object.keys(inputData._telegram) : 'Not available');
+        console.log('- _originalTrigger keys:', inputData._originalTrigger ? Object.keys(inputData._originalTrigger) : 'Not available');
+        
+        // Show specific data for debugging
+        if (inputData._telegram?.message?.chat) {
+            console.log('- Telegram chat data:', inputData._telegram.message.chat);
+        }
+        if (inputData._originalTrigger?.message?.chat) {
+            console.log('- Original trigger chat data:', inputData._originalTrigger.message.chat);
+        }
         
         const processedChatId = telegramSendMessageNode.replaceTemplate(chatId, inputData);
         const processedMessage = telegramSendMessageNode.replaceTemplate(messageText, inputData);
