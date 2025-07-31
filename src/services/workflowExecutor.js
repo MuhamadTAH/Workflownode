@@ -89,6 +89,7 @@ class WorkflowExecutor {
             console.log('Execution order:', executionOrder.map(step => `${step.node.data.label || step.node.data.type} (${step.node.id})`));
 
             let currentData = triggerData;
+            let originalTriggerData = triggerData;
 
             // Execute each node in order
             for (let i = 0; i < executionOrder.length; i++) {
@@ -112,9 +113,25 @@ class WorkflowExecutor {
                         stepLog.outputData = currentData;
                         stepLog.status = 'skipped';
                         stepLog.message = 'Trigger node - using trigger data';
+                        
+                        // For trigger nodes, we need to extract the actual message data
+                        if (Array.isArray(currentData) && currentData[0] && currentData[0].json) {
+                            currentData = currentData[0].json; // Extract the actual message object
+                            originalTriggerData = currentData;
+                            console.log('Extracted trigger message data:', JSON.stringify(currentData, null, 2));
+                        }
                     } else {
+                        // Create enhanced input data that includes original trigger data
+                        const enhancedInputData = {
+                            ...currentData,
+                            _originalTrigger: originalTriggerData,
+                            _telegram: originalTriggerData // Alias for templates
+                        };
+                        
+                        console.log('Enhanced input data for node:', JSON.stringify(enhancedInputData, null, 2));
+                        
                         // Execute the node
-                        const result = await this.executeNode(node, currentData, workflow);
+                        const result = await this.executeNode(node, enhancedInputData, workflow);
                         currentData = result; // Use output as input for next node
                         
                         stepLog.outputData = result;

@@ -102,19 +102,48 @@ const aiAgentNode = {
             }
         }
 
-        // Advanced template replacement for nested JSON paths
+        // Advanced template replacement for nested JSON paths with node prefixes
         const replaceTemplate = (template, data) => {
             return template.replace(/\{\{([^}]+)\}\}/g, (match, variablePath) => {
                 try {
-                    // Navigate through nested object using dot notation
                     const pathParts = variablePath.trim().split('.');
-                    let value = data;
+                    let value;
                     
-                    for (const part of pathParts) {
-                        if (value && typeof value === 'object' && part in value) {
-                            value = value[part];
+                    // Handle node-prefixed templates (e.g., telegram.message.text)
+                    if (pathParts.length > 1) {
+                        const nodePrefix = pathParts[0];
+                        const actualPath = pathParts.slice(1);
+                        
+                        // For telegram prefix, look in _telegram or _originalTrigger
+                        if (nodePrefix === 'telegram') {
+                            value = data._telegram || data._originalTrigger;
+                            for (const part of actualPath) {
+                                if (value && typeof value === 'object' && part in value) {
+                                    value = value[part];
+                                } else {
+                                    return match; // Keep original if path not found
+                                }
+                            }
                         } else {
-                            return match; // Keep original if path not found
+                            // For other prefixes, navigate through main data
+                            value = data;
+                            for (const part of pathParts) {
+                                if (value && typeof value === 'object' && part in value) {
+                                    value = value[part];
+                                } else {
+                                    return match; // Keep original if path not found
+                                }
+                            }
+                        }
+                    } else {
+                        // Regular template without node prefix
+                        value = data;
+                        for (const part of pathParts) {
+                            if (value && typeof value === 'object' && part in value) {
+                                value = value[part];
+                            } else {
+                                return match; // Keep original if path not found
+                            }
                         }
                     }
                     

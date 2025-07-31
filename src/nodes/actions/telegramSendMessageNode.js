@@ -87,7 +87,17 @@ const telegramSendMessageNode = {
                     // Skip the node prefix and use the rest of the path
                     if (['telegram', 'aiAgent', 'model', 'storage', 'sendMessage'].includes(nodePrefix)) {
                         const actualPath = pathParts.slice(1).join('.');
-                        const value = telegramSendMessageNode.getNestedValue(data, actualPath);
+                        let value;
+                        
+                        // For telegram prefix, look in _telegram or _originalTrigger
+                        if (nodePrefix === 'telegram') {
+                            value = telegramSendMessageNode.getNestedValue(data._telegram, actualPath) || 
+                                   telegramSendMessageNode.getNestedValue(data._originalTrigger, actualPath);
+                        } else {
+                            // For other prefixes, look in main data
+                            value = telegramSendMessageNode.getNestedValue(data, actualPath);
+                        }
+                        
                         if (value !== undefined && value !== null) {
                             if (typeof value === 'object') {
                                 return JSON.stringify(value);
