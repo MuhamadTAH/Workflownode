@@ -3,7 +3,7 @@
 FRONTEND FILE: src/components/.js (CORRECTED)
 =================================================================
 */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import config from '../config';
 
 // Add CSS styles for drag and drop
@@ -662,18 +662,24 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     });
     
     setAvailableNodes(connectedNodes);
-    
+  }, [edges, nodes, findAllConnectedPreviousNodes]);
+
+  // Separate effect to handle node selection to avoid infinite loops
+  useEffect(() => {
     // If no node is selected or the selected node is no longer available, select the first available node
-    if (!selectedNodeId || !connectedNodes.find(n => n.id === selectedNodeId)) {
-      if (connectedNodes.length > 0) {
+    if (!selectedNodeId || !availableNodes.find(n => n.id === selectedNodeId)) {
+      if (availableNodes.length > 0) {
         console.log('🎯 Auto-selecting first available node:', {
-          selectedNode: connectedNodes[0],
+          selectedNode: availableNodes[0],
           reason: !selectedNodeId ? 'No node selected' : 'Previously selected node no longer available'
         });
-        setSelectedNodeId(connectedNodes[0].id);
+        setSelectedNodeId(availableNodes[0].id);
+      } else if (selectedNodeId) {
+        // Clear selection if no nodes available
+        setSelectedNodeId('');
       }
     }
-  }, [edges, nodes]);
+  }, [availableNodes, selectedNodeId]);
 
   // Auto-save function
   const autoSaveConfig = async (newFormData) => {
@@ -1475,8 +1481,8 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     return options.slice(0, 20); // Limit to 20 most relevant options
   };
 
-  // Find ALL connected previous nodes (for input selection dropdown)
-  const findAllConnectedPreviousNodes = () => {
+  // Find ALL connected previous nodes (for input selection dropdown) - MEMOIZED
+  const findAllConnectedPreviousNodes = useCallback(() => {
     if (!edges || !nodes) {
       console.log('⚠️ findAllConnectedPreviousNodes: Missing edges or nodes');
       return [];
@@ -1539,7 +1545,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       if (a.type !== 'trigger' && b.type === 'trigger') return 1;
       return a.label.localeCompare(b.label);
     });
-  };
+  }, [edges, nodes, node.id]);
 
   const handlePostData = async () => {
     if (!inputData) return;
