@@ -627,11 +627,22 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   // Update available nodes when edges or nodes change
   useEffect(() => {
     const connectedNodes = findAllConnectedPreviousNodes();
+    console.log('🔍 Updating available nodes:', {
+      currentNodeId: node.id,
+      currentNodeLabel: node.data.label,
+      previouslySelected: selectedNodeId,
+      newConnectedNodes: connectedNodes.map(n => ({ id: n.id, label: n.label, type: n.type }))
+    });
+    
     setAvailableNodes(connectedNodes);
     
     // If no node is selected or the selected node is no longer available, select the first available node
     if (!selectedNodeId || !connectedNodes.find(n => n.id === selectedNodeId)) {
       if (connectedNodes.length > 0) {
+        console.log('🎯 Auto-selecting first available node:', {
+          selectedNode: connectedNodes[0],
+          reason: !selectedNodeId ? 'No node selected' : 'Previously selected node no longer available'
+        });
         setSelectedNodeId(connectedNodes[0].id);
       }
     }
@@ -918,10 +929,22 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   // Handle node selection change
   const handleNodeSelectionChange = (e) => {
     const newNodeId = e.target.value;
+    console.log('🔄 Node selection changed:', {
+      previousNodeId: selectedNodeId,
+      newNodeId: newNodeId,
+      availableNodes: availableNodes.map(n => ({ id: n.id, label: n.label, type: n.type }))
+    });
+    
     setSelectedNodeId(newNodeId);
     
     // Load data from the selected node
     const nodeData = loadDataFromNode(newNodeId);
+    console.log('📊 Loading data from selected node:', {
+      nodeId: newNodeId,
+      dataExists: !!nodeData,
+      dataKeys: nodeData ? Object.keys(nodeData) : 'No data'
+    });
+    
     if (nodeData) {
       setInputData(nodeData);
     } else {
@@ -1260,6 +1283,12 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   // Get the node prefix for the currently selected input source
   const getCurrentNodePrefix = () => {
     const selectedNode = availableNodes.find(n => n.id === selectedNodeId);
+    console.log('🏷️ Getting node prefix:', {
+      selectedNodeId: selectedNodeId,
+      selectedNode: selectedNode ? { id: selectedNode.id, label: selectedNode.label, type: selectedNode.type } : 'Not found',
+      availableNodesCount: availableNodes.length
+    });
+    
     if (!selectedNode) return '';
     
     // Convert node type to prefix name
@@ -1269,6 +1298,11 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     if (prefix === 'modelNode') prefix = 'model';
     if (prefix === 'dataStorage') prefix = 'storage';
     if (prefix === 'telegramSendMessage') prefix = 'sendMessage';
+    
+    console.log('🏷️ Node prefix result:', {
+      originalType: selectedNode.type,
+      convertedPrefix: prefix
+    });
     
     return prefix;
   };
@@ -1391,10 +1425,17 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   // Find ALL connected previous nodes (for input selection dropdown)
   const findAllConnectedPreviousNodes = () => {
-    if (!edges || !nodes) return [];
+    if (!edges || !nodes) {
+      console.log('⚠️ findAllConnectedPreviousNodes: Missing edges or nodes');
+      return [];
+    }
 
     const connectedNodes = [];
     const visited = new Set();
+    
+    console.log('🔍 Starting findAllConnectedPreviousNodes for node:', node.id);
+    console.log('All edges:', edges.map(e => `${e.source} → ${e.target}`));
+    console.log('All nodes:', nodes.map(n => `${n.id} (${n.data.type}: ${n.data.label})`));
     
     // Recursive function to find all upstream nodes
     const findUpstreamNodes = (currentNodeId) => {
@@ -1402,10 +1443,13 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       visited.add(currentNodeId);
       
       const incomingEdges = edges.filter(edge => edge.target === currentNodeId);
+      console.log(`Checking incoming edges for ${currentNodeId}:`, incomingEdges.map(e => `${e.source} → ${e.target}`));
       
       for (const edge of incomingEdges) {
         const sourceNode = nodes.find(n => n.id === edge.source);
         if (sourceNode) {
+          console.log(`Found source node: ${sourceNode.id} (${sourceNode.data.type}: ${sourceNode.data.label})`);
+          
           // Check if this node has execution data
           const nodeExecutionKey = 'node-execution-' + sourceNode.id;
           const executionData = localStorage.getItem(nodeExecutionKey);
@@ -1414,12 +1458,15 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
             try {
               const parsed = JSON.parse(executionData);
               if (parsed.outputData || parsed.inputData) {
+                console.log(`✅ Adding node with data: ${sourceNode.id}`);
                 connectedNodes.push({
                   id: sourceNode.id,
                   label: sourceNode.data.label || sourceNode.data.type,
                   type: sourceNode.data.type,
                   hasData: !!(parsed.outputData || parsed.inputData)
                 });
+              } else {
+                console.log(`⚠️ Node ${sourceNode.id} has execution data but no input/output data`);
               }
             } catch (error) {
               console.error('Error parsing node execution data:', error);
