@@ -647,6 +647,19 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     if (savedConfig) {
       try {
         const parsedConfig = JSON.parse(savedConfig);
+        
+        // IMPORTANT: Preserve the original node label - don't load it from saved config
+        delete parsedConfig.label;
+        delete parsedConfig.type; // Also preserve node type
+        
+        console.log('🔧 Loading saved config (preserving label and type):', {
+          nodeId: node.id,
+          originalLabel: node.data.label,
+          originalType: node.data.type,
+          savedConfigHadLabel: 'label' in JSON.parse(savedConfig),
+          savedConfigHadType: 'type' in JSON.parse(savedConfig)
+        });
+        
         setFormData(prev => ({ ...prev, ...parsedConfig }));
       } catch (error) {
         console.error('Error loading saved config:', error);
@@ -720,35 +733,36 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     });
   }, [edges, nodes, node.id]);
 
-  // Update available nodes when edges or nodes change
-  useEffect(() => {
-    const connectedNodes = findAllConnectedPreviousNodes();
-    console.log('🔍 Updating available nodes:', {
-      currentNodeId: node.id,
-      currentNodeLabel: node.data.label,
-      previouslySelected: selectedNodeId,
-      newConnectedNodes: connectedNodes.map(n => ({ id: n.id, label: n.label, type: n.type }))
-    });
-    
-    setAvailableNodes(connectedNodes);
-  }, [edges, nodes, node.id]);
+  // TEMPORARILY DISABLED: Update available nodes when edges or nodes change
+  // This was causing infinite render loops, so we're simplifying for now
+  // useEffect(() => {
+  //   const connectedNodes = findAllConnectedPreviousNodes();
+  //   console.log('🔍 Updating available nodes:', {
+  //     currentNodeId: node.id,
+  //     currentNodeLabel: node.data.label,
+  //     previouslySelected: selectedNodeId,
+  //     newConnectedNodes: connectedNodes.map(n => ({ id: n.id, label: n.label, type: n.type }))
+  //   });
+  //   
+  //   setAvailableNodes(connectedNodes);
+  // }, [edges, nodes, node.id]);
 
-  // Separate effect to handle node selection to avoid infinite loops
-  useEffect(() => {
-    // If no node is selected or the selected node is no longer available, select the first available node
-    if (!selectedNodeId || !availableNodes.find(n => n.id === selectedNodeId)) {
-      if (availableNodes.length > 0) {
-        console.log('🎯 Auto-selecting first available node:', {
-          selectedNode: availableNodes[0],
-          reason: !selectedNodeId ? 'No node selected' : 'Previously selected node no longer available'
-        });
-        setSelectedNodeId(availableNodes[0].id);
-      } else if (selectedNodeId) {
-        // Clear selection if no nodes available
-        setSelectedNodeId('');
-      }
-    }
-  }, [availableNodes, selectedNodeId]);
+  // TEMPORARILY DISABLED: Separate effect to handle node selection to avoid infinite loops
+  // useEffect(() => {
+  //   // If no node is selected or the selected node is no longer available, select the first available node
+  //   if (!selectedNodeId || !availableNodes.find(n => n.id === selectedNodeId)) {
+  //     if (availableNodes.length > 0) {
+  //       console.log('🎯 Auto-selecting first available node:', {
+  //         selectedNode: availableNodes[0],
+  //         reason: !selectedNodeId ? 'No node selected' : 'Previously selected node no longer available'
+  //       });
+  //       setSelectedNodeId(availableNodes[0].id);
+  //     } else if (selectedNodeId) {
+  //       // Clear selection if no nodes available
+  //       setSelectedNodeId('');
+  //     }
+  //   }
+  // }, [availableNodes, selectedNodeId]);
 
   // Auto-save function
   const autoSaveConfig = async (newFormData) => {
