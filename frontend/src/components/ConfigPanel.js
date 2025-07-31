@@ -651,6 +651,72 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     }
   }, [node.id]);
 
+  // Find ALL connected previous nodes (for input selection dropdown) - MEMOIZED
+  const findAllConnectedPreviousNodes = useCallback(() => {
+    if (!edges || !nodes) {
+      console.log('⚠️ findAllConnectedPreviousNodes: Missing edges or nodes');
+      return [];
+    }
+
+    const connectedNodes = [];
+    const visited = new Set();
+    
+    console.log('🔍 Starting findAllConnectedPreviousNodes for node:', node.id);
+    console.log('All edges:', edges.map(e => `${e.source} → ${e.target}`));
+    console.log('All nodes:', nodes.map(n => `${n.id} (${n.data.type}: ${n.data.label})`));
+    
+    // Recursive function to find all upstream nodes
+    const findUpstreamNodes = (currentNodeId) => {
+      if (visited.has(currentNodeId)) return;
+      visited.add(currentNodeId);
+      
+      const incomingEdges = edges.filter(edge => edge.target === currentNodeId);
+      console.log(`Checking incoming edges for ${currentNodeId}:`, incomingEdges.map(e => `${e.source} → ${e.target}`));
+      
+      for (const edge of incomingEdges) {
+        const sourceNode = nodes.find(n => n.id === edge.source);
+        if (sourceNode) {
+          console.log(`Found source node: ${sourceNode.id} (${sourceNode.data.type}: ${sourceNode.data.label})`);
+          
+          // Check if this node has execution data
+          const nodeExecutionKey = 'node-execution-' + sourceNode.id;
+          const executionData = localStorage.getItem(nodeExecutionKey);
+          
+          if (executionData) {
+            try {
+              const parsed = JSON.parse(executionData);
+              if (parsed.outputData || parsed.inputData) {
+                console.log(`✅ Adding node with data: ${sourceNode.id}`);
+                connectedNodes.push({
+                  id: sourceNode.id,
+                  label: sourceNode.data.label || sourceNode.data.type,
+                  type: sourceNode.data.type,
+                  hasData: !!(parsed.outputData || parsed.inputData)
+                });
+              } else {
+                console.log(`⚠️ Node ${sourceNode.id} has execution data but no input/output data`);
+              }
+            } catch (error) {
+              console.error('Error parsing node execution data:', error);
+            }
+          }
+          
+          // Recursively find nodes connected to this one
+          findUpstreamNodes(sourceNode.id);
+        }
+      }
+    };
+    
+    findUpstreamNodes(node.id);
+    
+    // Sort by node type (triggers first, then actions)
+    return connectedNodes.sort((a, b) => {
+      if (a.type === 'trigger' && b.type !== 'trigger') return -1;
+      if (a.type !== 'trigger' && b.type === 'trigger') return 1;
+      return a.label.localeCompare(b.label);
+    });
+  }, [edges, nodes, node.id]);
+
   // Update available nodes when edges or nodes change
   useEffect(() => {
     const connectedNodes = findAllConnectedPreviousNodes();
@@ -1480,72 +1546,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     
     return options.slice(0, 20); // Limit to 20 most relevant options
   };
-
-  // Find ALL connected previous nodes (for input selection dropdown) - MEMOIZED
-  const findAllConnectedPreviousNodes = useCallback(() => {
-    if (!edges || !nodes) {
-      console.log('⚠️ findAllConnectedPreviousNodes: Missing edges or nodes');
-      return [];
-    }
-
-    const connectedNodes = [];
-    const visited = new Set();
-    
-    console.log('🔍 Starting findAllConnectedPreviousNodes for node:', node.id);
-    console.log('All edges:', edges.map(e => `${e.source} → ${e.target}`));
-    console.log('All nodes:', nodes.map(n => `${n.id} (${n.data.type}: ${n.data.label})`));
-    
-    // Recursive function to find all upstream nodes
-    const findUpstreamNodes = (currentNodeId) => {
-      if (visited.has(currentNodeId)) return;
-      visited.add(currentNodeId);
-      
-      const incomingEdges = edges.filter(edge => edge.target === currentNodeId);
-      console.log(`Checking incoming edges for ${currentNodeId}:`, incomingEdges.map(e => `${e.source} → ${e.target}`));
-      
-      for (const edge of incomingEdges) {
-        const sourceNode = nodes.find(n => n.id === edge.source);
-        if (sourceNode) {
-          console.log(`Found source node: ${sourceNode.id} (${sourceNode.data.type}: ${sourceNode.data.label})`);
-          
-          // Check if this node has execution data
-          const nodeExecutionKey = 'node-execution-' + sourceNode.id;
-          const executionData = localStorage.getItem(nodeExecutionKey);
-          
-          if (executionData) {
-            try {
-              const parsed = JSON.parse(executionData);
-              if (parsed.outputData || parsed.inputData) {
-                console.log(`✅ Adding node with data: ${sourceNode.id}`);
-                connectedNodes.push({
-                  id: sourceNode.id,
-                  label: sourceNode.data.label || sourceNode.data.type,
-                  type: sourceNode.data.type,
-                  hasData: !!(parsed.outputData || parsed.inputData)
-                });
-              } else {
-                console.log(`⚠️ Node ${sourceNode.id} has execution data but no input/output data`);
-              }
-            } catch (error) {
-              console.error('Error parsing node execution data:', error);
-            }
-          }
-          
-          // Recursively find nodes connected to this one
-          findUpstreamNodes(sourceNode.id);
-        }
-      }
-    };
-    
-    findUpstreamNodes(node.id);
-    
-    // Sort by node type (triggers first, then actions)
-    return connectedNodes.sort((a, b) => {
-      if (a.type === 'trigger' && b.type !== 'trigger') return -1;
-      if (a.type !== 'trigger' && b.type === 'trigger') return 1;
-      return a.label.localeCompare(b.label);
-    });
-  }, [edges, nodes, node.id]);
 
   const handlePostData = async () => {
     if (!inputData) return;
