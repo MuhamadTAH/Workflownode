@@ -574,6 +574,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       messageText: node.data.messageText || 'Hello! You sent: {{message.text}}',
       parseMode: node.data.parseMode || 'Markdown',
       disableNotification: node.data.disableNotification || false
+    };
   });
   
   // Initialize storedData if it doesn't exist for dataStorage nodes
