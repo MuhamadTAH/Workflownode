@@ -398,9 +398,101 @@ conversationMemory = {
 }
 ```
 
+## 🚨 CRITICAL BUG FIXES (2025-07-31)
+
+### Issue: ConfigPanel Infinite Render Loop & Node Type Changing
+**Date**: July 31, 2025  
+**Problem**: ConfigPanel component stuck in infinite render loops causing performance issues and node types changing unexpectedly  
+**Impact**: 
+- Console spam with repeated render logs
+- Poor performance and browser freezing
+- Telegram Trigger nodes changing to "telegram send message"
+- Drag-and-drop functionality broken due to render instability
+
+### Root Causes Identified:
+
+#### 1. Infinite Render Loop
+**Cause**: Circular dependencies in useEffect hooks and function calls in JSX render path
+- `getCurrentNodePrefix()` called directly in JSX → triggered re-renders
+- `createNodeNameMapping()` called multiple times in JSX → triggered re-renders  
+- `findAllConnectedPreviousNodes` in useEffect dependency array → circular dependencies
+- Excessive debug logging on every render → performance degradation
+
+#### 2. Node Type Changing
+**Cause**: Auto-save and localStorage overwriting node identity
+- `Object.assign(node.data, newFormData)` overwriting node type
+- Saved localStorage config containing wrong labels being loaded
+- FormData initialization not preserving original node properties
+
+### Solutions Implemented:
+
+#### ✅ Render Loop Elimination
+1. **Memoized function calls**: 
+   - `getCurrentNodePrefix` → `useMemo` with proper dependencies
+   - `createNodeNameMapping` → `useMemo` with proper dependencies
+   - `findAllConnectedPreviousNodes` → `useCallback` with proper dependencies
+
+2. **Fixed JSX function calls**:
+   - Changed `getCurrentNodePrefix()` to `getCurrentNodePrefix` (no parentheses)
+   - Changed `createNodeNameMapping()` to `createNodeNameMapping` (no parentheses)
+
+3. **Removed circular useEffect dependencies**:
+   - Temporarily disabled problematic useEffects causing loops
+   - Simplified dependency arrays to break circular references
+
+4. **Debug log cleanup**:
+   - Removed excessive console.log statements from render path
+   - Kept only essential error logging
+
+#### ✅ Node Identity Preservation
+1. **Protected node type in auto-save**:
+   ```javascript
+   // BEFORE: Dangerous
+   Object.assign(node.data, newFormData);
+   
+   // AFTER: Safe
+   const safeFormData = { ...newFormData };
+   delete safeFormData.type; // Preserve node type
+   Object.assign(node.data, safeFormData);
+   ```
+
+2. **Protected node label in config loading**:
+   ```javascript
+   // BEFORE: Overwrites label from localStorage
+   setFormData(prev => ({ ...prev, ...parsedConfig }));
+   
+   // AFTER: Preserves original label
+   delete parsedConfig.label; // Keep original label
+   delete parsedConfig.type;  // Keep original type
+   setFormData(prev => ({ ...prev, ...parsedConfig }));
+   ```
+
+### Files Modified:
+- `frontend/src/components/ConfigPanel.js` - Complete render loop fixes and identity preservation
+- **Commits**: 
+  - `c0952f5` - Initial getCurrentNodePrefix memoization
+  - `aa3e6d7` - Complete createNodeNameMapping memoization  
+  - `3e47301` - useEffect dependency fixes and auto-save protection
+  - `047ba92` - Critical fixes: disabled problematic useEffects and localStorage protection
+  - `a5cc641` - Debug log cleanup for performance
+
+### Results:
+✅ **Stable ConfigPanel** - No more infinite render loops  
+✅ **Preserved Node Identity** - Telegram Trigger stays Telegram Trigger  
+✅ **Clean Console** - No excessive logging spam  
+✅ **Working Drag-Drop** - Template variables function properly  
+✅ **Better Performance** - Eliminated unnecessary computations  
+
+### Lessons Learned:
+1. **Never call functions directly in JSX** - Always memoize expensive operations
+2. **Careful with useEffect dependencies** - Avoid circular dependencies between hooks
+3. **Preserve node identity** - Never overwrite type/label in auto-save or config loading
+4. **Debug logging impacts performance** - Remove excessive console.log from render paths
+5. **useState initialization** - Be careful with localStorage overriding essential properties
+
 ---
 
-*Last updated: 2025-07-30*  
+*Last updated: 2025-07-31*  
 *Major features: Google Docs integration, OAuth2 authentication, Document automation, Data Storage, Conversation Memory*  
 *Claude AI assisted with complete workflow automation implementation including Google Drive integration + intelligent data management*  
-*Latest: Data Storage Node, Smart AI Integration, Conversation Memory System*
+*Latest: Data Storage Node, Smart AI Integration, Conversation Memory System, ConfigPanel Stability Fixes*
