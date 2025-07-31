@@ -3,7 +3,7 @@
 FRONTEND FILE: src/components/.js (CORRECTED)
 =================================================================
 */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import config from '../config';
 
 // Add CSS styles for drag and drop
@@ -1410,8 +1410,8 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     return mapping;
   };
 
-  // Get the node prefix for the currently selected input source
-  const getCurrentNodePrefix = () => {
+  // Get the node prefix for the currently selected input source - MEMOIZED
+  const getCurrentNodePrefix = useMemo(() => {
     const selectedNode = availableNodes.find(n => n.id === selectedNodeId);
     console.log('🏷️ Getting node prefix:', {
       selectedNodeId: selectedNodeId,
@@ -1435,7 +1435,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     });
     
     return prefix;
-  };
+  }, [availableNodes, selectedNodeId]);
 
   // Enhanced template replacement with node prefixes
   const replaceNodePrefixedTemplate = (template, fallbackData = null) => {
@@ -1757,7 +1757,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       📁 Cached data from {inputData._metadata.sourceNode} ({new Date(inputData._metadata.lastExecuted).toLocaleTimeString()})
                     </div>
                   )}
-                  <DraggableJSONViewer data={inputData} nodePrefix={getCurrentNodePrefix()} />
+                  <DraggableJSONViewer data={inputData} nodePrefix={getCurrentNodePrefix} />
                 </div>
               ) : (
                 <div className="text-gray-400 text-sm text-center py-8">
