@@ -500,7 +500,12 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       // Data Storage specific fields
       storedData: node.data.storedData || {},
       // Memory fields
-      userId: node.data.userId || 'default'
+      userId: node.data.userId || 'default',
+      // Telegram Send Message specific fields
+      chatId: node.data.chatId || '{{message.chat.id}}',
+      messageText: node.data.messageText || 'Hello! You sent: {{message.text}}',
+      parseMode: node.data.parseMode || 'Markdown',
+      disableNotification: node.data.disableNotification || false
   });
   
   // Initialize storedData if it doesn't exist for dataStorage nodes
@@ -518,6 +523,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   const [outputData, setOutputData] = useState(null);
   const [memoryActionResult, setMemoryActionResult] = useState(null);
   const [memoryQuickStats, setMemoryQuickStats] = useState(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
 
   // Load persisted execution data when component mounts
   useEffect(() => {
@@ -549,10 +555,60 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     }
   }, [node.data.type]);
 
+  // Load saved configuration when component mounts
+  useEffect(() => {
+    const configKey = `node-config-${node.id}`;
+    const savedConfig = localStorage.getItem(configKey);
+    
+    if (savedConfig) {
+      try {
+        const parsedConfig = JSON.parse(savedConfig);
+        setFormData(prev => ({ ...prev, ...parsedConfig }));
+      } catch (error) {
+        console.error('Error loading saved config:', error);
+      }
+    }
+  }, [node.id]);
+
+  // Auto-save function
+  const autoSaveConfig = async (newFormData) => {
+    try {
+      setAutoSaveStatus('saving');
+      
+      // Save to localStorage immediately
+      const configKey = `node-config-${node.id}`;
+      localStorage.setItem(configKey, JSON.stringify(newFormData));
+      
+      // Also update the node data in the workflow
+      // This assumes there's a way to update the node in the parent component
+      if (node.data) {
+        Object.assign(node.data, newFormData);
+      }
+      
+      // Simulate brief delay to show saving status
+      setTimeout(() => {
+        setAutoSaveStatus('saved');
+      }, 500);
+      
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+      setAutoSaveStatus('error');
+      setTimeout(() => {
+        setAutoSaveStatus('saved');
+      }, 2000);
+    }
+  };
+
   const handleInputChange = (e) => {
-      const { name, value, type } = e.target;
-      const finalValue = type === 'number' ? parseFloat(value) : value;
-      setFormData(prev => ({ ...prev, [name]: finalValue }));
+      const { name, value, type, checked } = e.target;
+      const finalValue = type === 'checkbox' ? checked : (type === 'number' ? parseFloat(value) : value);
+      
+      const newFormData = { ...formData, [name]: finalValue };
+      setFormData(newFormData);
+      
+      // Trigger auto-save
+      autoSaveConfig(newFormData);
+      
       if (name === 'apiKey') {
           setApiKeyVerificationStatus(null);
       }
@@ -1198,7 +1254,19 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       <div className="config-panel" onClick={(e) => e.stopPropagation()}>
         <div className="panel-header">
           <h3><i className={node.data.icon + ' mr-2'}></i>{formData.label}</h3>
-          <button onClick={handleClose} className="close-button">&times;</button>
+          <div className="flex items-center gap-3">
+            {/* Auto-save status indicator */}
+            <div className={`text-xs px-2 py-1 rounded-md ${
+              autoSaveStatus === 'saving' ? 'bg-yellow-100 text-yellow-800' :
+              autoSaveStatus === 'saved' ? 'bg-green-100 text-green-800' :
+              autoSaveStatus === 'error' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600'
+            }`}>
+              {autoSaveStatus === 'saving' && '💾 Saving...'}
+              {autoSaveStatus === 'saved' && '✅ Saved'}
+              {autoSaveStatus === 'error' && '❌ Save Error'}
+            </div>
+            <button onClick={handleClose} className="close-button">&times;</button>
+          </div>
         </div>
         <div className="panel-content flex gap-4">
           {/* LEFT SECTION - INPUT */}
@@ -1614,7 +1682,9 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                               const newStoredData = { ...formData.storedData };
                               delete newStoredData[key];
                               newStoredData[e.target.value] = value;
-                              setFormData(prev => ({ ...prev, storedData: newStoredData }));
+                              const newFormData = { ...formData, storedData: newStoredData };
+                              setFormData(newFormData);
+                              autoSaveConfig(newFormData);
                             }}
                             className="flex-1 p-2 border border-gray-300 rounded text-sm"
                           />
@@ -1625,7 +1695,9 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                             onChange={(e) => {
                               const newStoredData = { ...formData.storedData };
                               newStoredData[key] = e.target.value;
-                              setFormData(prev => ({ ...prev, storedData: newStoredData }));
+                              const newFormData = { ...formData, storedData: newStoredData };
+                              setFormData(newFormData);
+                              autoSaveConfig(newFormData);
                             }}
                             className="flex-1 p-2 border border-gray-300 rounded text-sm"
                           />
@@ -1633,7 +1705,9 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                             onClick={() => {
                               const newStoredData = { ...formData.storedData };
                               delete newStoredData[key];
-                              setFormData(prev => ({ ...prev, storedData: newStoredData }));
+                              const newFormData = { ...formData, storedData: newStoredData };
+                              setFormData(newFormData);
+                              autoSaveConfig(newFormData);
                             }}
                             className="bg-red-500 text-white px-2 py-1 text-sm rounded hover:bg-red-600"
                           >
@@ -1645,7 +1719,9 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       <button
                         onClick={() => {
                           const newStoredData = { ...formData.storedData, ['newField']: '' };
-                          setFormData(prev => ({ ...prev, storedData: newStoredData }));
+                          const newFormData = { ...formData, storedData: newStoredData };
+                          setFormData(newFormData);
+                          autoSaveConfig(newFormData);
                         }}
                         className="bg-green-500 text-white px-3 py-2 text-sm rounded hover:bg-green-600"
                       >
