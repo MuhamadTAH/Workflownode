@@ -1692,24 +1692,12 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       value={formData.chatId || ''}
                       onChange={handleInputChange}
                       placeholder="e.g. {{message.chat.id}} or 123456789"
-                      className="input-field droppable-input"
-                      onDragOver={handleDragOver}
-                      onDrop={handleDrop}
-                      onFocus={handleInputFocus}
-                      onBlur={handleInputBlur}
+                      className="input-field"
                       required
                     />
                     <div className="text-xs text-gray-400 mt-1">
                       Use {"{{message.chat.id}}"} to reply to the same chat, or enter a specific chat ID
                     </div>
-                    {showPreview && focusedInput === 'chatId' && (
-                      <div className="live-preview">
-                        <div className="text-xs text-gray-600 mb-1">Live Preview:</div>
-                        <div className="text-xs bg-gradient-to-r from-blue-50 to-purple-50 p-2 rounded border">
-                          {replaceTemplate(formData.chatId || '', inputData)}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="form-group">
@@ -1719,25 +1707,13 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       value={formData.messageText || ''}
                       onChange={handleInputChange}
                       placeholder="Hello! You sent: {{message.text}}"
-                      className="input-field droppable-input"
-                      onDragOver={handleDragOver}
-                      onDrop={handleDrop}
-                      onFocus={handleInputFocus}
-                      onBlur={handleInputBlur}
+                      className="input-field"
                       rows="4"
                       required
                     />
                     <div className="text-xs text-gray-400 mt-1">
                       Use {"{{message.text}}"} to include the original message, or other templates
                     </div>
-                    {showPreview && focusedInput === 'messageText' && (
-                      <div className="live-preview">
-                        <div className="text-xs text-gray-600 mb-1">Live Preview:</div>
-                        <div className="text-xs bg-gradient-to-r from-blue-50 to-purple-50 p-2 rounded border">
-                          {replaceTemplate(formData.messageText || '', inputData)}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="form-group">
