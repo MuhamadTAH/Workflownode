@@ -591,6 +591,16 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   const [autoSaveStatus, setAutoSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
   const [selectedNodeId, setSelectedNodeId] = useState(''); // Selected node ID
   const [availableNodes, setAvailableNodes] = useState([]); // List of connected nodes
+  const debounceTimerRef = useRef(null); // For debouncing auto-save
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   // Load persisted execution data when component mounts
   useEffect(() => {
@@ -734,13 +744,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     try {
       setAutoSaveStatus('saving');
       
-      console.log('💾 Auto-saving config for node:', {
-        nodeId: node.id,
-        currentNodeType: node.data.type,
-        currentNodeLabel: node.data.label,
-        newFormData: newFormData,
-        hasTypeInFormData: 'type' in newFormData
-      });
+      // Auto-saving config (debug logging removed for performance)
       
       // Save to localStorage immediately
       const configKey = `node-config-${node.id}`;
@@ -757,12 +761,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         
         Object.assign(node.data, safeFormData);
         
-        console.log('💾 Node data updated:', {
-          before: beforeUpdate,
-          after: { ...node.data },
-          preservedType: node.data.type,
-          formDataHadType: 'type' in newFormData
-        });
+        // Node data updated (debug logging removed for performance)
       }
       
       // Simulate brief delay to show saving status
@@ -779,25 +778,30 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     }
   };
 
+  // Debounced auto-save to prevent excessive saves during typing
+  const debouncedAutoSave = (newFormData) => {
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Set new timer
+    debounceTimerRef.current = setTimeout(() => {
+      autoSaveConfig(newFormData);
+    }, 500); // Wait 500ms after last keystroke
+  };
+
   const handleInputChange = (e) => {
       const { name, value, type, checked } = e.target;
       const finalValue = type === 'checkbox' ? checked : (type === 'number' ? parseFloat(value) : value);
       
-      console.log('📝 Input changed:', {
-        nodeId: node.id,
-        nodeType: node.data.type,
-        fieldName: name,
-        oldValue: formData[name],
-        newValue: finalValue,
-        isNodeTypeSpecific: (node.data.type === 'trigger' && ['chatId', 'messageText', 'parseMode'].includes(name)) ||
-                           (node.data.type === 'telegramSendMessage' && ['token'].includes(name))
-      });
+      // Input changed (debug logging removed for performance)
       
       const newFormData = { ...formData, [name]: finalValue };
       setFormData(newFormData);
       
-      // Trigger auto-save
-      autoSaveConfig(newFormData);
+      // Trigger debounced auto-save
+      debouncedAutoSave(newFormData);
       
       if (name === 'apiKey') {
           setApiKeyVerificationStatus(null);
