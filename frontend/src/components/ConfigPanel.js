@@ -232,6 +232,32 @@ const UniversalLivePreview = ({ text, data, isFocused, nodeMapping = null }) => 
       try {
         const pathParts = variablePath.trim().split('.');
         
+        // First, try to use the fallback data directly (current input data)
+        if (fallbackData) {
+          let value = fallbackData;
+          
+          for (const part of pathParts) {
+            if (value && typeof value === 'object' && part in value) {
+              value = value[part];
+            } else {
+              // If direct path fails, break and try node-prefixed logic
+              value = null;
+              break;
+            }
+          }
+          
+          if (value !== null) {
+            // Convert value to string
+            if (typeof value === 'string') {
+              return value;
+            } else if (typeof value === 'number' || typeof value === 'boolean') {
+              return String(value);
+            } else if (typeof value === 'object') {
+              return JSON.stringify(value, null, 2);
+            }
+          }
+        }
+        
         // Check if this is a node-prefixed template (e.g., telegram.message.text)
         if (pathParts.length > 1 && nodeMapping) {
           const nodeName = pathParts[0];
@@ -273,26 +299,6 @@ const UniversalLivePreview = ({ text, data, isFocused, nodeMapping = null }) => 
                 console.error('Error parsing node data for preview:', error);
               }
             }
-          }
-        } else if (fallbackData) {
-          // Regular template without node prefix - use fallback data
-          let value = fallbackData;
-          
-          for (const part of pathParts) {
-            if (value && typeof value === 'object' && part in value) {
-              value = value[part];
-            } else {
-              return match; // Keep original if path not found
-            }
-          }
-          
-          // Convert value to string
-          if (typeof value === 'string') {
-            return value;
-          } else if (typeof value === 'number' || typeof value === 'boolean') {
-            return String(value);
-          } else if (typeof value === 'object') {
-            return JSON.stringify(value, null, 2);
           }
         }
         
@@ -1148,10 +1154,34 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           setInputData(latestUpdate);
           // For trigger nodes, automatically set output data same as input (they pass-through)
           setOutputData(latestUpdate);
+          
+          // Immediately save to localStorage for template preview
+          const nodeExecutionKey = 'node-execution-' + node.id;
+          const executionData = {
+            nodeId: node.id,
+            nodeType: node.data.type,
+            inputData: latestUpdate,
+            outputData: latestUpdate,
+            timestamp: new Date().toISOString(),
+            config: formData
+          };
+          localStorage.setItem(nodeExecutionKey, JSON.stringify(executionData));
         } else {
           const noDataMessage = { message: "No recent messages found. Send a message to your bot first." };
           setInputData(noDataMessage);
           setOutputData(noDataMessage);
+          
+          // Save no-data state to localStorage
+          const nodeExecutionKey = 'node-execution-' + node.id;
+          const executionData = {
+            nodeId: node.id,
+            nodeType: node.data.type,
+            inputData: noDataMessage,
+            outputData: noDataMessage,
+            timestamp: new Date().toISOString(),
+            config: formData
+          };
+          localStorage.setItem(nodeExecutionKey, JSON.stringify(executionData));
         }
         
       } else {
@@ -1159,8 +1189,20 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         const previousNodeOutput = await getPreviousNodeOutput();
         if (previousNodeOutput) {
           setInputData(previousNodeOutput);
+          
+          // Immediately save to localStorage for template preview
+          const nodeExecutionKey = 'node-execution-' + node.id;
+          const executionData = {
+            nodeId: node.id,
+            nodeType: node.data.type,
+            inputData: previousNodeOutput,
+            outputData: null,
+            timestamp: new Date().toISOString(),
+            config: formData
+          };
+          localStorage.setItem(nodeExecutionKey, JSON.stringify(executionData));
         } else {
-          setInputData({ 
+          const errorData = { 
             error: "No connected input node found. Connect this node to a previous node in the workflow.",
             hint: "Drag a connection from another node to this node to provide input data.",
             debug: {
@@ -1170,12 +1212,38 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
               totalEdges: edges?.length || 0,
               incomingEdges: edges?.filter(edge => edge.target === node.id).length || 0
             }
-          });
+          };
+          setInputData(errorData);
+          
+          // Save error state to localStorage
+          const nodeExecutionKey = 'node-execution-' + node.id;
+          const executionData = {
+            nodeId: node.id,
+            nodeType: node.data.type,
+            inputData: errorData,
+            outputData: null,
+            timestamp: new Date().toISOString(),
+            config: formData
+          };
+          localStorage.setItem(nodeExecutionKey, JSON.stringify(executionData));
         }
       }
       
     } catch (error) {
-      setInputData({ error: error.message });
+      const errorData = { error: error.message };
+      setInputData(errorData);
+      
+      // Save error state to localStorage
+      const nodeExecutionKey = 'node-execution-' + node.id;
+      const executionData = {
+        nodeId: node.id,
+        nodeType: node.data.type,
+        inputData: errorData,
+        outputData: null,
+        timestamp: new Date().toISOString(),
+        config: formData
+      };
+      localStorage.setItem(nodeExecutionKey, JSON.stringify(executionData));
     }
     
     setIsLoading(false);
