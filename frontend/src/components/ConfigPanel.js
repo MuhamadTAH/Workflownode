@@ -2095,22 +2095,18 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     </div>
                   </div>
                   
-                  <div className="form-group">
-                    <label htmlFor="systemPrompt">System Prompt</label>
-                    <DroppableTextArea
-                      name="systemPrompt"
-                      id="systemPrompt"
-                      value={formData.systemPrompt || 'You are a helpful AI assistant.'}
-                      onChange={handleInputChange}
-                      className="w-full p-2 border border-gray-300 rounded-md"
-                      placeholder="System prompt for the AI assistant"
-                      rows={3}
-                      inputData={inputData}
-                      nodeMapping={createNodeNameMapping}
-                    />
-                    <div className="text-xs text-gray-500 mt-1">
-                      🎯 Used in direct chat mode to define AI behavior.
-                    </div>
+                  <DroppableTextInput 
+                    label="System Prompt" 
+                    name="systemPrompt" 
+                    value={formData.systemPrompt || 'You are a helpful AI assistant.'} 
+                    onChange={handleInputChange}
+                    rows={3}
+                    placeholder="System prompt for the AI assistant"
+                    inputData={inputData}
+                    nodeMapping={createNodeNameMapping}
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    🎯 Used in direct chat mode to define AI behavior.
                   </div>
                   
                   <div className="form-group">
