@@ -701,6 +701,16 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         delete parsedConfig.label;
         delete parsedConfig.type; // Also preserve node type
         
+        // 🔧 RESET TELEGRAM SEND MESSAGE NODES TO NEW DEFAULTS
+        if (node.data.type === 'telegramSendMessage') {
+          // Force new default values for Telegram Send Message to fix template replacement
+          console.log('🔄 Resetting Telegram Send Message node to new defaults');
+          parsedConfig.chatId = '{{$json.message.chat.id}}';
+          parsedConfig.messageText = '{{$json.response}}';
+          parsedConfig.parseMode = 'Markdown';
+          parsedConfig.disableNotification = false;
+          // Keep token if it exists, but reset template fields
+        }
         
         setFormData(prev => ({ ...prev, ...parsedConfig }));
       } catch (error) {
