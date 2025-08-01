@@ -229,6 +229,126 @@ const MemoryVisualization = ({ data }) => {
   return <pre className="whitespace-pre-wrap text-xs">{data}</pre>;
 };
 
+// Node-organized JSON Viewer like n8n
+const NodeOrganizedJSONViewer = ({ data }) => {
+  const [expandedNodes, setExpandedNodes] = useState({});
+
+  if (!data || typeof data !== 'object') {
+    return (
+      <div className="text-gray-400 text-sm text-center py-4">
+        No JSON data to display
+      </div>
+    );
+  }
+
+  const toggleNode = (nodeName) => {
+    setExpandedNodes(prev => ({
+      ...prev,
+      [nodeName]: !prev[nodeName]
+    }));
+  };
+
+  // Organize data by nodes
+  const organizeDataByNodes = (inputData) => {
+    const nodes = [];
+    
+    // Check if we have multiple node outputs (from workflow execution)
+    if (inputData._nodes) {
+      // Multiple nodes data structure
+      Object.entries(inputData._nodes).forEach(([nodeName, nodeData]) => {
+        nodes.push({
+          name: nodeName,
+          data: nodeData,
+          icon: getNodeIcon(nodeName),
+          type: getNodeType(nodeName)
+        });
+      });
+    } else {
+      // Single node or legacy data structure
+      // Try to detect if this is trigger data
+      if (inputData.message || inputData.update_id) {
+        nodes.push({
+          name: 'Telegram Trigger',
+          data: inputData,
+          icon: '🔵',
+          type: 'trigger'
+        });
+      } else if (inputData.reply || inputData.output) {
+        nodes.push({
+          name: 'AI Agent',
+          data: inputData,
+          icon: '🤖',
+          type: 'ai'
+        });
+      } else {
+        nodes.push({
+          name: 'Unknown Node',
+          data: inputData,
+          icon: '⚙️',
+          type: 'unknown'
+        });
+      }
+    }
+    
+    return nodes;
+  };
+
+  const getNodeIcon = (nodeName) => {
+    if (nodeName.toLowerCase().includes('telegram') && nodeName.toLowerCase().includes('trigger')) return '🔵';
+    if (nodeName.toLowerCase().includes('ai') || nodeName.toLowerCase().includes('agent')) return '🤖';
+    if (nodeName.toLowerCase().includes('google')) return '📄';
+    if (nodeName.toLowerCase().includes('storage')) return '💾';
+    return '⚙️';
+  };
+
+  const getNodeType = (nodeName) => {
+    if (nodeName.toLowerCase().includes('trigger')) return 'trigger';
+    if (nodeName.toLowerCase().includes('ai') || nodeName.toLowerCase().includes('agent')) return 'ai';
+    return 'action';
+  };
+
+  const nodes = organizeDataByNodes(data);
+
+  return (
+    <div className="space-y-2">
+      <div className="text-xs text-blue-600 mb-2 font-sans">
+        💡 Drag fields below into text inputs to create template variables
+      </div>
+      
+      {nodes.map((node, index) => (
+        <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
+          {/* Node Header */}
+          <div 
+            className="bg-gray-100 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-gray-150"
+            onClick={() => toggleNode(node.name)}
+          >
+            <div className="flex items-center space-x-2">
+              <span className="text-lg">{node.icon}</span>
+              <span className="font-medium text-gray-800">{node.name}</span>
+              {node.type === 'trigger' && <span className="text-orange-500">⚡</span>}
+            </div>
+            <span className="text-gray-500 text-sm">
+              {expandedNodes[node.name] ? '▼' : '▶'}
+            </span>
+          </div>
+          
+          {/* Node Data */}
+          {(expandedNodes[node.name] !== false) && (
+            <div className="bg-gray-50 p-3">
+              <DraggableJSONViewer 
+                data={node.data} 
+                nodePrefix={node.name}
+                dataType={node.type}
+                nodeName={node.name}
+              />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // Enhanced JSON Viewer with draggable fields
 const DraggableJSONViewer = ({ data, nodePrefix = '', dataType = 'generic', nodeName = '' }) => {
   if (!data || typeof data !== 'object') {
@@ -240,15 +360,7 @@ const DraggableJSONViewer = ({ data, nodePrefix = '', dataType = 'generic', node
   }
 
   return (
-    <div className="bg-gray-50 p-3 rounded text-sm font-mono max-h-64 overflow-y-auto">
-      <div className="text-xs text-blue-600 mb-2 font-sans">
-        💡 Drag fields below into text inputs to create {nodePrefix ? `{{${nodePrefix}.field}}` : '{{template}}'} variables
-        {nodePrefix && (
-          <div className="text-xs text-purple-600 mt-1 font-semibold">
-            🏷️ Source: {nodePrefix} node data
-          </div>
-        )}
-      </div>
+    <div className="text-sm font-mono max-h-48 overflow-y-auto">
       {Object.entries(data).map(([key, value]) => (
         <DraggableJSONField key={key} path={key} value={value} nodePrefix={nodePrefix} dataType={dataType} nodeName={nodeName} />
       ))}
@@ -1979,10 +2091,8 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                       📁 Cached data from {inputData._metadata.sourceNode} ({new Date(inputData._metadata.lastExecuted).toLocaleTimeString()})
                     </div>
                   )}
-                  <DraggableJSONViewer 
-                    data={inputData} 
-                    nodePrefix={getCurrentNodePrefix}
-                    dataType={detectDataType(inputData)}
+                  <NodeOrganizedJSONViewer 
+                    data={inputData}
                   />
                 </div>
               ) : (
