@@ -563,6 +563,13 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       storedData: node.data.storedData || {},
       // Memory fields
       userId: node.data.userId || 'default',
+      // Telegram Send Message specific fields
+      botToken: node.data.botToken || '',
+      chatId: node.data.chatId || '{{$json.message.chat.id}}',
+      messageText: node.data.messageText || 'Hello! This is a message from your bot.',
+      parseMode: node.data.parseMode || '',
+      disableWebPagePreview: node.data.disableWebPagePreview || false,
+      disableNotification: node.data.disableNotification || false,
     };
   });
   
@@ -1012,6 +1019,27 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           setVerificationStatus(result);
       } catch (error) {
           setVerificationStatus({ ok: false, message: 'Network error. Is the backend running?' });
+      }
+      setIsLoading(false);
+  };
+
+  const handleCheckTelegramToken = async () => {
+      if (!formData.botToken) {
+          setVerificationStatus({ ok: false, message: 'Please enter a bot token first.' });
+          return;
+      }
+      setIsLoading(true);
+      setVerificationStatus(null);
+      try {
+          const response = await fetch(config.BACKEND_URL + '/api/telegram/verify-token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: formData.botToken })
+          });
+          const result = await response.json();
+          setVerificationStatus(result);
+      } catch (error) {
+          setVerificationStatus({ ok: false, message: 'Network error or server issue.' });
       }
       setIsLoading(false);
   };
@@ -2232,6 +2260,108 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Fields for Telegram Send Message Node */}
+              {node.data.type === 'telegramSendMessage' && (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="botToken">Bot API Token</label>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="password" 
+                        name="botToken" 
+                        id="botToken" 
+                        className="flex-grow" 
+                        value={formData.botToken || ''} 
+                        onChange={handleInputChange} 
+                        placeholder="Enter your Telegram Bot Token"
+                      />
+                      <button 
+                        onClick={handleCheckTelegramToken} 
+                        disabled={isLoading} 
+                        className="bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-600 disabled:bg-indigo-300"
+                      >
+                        {isLoading ? '...' : 'Check'}
+                      </button>
+                    </div>
+                    {verificationStatus && (
+                      <div className={'mt-2 text-sm p-2 rounded-md ' + (verificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')}>
+                        {verificationStatus.ok 
+                          ? 'Success! Bot Name: ' + verificationStatus.bot.first_name + ', ID: ' + verificationStatus.bot.id
+                          : 'Error: ' + verificationStatus.message
+                        }
+                      </div>
+                    )}
+                  </div>
+
+                  <DroppableTextInput 
+                    label="Chat ID" 
+                    name="chatId" 
+                    value={formData.chatId || '{{$json.message.chat.id}}'} 
+                    onChange={handleInputChange}
+                    placeholder="Chat ID or {{$json.message.chat.id}}"
+                    inputData={inputData}
+                    nodeMapping={createNodeNameMapping}
+                  />
+
+                  <DroppableTextInput 
+                    label="Message Text" 
+                    name="messageText" 
+                    value={formData.messageText || 'Hello! This is a message from your bot.'} 
+                    onChange={handleInputChange}
+                    rows={4}
+                    placeholder="Type your message here or use {{variables}}"
+                    inputData={inputData}
+                    nodeMapping={createNodeNameMapping}
+                  />
+
+                  <div className="form-group">
+                    <label htmlFor="parseMode">Parse Mode</label>
+                    <select 
+                      name="parseMode" 
+                      id="parseMode" 
+                      value={formData.parseMode || ''} 
+                      onChange={handleInputChange} 
+                      className="w-full p-2 border rounded-md bg-white"
+                    >
+                      <option value="">None</option>
+                      <option value="Markdown">Markdown</option>
+                      <option value="MarkdownV2">MarkdownV2</option>
+                      <option value="HTML">HTML</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="flex items-center">
+                      <input 
+                        type="checkbox" 
+                        name="disableWebPagePreview" 
+                        checked={formData.disableWebPagePreview || false}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      Disable Web Page Preview
+                    </label>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="flex items-center">
+                      <input 
+                        type="checkbox" 
+                        name="disableNotification" 
+                        checked={formData.disableNotification || false}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      Send Silently (no notification sound)
+                    </label>
+                  </div>
+
+                  <div className="text-xs text-gray-500 mb-2">
+                    Send messages to Telegram bot chats. Use template variables like {"{{telegram.message.chat.id}}"} to reply to the same chat, or {"{{aiAgent.reply}}"} to send AI responses.
+                  </div>
+                </>
               )}
 
               {/* Fields for Google Docs Node */}
