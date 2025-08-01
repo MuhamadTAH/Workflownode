@@ -42,11 +42,39 @@ if (typeof document !== 'undefined') {
 }
 
 // Draggable JSON Field Component
-const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '' }) => {
+const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '', dataType = 'generic' }) => {
   const handleDragStart = (e) => {
     const templateVariable = `{{$json.${path}}}`;
     e.dataTransfer.setData('text/plain', templateVariable);
     e.dataTransfer.effectAllowed = 'copy';
+  };
+
+  // Get styling based on data type and field importance
+  const getFieldStyling = () => {
+    const fieldName = path.split('.').pop();
+    
+    // Important fields for different data types
+    const importantFields = {
+      telegram: ['text', 'username', 'first_name', 'id'],
+      ai_response: ['response', 'content', 'message'],
+      google_docs: ['title', 'documentId', 'content'],
+      data_storage: Object.keys(value || {})
+    };
+    
+    const isImportant = importantFields[dataType]?.includes(fieldName);
+    
+    if (isImportant) {
+      const colors = {
+        telegram: 'text-blue-700 bg-blue-50 border-blue-200',
+        ai_response: 'text-green-700 bg-green-50 border-green-200',
+        google_docs: 'text-yellow-700 bg-yellow-50 border-yellow-200',
+        data_storage: 'text-purple-700 bg-purple-50 border-purple-200',
+        generic: 'text-gray-700 bg-gray-50 border-gray-200'
+      };
+      return colors[dataType] || colors.generic;
+    }
+    
+    return 'text-blue-600 hover:bg-blue-100';
   };
 
   const indent = '  '.repeat(level);
@@ -59,7 +87,7 @@ const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '' }) => {
       <div className="flex items-center hover:bg-blue-50 rounded px-1">
         <span className="text-gray-600">{indent}</span>
         <span 
-          className="text-blue-600 font-mono text-sm cursor-grab hover:bg-blue-100 px-1 rounded drag-field select-none"
+          className={`${getFieldStyling()} font-mono text-sm cursor-grab px-1 rounded drag-field select-none border transition-colors`}
           draggable={true}
           onDragStart={handleDragStart}
           onDragEnd={(e) => {}}
@@ -88,6 +116,7 @@ const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '' }) => {
           value={val} 
           level={level + 1}
           nodePrefix={nodePrefix}
+          dataType={dataType}
         />
       ))}
       <div className="text-gray-600 font-mono text-sm">
@@ -194,7 +223,7 @@ const MemoryVisualization = ({ data }) => {
 };
 
 // Enhanced JSON Viewer with draggable fields
-const DraggableJSONViewer = ({ data, nodePrefix = '' }) => {
+const DraggableJSONViewer = ({ data, nodePrefix = '', dataType = 'generic' }) => {
   if (!data || typeof data !== 'object') {
     return (
       <div className="text-gray-400 text-sm text-center py-4">
@@ -214,7 +243,7 @@ const DraggableJSONViewer = ({ data, nodePrefix = '' }) => {
         )}
       </div>
       {Object.entries(data).map(([key, value]) => (
-        <DraggableJSONField key={key} path={key} value={value} nodePrefix={nodePrefix} />
+        <DraggableJSONField key={key} path={key} value={value} nodePrefix={nodePrefix} dataType={dataType} />
       ))}
     </div>
   );
@@ -560,7 +589,65 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   const [autoSaveStatus, setAutoSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
   const [selectedNodeId, setSelectedNodeId] = useState(''); // Selected node ID
   const [availableNodes, setAvailableNodes] = useState([]); // List of connected nodes
+  const [selectedDataSource, setSelectedDataSource] = useState('auto'); // 'auto' or specific node ID
   const debounceTimerRef = useRef(null); // For debouncing auto-save
+
+  // Detect data type based on JSON structure and content
+  const detectDataType = (data) => {
+    if (!data || typeof data !== 'object') return 'unknown';
+    
+    // Telegram data detection
+    if (data.message && data.update_id) {
+      return 'telegram';
+    }
+    
+    // AI Agent response detection
+    if (data.response || data.content || (typeof data === 'string' && data.length > 10)) {
+      return 'ai_response';
+    }
+    
+    // Google Docs data detection
+    if (data.documentId || data.title || data.body) {
+      return 'google_docs';
+    }
+    
+    // Data storage detection
+    if (data.storedData || (Object.keys(data).length > 0 && !data.message && !data.update_id)) {
+      return 'data_storage';
+    }
+    
+    return 'generic';
+  };
+
+  // Get template suggestions based on data type
+  const getTemplateSuggestions = (dataType, data) => {
+    switch (dataType) {
+      case 'telegram':
+        return [
+          '{{$json.message.text}}',
+          '{{$json.message.from.username}}', 
+          '{{$json.message.from.first_name}}',
+          '{{$json.chat.id}}'
+        ];
+      case 'ai_response':
+        return [
+          '{{$json.response}}',
+          '{{$json.content}}',
+          '{{$json}}' // For direct string responses
+        ];
+      case 'google_docs':
+        return [
+          '{{$json.title}}',
+          '{{$json.documentId}}',
+          '{{$json.body.content}}'
+        ];
+      case 'data_storage':
+        const keys = data ? Object.keys(data).slice(0, 3) : [];
+        return keys.map(key => `{{$json.${key}}}`);
+      default:
+        return ['{{$json.}}'];
+    }
+  };
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
@@ -1034,11 +1121,24 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     setIsLoading(true);
     
     try {
-      // If a specific previous node is selected, load its data
-      if (selectedNodeId) {
-        const nodeData = loadDataFromNode(selectedNodeId);
+      // If a specific data source is selected, load its data
+      if (selectedDataSource !== 'auto') {
+        const nodeData = loadDataFromNode(selectedDataSource);
         if (nodeData) {
           setInputData(nodeData);
+          
+          // Immediately save to localStorage for template preview
+          const nodeExecutionKey = 'node-execution-' + node.id;
+          const executionData = {
+            nodeId: node.id,
+            nodeType: node.data.type,
+            inputData: nodeData,
+            outputData: null,
+            timestamp: new Date().toISOString(),
+            config: formData,
+            dataSource: selectedDataSource
+          };
+          localStorage.setItem(nodeExecutionKey, JSON.stringify(executionData));
         } else {
           setInputData({ error: 'No data available from selected node' });
         }
@@ -1722,13 +1822,14 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 <span>INPUT</span>
                 {availableNodes.length > 0 && (
                   <select 
-                    value={selectedNodeId} 
-                    onChange={handleNodeSelectionChange}
+                    value={selectedDataSource} 
+                    onChange={(e) => setSelectedDataSource(e.target.value)}
                     className="text-xs px-2 py-1 border border-gray-300 rounded bg-white"
                   >
+                    <option value="auto">🔄 Auto</option>
                     {availableNodes.map(node => (
                       <option key={node.id} value={node.id}>
-                        {node.type === 'trigger' ? '🔌' : '⚙️'} {node.label}
+                        {node.type === 'trigger' ? '📨' : node.type === 'aiAgent' ? '🤖' : node.type === 'googleDocs' ? '📝' : node.type === 'dataStorage' ? '💾' : '⚙️'} {node.label}
                       </option>
                     ))}
                   </select>
@@ -1741,18 +1842,66 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
             <div className="section-content">
               {inputData ? (
                 <div>
-                  {/* Show data source indicator */}
-                  {selectedNodeId && (
-                    <div className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded mb-2">
-                      📊 Viewing data from: {availableNodes.find(n => n.id === selectedNodeId)?.label || 'Selected Node'}
-                    </div>
-                  )}
+                  {/* Show data source and type indicator */}
+                  {(() => {
+                    const dataType = detectDataType(inputData);
+                    const suggestions = getTemplateSuggestions(dataType, inputData);
+                    const sourceNode = selectedDataSource !== 'auto' ? availableNodes.find(n => n.id === selectedDataSource) : null;
+                    
+                    const typeColors = {
+                      telegram: 'bg-blue-100 text-blue-800',
+                      ai_response: 'bg-green-100 text-green-800', 
+                      google_docs: 'bg-yellow-100 text-yellow-800',
+                      data_storage: 'bg-purple-100 text-purple-800',
+                      generic: 'bg-gray-100 text-gray-800',
+                      unknown: 'bg-red-100 text-red-800'
+                    };
+                    
+                    const typeIcons = {
+                      telegram: '📨',
+                      ai_response: '🤖',
+                      google_docs: '📝', 
+                      data_storage: '💾',
+                      generic: '📊',
+                      unknown: '❓'
+                    };
+                    
+                    return (
+                      <>
+                        <div className={`${typeColors[dataType]} text-xs px-2 py-1 rounded mb-2 flex items-center justify-between`}>
+                          <span>
+                            {typeIcons[dataType]} {dataType.replace('_', ' ').toUpperCase()} Data
+                            {sourceNode && ` from ${sourceNode.label}`}
+                          </span>
+                          {suggestions.length > 0 && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs opacity-75">Quick:</span>
+                              {suggestions.slice(0, 2).map((suggestion, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => navigator.clipboard.writeText(suggestion)}
+                                  className="text-xs bg-white/50 hover:bg-white/80 px-1 rounded font-mono"
+                                  title={`Copy ${suggestion}`}
+                                >
+                                  {suggestion.split('.').pop().replace('}}', '')}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
                   {inputData._metadata?.fromCache && (
                     <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mb-2">
                       📁 Cached data from {inputData._metadata.sourceNode} ({new Date(inputData._metadata.lastExecuted).toLocaleTimeString()})
                     </div>
                   )}
-                  <DraggableJSONViewer data={inputData} nodePrefix={getCurrentNodePrefix} />
+                  <DraggableJSONViewer 
+                    data={inputData} 
+                    nodePrefix={getCurrentNodePrefix}
+                    dataType={detectDataType(inputData)}
+                  />
                 </div>
               ) : (
                 <div className="text-gray-400 text-sm text-center py-8">
