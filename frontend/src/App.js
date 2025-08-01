@@ -66,7 +66,7 @@ const FlowEditorComponent = () => {
       };
       setNodes((nds) => nds.concat(newNode));
     },
-    [project, setNodes]
+    [screenToFlowPosition, setNodes]
   );
 
   const onNodeDoubleClick = useCallback((event, node) => setSelectedNode(node), []);
