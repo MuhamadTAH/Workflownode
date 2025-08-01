@@ -563,11 +563,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       storedData: node.data.storedData || {},
       // Memory fields
       userId: node.data.userId || 'default',
-      // Telegram Send Message specific fields - UPDATED TEMPLATES
-      chatId: node.data.chatId || '{{$json.message.chat.id}}',
-      messageText: node.data.messageText || '{{$json.response}}',
-      parseMode: node.data.parseMode || 'Markdown',
-      disableNotification: node.data.disableNotification || false
     };
   });
   
@@ -701,20 +696,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         delete parsedConfig.label;
         delete parsedConfig.type; // Also preserve node type
         
-        // 🔧 RESET TELEGRAM SEND MESSAGE NODES TO NEW DEFAULTS (ONE TIME ONLY)
-        if (node.data.type === 'telegramSendMessage') {
-          // Always force correct templates for Telegram Send Message nodes
-          console.log('🔄 Forcing correct templates for Telegram Send Message node');
-          console.log('Old config:', parsedConfig);
-          
-          // Force correct templates regardless of saved data
-          parsedConfig.chatId = '{{$json.message.chat.id}}';
-          parsedConfig.messageText = '{{$json.response}}';
-          parsedConfig.parseMode = 'Markdown';
-          parsedConfig.disableNotification = false;
-          
-          console.log('New config:', parsedConfig);
-        }
         
         setFormData(prev => ({ ...prev, ...parsedConfig }));
       } catch (error) {
@@ -1579,7 +1560,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         if (simpleName === 'aiAgent') simpleName = 'aiAgent';
         if (simpleName === 'modelNode') simpleName = 'model';
         if (simpleName === 'dataStorage') simpleName = 'storage';
-        if (simpleName === 'telegramSendMessage') simpleName = 'sendMessage';
         
         mapping[simpleName] = {
           id: sourceNode.id,
@@ -1604,7 +1584,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     if (prefix === 'aiAgent') prefix = 'aiAgent';
     if (prefix === 'modelNode') prefix = 'model';
     if (prefix === 'dataStorage') prefix = 'storage';
-    if (prefix === 'telegramSendMessage') prefix = 'sendMessage';
     
     return prefix;
   }, [availableNodes, selectedNodeId]);
@@ -1732,7 +1711,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     setOutputData(null);
     
     try {
-      if (node.data.type === 'modelNode' || node.data.type === 'aiAgent' || node.data.type === 'googleDocs' || node.data.type === 'dataStorage' || node.data.type === 'telegramSendMessage') {
+      if (node.data.type === 'modelNode' || node.data.type === 'aiAgent' || node.data.type === 'googleDocs' || node.data.type === 'dataStorage') {
         // Find connected Data Storage nodes for AI Agent
         const connectedNodes = node.data.type === 'aiAgent' ? findConnectedDataStorageNodes() : [];
         
@@ -2448,133 +2427,6 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 </>
               )}
 
-              {/* Fields for Telegram Send Message Node */}
-              {node.data.type === 'telegramSendMessage' && (
-                <>
-                  <div className="text-xs text-gray-500 mb-4">
-                    💬 Send Message: Send messages to Telegram chats. Use templates like {"{{message.chat.id}}"} to get chat ID from previous nodes.
-                  </div>
-
-                  <div className="form-group">
-                    <label>Bot Token *</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="password"
-                        name="token"
-                        value={formData.token || ''}
-                        onChange={handleInputChange}
-                        placeholder="Your Telegram Bot API Token"
-                        className="input-field flex-grow"
-                        required
-                      />
-                      <button 
-                        onClick={handleCheckToken} 
-                        disabled={isLoading || !formData.token}
-                        className="bg-blue-500 text-white px-3 py-2 text-sm rounded hover:bg-blue-600 disabled:bg-blue-300"
-                      >
-                        {isLoading ? '...' : 'Check'}
-                      </button>
-                    </div>
-                    <div className="text-xs text-gray-400 mt-1">
-                      Get this from @BotFather on Telegram
-                    </div>
-                    {verificationStatus && (
-                      <div className={'mt-2 text-sm p-2 rounded-md ' + (verificationStatus.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')}>
-                        {verificationStatus.ok 
-                          ? `✅ Bot verified: @${verificationStatus.bot?.username || 'Unknown'} (${verificationStatus.bot?.first_name || 'No name'})`
-                          : `❌ ${verificationStatus.message}`
-                        }
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="form-group">
-                    <label>Chat ID *</label>
-                    <input
-                      type="text"
-                      name="chatId"
-                      value={formData.chatId || ''}
-                      onChange={handleInputChange}
-                      placeholder="e.g. {{message.chat.id}} or 123456789"
-                      className="input-field"
-                      required
-                    />
-                    <div className="text-xs text-gray-400 mt-1">
-                      <div>💡 Use node-prefixed templates:</div>
-                      <div>• {"{{telegram.message.chat.id}}"} - Telegram chat ID</div>
-                      <div>• {"{{aiAgent.reply}}"} - AI response</div>
-                      <div>• {"{{storage.fieldName}}"} - Data storage field</div>
-                    </div>
-                    {/* Live preview for node-prefixed templates */}
-                    {formData.chatId && formData.chatId.includes('{{') && (
-                      <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
-                        <div className="font-semibold text-blue-800 mb-1">🔍 Template Preview:</div>
-                        <div className="font-mono text-blue-700 bg-white p-1 rounded">
-                          {replaceNodePrefixedTemplate(formData.chatId)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="form-group">
-                    <label>Message Text *</label>
-                    <textarea
-                      name="messageText"
-                      value={formData.messageText || ''}
-                      onChange={handleInputChange}
-                      placeholder="Hello! You sent: {{message.text}}"
-                      className="input-field"
-                      rows="4"
-                      required
-                    />
-                    <div className="text-xs text-gray-400 mt-1">
-                      <div>💡 Use node-prefixed templates:</div>
-                      <div>• {"{{telegram.message.text}}"} - Original Telegram message</div>
-                      <div>• {"{{aiAgent.reply}}"} - AI Agent response</div>
-                      <div>• {"{{storage.userName}}"} - Data from storage</div>
-                    </div>
-                    {/* Live preview for node-prefixed templates */}
-                    {formData.messageText && formData.messageText.includes('{{') && (
-                      <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
-                        <div className="font-semibold text-blue-800 mb-1">🔍 Template Preview:</div>
-                        <div className="font-mono text-blue-700 bg-white p-1 rounded max-h-20 overflow-y-auto">
-                          {replaceNodePrefixedTemplate(formData.messageText)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="form-group">
-                    <label>Parse Mode</label>
-                    <select
-                      name="parseMode"
-                      value={formData.parseMode || 'Markdown'}
-                      onChange={handleInputChange}
-                      className="input-field"
-                    >
-                      <option value="">None</option>
-                      <option value="Markdown">Markdown</option>
-                      <option value="HTML">HTML</option>
-                    </select>
-                    <div className="text-xs text-gray-400 mt-1">
-                      How to format the message text
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="disableNotification"
-                        checked={formData.disableNotification || false}
-                        onChange={handleInputChange}
-                        className="mr-2"
-                      />
-                      <span>Silent Message (No notification)</span>
-                    </label>
-                  </div>
-                </>
-              )}
             </div>
           </div>
 

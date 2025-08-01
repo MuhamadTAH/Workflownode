@@ -9,7 +9,6 @@ const aiAgentNode = require('../nodes/actions/aiAgentNode');
 const modelNode = require('../nodes/actions/modelNode');
 const googleDocsNode = require('../nodes/actions/googleDocsNode');
 const DataStorageNode = require('../nodes/actions/dataStorageNode');
-const telegramSendMessageNode = require('../nodes/actions/telegramSendMessageNode');
 
 class WorkflowExecutor {
     constructor() {
@@ -297,8 +296,6 @@ class WorkflowExecutor {
                 const dataStorageInstance = new DataStorageNode(nodeConfig);
                 return await dataStorageInstance.process(inputData);
             
-            case 'telegramSendMessage':
-                return await telegramSendMessageNode.execute(nodeConfig, inputData);
             
             default:
                 throw new Error(`Unsupported node type: ${nodeConfig.type}`);
@@ -335,7 +332,6 @@ class WorkflowExecutor {
             'modelNode': 'model',
             'googleDocs': 'googleDocs',
             'dataStorage': 'storage',
-            'telegramSendMessage': 'sendMessage'
         };
         return prefixMap[nodeType] || null;
     }
