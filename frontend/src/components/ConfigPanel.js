@@ -2076,30 +2076,70 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                 nodeMapping={createNodeNameMapping}
               />
               
-              {/* Fields for Model Node */}
+              {/* Fields for Model Node - Enhanced with Claude SDK */}
               {node.data.type === 'modelNode' && (
                 <>
+                  <div className="form-group">
+                    <label htmlFor="apiKey">Claude API Key (Optional)</label>
+                    <input 
+                      type="password" 
+                      name="apiKey" 
+                      id="apiKey" 
+                      value={formData.apiKey || ''} 
+                      onChange={handleInputChange} 
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                      placeholder="sk-ant-... (for direct chat functionality)"
+                    />
+                    <div className="text-xs text-gray-500 mt-1">
+                      💡 Required only for direct chat. Leave empty if receiving input from AI Agent.
+                    </div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="systemPrompt">System Prompt</label>
+                    <DroppableTextArea
+                      name="systemPrompt"
+                      id="systemPrompt"
+                      value={formData.systemPrompt || 'You are a helpful AI assistant.'}
+                      onChange={handleInputChange}
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                      placeholder="System prompt for the AI assistant"
+                      rows={3}
+                      inputData={inputData}
+                      nodeMapping={createNodeNameMapping}
+                    />
+                    <div className="text-xs text-gray-500 mt-1">
+                      🎯 Used in direct chat mode to define AI behavior.
+                    </div>
+                  </div>
+                  
                   <div className="form-group">
                     <label htmlFor="userId">User ID (for memory)</label>
                     <input 
                       type="text" 
                       name="userId" 
                       id="userId" 
-                      value={formData.userId} 
+                      value={formData.userId || 'default'} 
                       onChange={handleInputChange} 
                       className="w-full p-2 border border-gray-300 rounded-md"
                       placeholder="default" 
                     />
                   </div>
+                  
                   <div className="form-group">
                     <label htmlFor="displayFormat">Display Format</label>
-                    <select name="displayFormat" id="displayFormat" value={formData.displayFormat} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-white">
+                    <select name="displayFormat" id="displayFormat" value={formData.displayFormat || 'chat'} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-white">
                       <option value="chat">Chat Interface</option>
                       <option value="raw">Raw Response</option>
                     </select>
                   </div>
-                  <div className="text-xs text-gray-500 mb-2">
-                    💡 Model Node displays AI responses with memory. Each User ID has separate conversation history.
+                  
+                  <div className="text-xs text-gray-500 mb-2 p-2 bg-blue-50 rounded">
+                    🚀 <strong>Enhanced with Claude SDK:</strong><br/>
+                    • Direct chat with API key<br/>
+                    • Memory management per user<br/>
+                    • Usage tracking & analytics<br/>
+                    • Enhanced error handling
                   </div>
                   
                   {/* Quick Memory Stats Dashboard */}

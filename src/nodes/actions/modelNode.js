@@ -1,10 +1,11 @@
 /*
 =================================================================
-BACKEND FILE: src/nodes/actions/modelNode.js (NEW FILE)
+BACKEND FILE: src/nodes/actions/modelNode.js (ENHANCED WITH CLAUDE SDK)
 =================================================================
 This file defines the structure and execution logic for the Model Node.
+Enhanced with official Claude SDK for better performance and features.
 */
-const { callClaudeApi } = require('../../services/aiService');
+const { callClaudeApi, verifyClaudeApiKey } = require('../../services/aiService');
 
 // Simple memory storage (in production, use database)
 const conversationMemory = {};
@@ -22,6 +23,31 @@ const modelNode = {
         },
         properties: [
             {
+                displayName: 'Claude API Key',
+                name: 'apiKey',
+                type: 'string',
+                default: '',
+                required: false,
+                description: 'Claude API Key for direct chat functionality. Leave empty if using AI Agent input.',
+                placeholder: 'sk-ant-...'
+            },
+            {
+                displayName: 'System Prompt',
+                name: 'systemPrompt',
+                type: 'textarea',
+                default: 'You are a helpful AI assistant.',
+                required: false,
+                description: 'System prompt for the AI (used in direct chat mode).',
+            },
+            {
+                displayName: 'User ID',
+                name: 'userId',
+                type: 'string',
+                default: 'default',
+                required: false,
+                description: 'User ID for conversation memory isolation.',
+            },
+            {
                 displayName: 'Display Format',
                 name: 'displayFormat',
                 type: 'options',
@@ -36,21 +62,94 @@ const modelNode = {
         ],
     },
 
-    // This function receives processed responses from AI Agent
+    // Enhanced execution function with SDK features
     async execute(nodeConfig, inputData) {
-        const { displayFormat = 'chat', userId = 'default' } = nodeConfig;
-
-        if (!inputData) {
-            throw new Error('No input data received. Connect this node to an AI Agent node.');
-        }
+        const { 
+            displayFormat = 'chat', 
+            userId = 'default',
+            apiKey,
+            systemPrompt = 'You are a helpful AI assistant.'
+        } = nodeConfig;
 
         // Initialize memory for user if not exists
         if (!conversationMemory[userId]) {
             conversationMemory[userId] = [];
         }
 
-        // If input comes from AI Agent, it should have a 'reply' field
-        if (inputData.reply) {
+        // Handle direct chat functionality (when message input is provided)
+        if (inputData && inputData.message && !inputData.reply) {
+            console.log('🤖 Model Node: Direct chat mode with SDK');
+            
+            if (!apiKey) {
+                throw new Error('Claude API Key is required for direct chat functionality.');
+            }
+
+            try {
+                // Get conversation history for context (last 10 messages)
+                const recentHistory = conversationMemory[userId].slice(-10);
+                
+                // Call Claude API with enhanced SDK features
+                const response = await callClaudeApi(
+                    apiKey,
+                    inputData.message,
+                    systemPrompt,
+                    recentHistory
+                );
+
+                // Store the conversation in memory with enhanced analytics
+                const conversationEntry = {
+                    timestamp: new Date().toISOString(),
+                    user: inputData.message,
+                    ai: response.text,
+                    // Enhanced analytics with SDK data
+                    userMessageLength: inputData.message.length,
+                    aiResponseLength: response.text.length,
+                    model: response.model || 'claude-3-5-sonnet-20241022',
+                    processingTime: response.processingTime,
+                    usage: response.usage,
+                    messageId: response.id,
+                    sdkFeatures: {
+                        officialSDK: true,
+                        enhancedErrorHandling: true,
+                        usageTracking: true
+                    }
+                };
+                
+                conversationMemory[userId].push(conversationEntry);
+
+                // Keep only last 20 messages to manage memory
+                if (conversationMemory[userId].length > 20) {
+                    conversationMemory[userId] = conversationMemory[userId].slice(-20);
+                }
+
+                return {
+                    reply: response.text,
+                    displayFormat: displayFormat,
+                    source: 'direct_sdk',
+                    conversationHistory: conversationMemory[userId],
+                    memoryStats: {
+                        messagesInMemory: conversationMemory[userId].length,
+                        userId: userId
+                    },
+                    sdkMetadata: {
+                        model: response.model,
+                        processingTime: response.processingTime,
+                        usage: response.usage,
+                        messageId: response.id,
+                        features: ['Enhanced Error Handling', 'Usage Tracking', 'Official SDK']
+                    }
+                };
+
+            } catch (error) {
+                console.error('❌ Model Node SDK Error:', error.message);
+                throw new Error(`Model Node SDK Error: ${error.message}`);
+            }
+        }
+
+        // Handle input from AI Agent (existing functionality preserved)
+        if (inputData && inputData.reply) {
+            console.log('🔄 Model Node: Receiving from AI Agent');
+            
             // Store the conversation in memory with analytics
             const conversationEntry = {
                 timestamp: new Date().toISOString(),
@@ -60,7 +159,9 @@ const modelNode = {
                 userMessageLength: (inputData.processedUserPrompt || inputData.userMessage || '').length,
                 aiResponseLength: (inputData.reply || '').length,
                 model: inputData.model || 'unknown',
-                processingTime: inputData.processingTime || null
+                processingTime: inputData.processingTime || null,
+                usage: inputData.usage,
+                source: 'aiAgent'
             };
             conversationMemory[userId].push(conversationEntry);
 
@@ -81,18 +182,33 @@ const modelNode = {
                 metadata: {
                     model: inputData.model,
                     systemPrompt: inputData.systemPrompt,
-                    processedUserPrompt: inputData.processedUserPrompt
+                    processedUserPrompt: inputData.processedUserPrompt,
+                    usage: inputData.usage
                 }
             };
-        } else {
-            // For direct chat functionality (backward compatibility)
+        }
+
+        // No valid input provided
+        if (!inputData) {
             return {
-                reply: 'Model Node: Please connect an AI Agent node to process prompts.',
+                reply: 'Model Node: Please provide input data or connect an AI Agent node.',
                 displayFormat: displayFormat,
-                source: 'direct',
-                conversationHistory: conversationMemory[userId] || []
+                source: 'error',
+                conversationHistory: conversationMemory[userId] || [],
+                sdkFeatures: {
+                    available: ['Direct Chat', 'AI Agent Integration', 'Memory Management', 'Usage Tracking'],
+                    requires: 'Claude API Key for direct chat functionality'
+                }
             };
         }
+
+        // Fallback for unexpected input format
+        return {
+            reply: 'Model Node: Invalid input format. Expected message or AI Agent output.',
+            displayFormat: displayFormat,
+            source: 'fallback',
+            conversationHistory: conversationMemory[userId] || []
+        };
     },
 
     // Helper function to get conversation history
@@ -229,6 +345,130 @@ const modelNode = {
             console.error('Error importing memory:', error);
             return false;
         }
+    },
+
+    // New: Test Claude SDK connection for Model Node
+    async testSDKConnection(apiKey) {
+        try {
+            if (!apiKey) {
+                return {
+                    connected: false,
+                    error: 'API Key is required',
+                    features: []
+                };
+            }
+
+            const verification = await verifyClaudeApiKey(apiKey);
+            
+            return {
+                connected: verification.valid,
+                model: verification.model,
+                usage: verification.usage,
+                sdk: 'Official Anthropic SDK',
+                features: [
+                    'Direct Chat Interface',
+                    'Memory Management',
+                    'Conversation History',
+                    'Usage Analytics',
+                    'Enhanced Error Handling'
+                ],
+                nodeType: 'Model Node',
+                timestamp: new Date().toISOString(),
+                error: verification.error || null
+            };
+            
+        } catch (error) {
+            return {
+                connected: false,
+                error: error.message,
+                features: ['Memory Management', 'Conversation History'],
+                nodeType: 'Model Node (Offline)',
+                timestamp: new Date().toISOString()
+            };
+        }
+    },
+
+    // New: Get enhanced analytics with SDK data
+    getEnhancedAnalytics(userId = 'default') {
+        const userHistory = conversationMemory[userId] || [];
+        
+        if (userHistory.length === 0) {
+            return {
+                userId: userId,
+                analytics: null,
+                sdkMetrics: {
+                    officialSDKMessages: 0,
+                    totalMessages: 0,
+                    averageProcessingTime: 'N/A',
+                    modelsUsed: [],
+                    usageData: null
+                }
+            };
+        }
+
+        // Separate SDK vs non-SDK messages
+        const sdkMessages = userHistory.filter(entry => entry.sdkFeatures?.officialSDK);
+        const totalUsage = userHistory
+            .filter(entry => entry.usage)
+            .reduce((acc, entry) => {
+                if (entry.usage.input_tokens) acc.inputTokens += entry.usage.input_tokens;
+                if (entry.usage.output_tokens) acc.outputTokens += entry.usage.output_tokens;
+                return acc;
+            }, { inputTokens: 0, outputTokens: 0 });
+
+        const processingTimes = userHistory
+            .filter(entry => entry.processingTime)
+            .map(entry => entry.processingTime);
+
+        const models = [...new Set(userHistory
+            .map(entry => entry.model)
+            .filter(model => model && model !== 'unknown'))];
+
+        return {
+            userId: userId,
+            totalMessages: userHistory.length,
+            lastActivity: userHistory[userHistory.length - 1].timestamp,
+            analytics: this.calculateUserAnalytics(userId, userHistory).analytics,
+            sdkMetrics: {
+                officialSDKMessages: sdkMessages.length,
+                sdkPercentage: ((sdkMessages.length / userHistory.length) * 100).toFixed(1) + '%',
+                averageProcessingTime: processingTimes.length > 0 
+                    ? (processingTimes.reduce((sum, time) => sum + time, 0) / processingTimes.length).toFixed(2) + 'ms'
+                    : 'N/A',
+                modelsUsed: models,
+                usageData: totalUsage.inputTokens > 0 || totalUsage.outputTokens > 0 ? {
+                    totalInputTokens: totalUsage.inputTokens,
+                    totalOutputTokens: totalUsage.outputTokens,
+                    totalTokens: totalUsage.inputTokens + totalUsage.outputTokens,
+                    estimatedCost: this.calculateEstimatedCost(totalUsage)
+                } : null,
+                features: {
+                    memoryManagement: true,
+                    conversationHistory: true,
+                    usageTracking: totalUsage.inputTokens > 0,
+                    enhancedErrorHandling: sdkMessages.length > 0,
+                    officialSDK: sdkMessages.length > 0
+                }
+            }
+        };
+    },
+
+    // New: Calculate estimated cost based on usage
+    calculateEstimatedCost(usage) {
+        // Claude 3.5 Sonnet pricing (approximate)
+        const inputCostPer1K = 0.003;  // $0.003 per 1K input tokens
+        const outputCostPer1K = 0.015; // $0.015 per 1K output tokens
+        
+        const inputCost = (usage.inputTokens / 1000) * inputCostPer1K;
+        const outputCost = (usage.outputTokens / 1000) * outputCostPer1K;
+        
+        return {
+            inputCost: inputCost.toFixed(6),
+            outputCost: outputCost.toFixed(6),
+            totalCost: (inputCost + outputCost).toFixed(6),
+            currency: 'USD',
+            note: 'Estimated cost based on Claude 3.5 Sonnet pricing'
+        };
     },
 
     // Helper function to add conversation entry to memory (used by AI Agent)
