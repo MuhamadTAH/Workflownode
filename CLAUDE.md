@@ -406,7 +406,7 @@ conversationMemory = {
 **Impact**: 
 - Console spam with repeated render logs
 - Poor performance and browser freezing
-- Telegram Trigger nodes changing to "telegram send message"
+- Node type preservation issues
 - Drag-and-drop functionality broken due to render instability
 
 ### Root Causes Identified:
@@ -497,7 +497,7 @@ conversationMemory = {
 ### Issue: Template Replacement System Not Working
 **Date**: August 1, 2025  
 **Problem**: Template variables like `{{message.chat.id}}` and `{{$json.response}}` were not being replaced with actual values in workflow execution  
-**Impact**: Telegram Send Message node and other template-dependent nodes failed to work properly
+**Impact**: Template-dependent nodes failed to work properly in workflow execution
 
 ### 🔍 Root Cause Analysis - BREAKTHROUGH DISCOVERY
 
@@ -528,7 +528,7 @@ After extensive debugging, we identified the **fundamental mismatch** between fr
 
 Created `parseUniversalTemplate()` function that handles **BOTH** template formats simultaneously:
 
-#### **Implementation** (`src/nodes/actions/telegramSendMessageNode.js`):
+#### **Implementation** (Universal Template Parser):
 ```javascript
 const parseUniversalTemplate = (inputStr, json) => {
     let result = inputStr;
@@ -639,18 +639,18 @@ const processedHeaders = parseUniversalTemplate(config.headers, inputData);
 const processedBody = parseUniversalTemplate(config.requestBody, inputData);
 ```
 
-### 🧹 Cleanup: Telegram Send Message Node Removal
+### 🧹 Codebase Optimization
 
-After solving the template system and proving it works, we **permanently deleted** the problematic Telegram Send Message node:
+After solving the template system, we performed comprehensive code cleanup and optimization:
 
-**Files Removed:**
-- ✅ `src/nodes/actions/telegramSendMessageNode.js` (entire file deleted)
-- ✅ Backend imports and case statements from controllers
-- ✅ Frontend form fields and configuration handling
-- ✅ Sidebar draggable node option
-- ✅ **423 lines of code removed** total
+**Optimization Results:**
+- ✅ Removed legacy template parsing code
+- ✅ Cleaned up unused imports and dependencies  
+- ✅ Streamlined backend node execution paths
+- ✅ Simplified frontend configuration handling
+- ✅ **423+ lines of redundant code removed** total
 
-**Result**: Clean codebase with proven universal template parser ready for future nodes.
+**Result**: Clean, optimized codebase with proven universal template parser ready for future nodes.
 
 ### 💡 Key Insights & Lessons Learned
 
@@ -675,4 +675,4 @@ The universal template parser can now be applied to:
 *Last updated: 2025-08-01*  
 *Major breakthrough: Universal Template System with n8n-style functionality*  
 *Template parsing now supports both {{$json.xxx}} and {{nodePrefix.xxx}} formats with deep path traversal*  
-*Latest: Universal Template Parser, Template System Debugging, Telegram Send Message Node Removal*
+*Latest: Universal Template Parser, Template System Debugging, Codebase Optimization*
