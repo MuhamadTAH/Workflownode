@@ -33,18 +33,18 @@ const telegramSendMessageNode = {
                 name: 'chatId',
                 type: 'string',
                 required: true,
-                default: '{{telegram.message.chat.id}}',
-                placeholder: 'Chat ID or template like {{telegram.message.chat.id}}',
-                description: 'The chat ID to send the message to. Use templates like {{telegram.message.chat.id}} to get from trigger node.',
+                default: '{{$json.message.chat.id}}',
+                placeholder: 'Chat ID or template like {{$json.message.chat.id}}',
+                description: 'The chat ID to send the message to. Use templates like {{$json.message.chat.id}} to get from input data.',
             },
             {
                 displayName: 'Message Text',
                 name: 'messageText',
                 type: 'string',
                 required: true,
-                default: '{{aiAgent.reply}}',
+                default: '{{$json.response}}',
                 placeholder: 'Your message text with optional templates',
-                description: 'The message to send. Use templates like {{aiAgent.reply}} for AI responses or {{telegram.message.text}} for original message.',
+                description: 'The message to send. Use templates like {{$json.response}} for AI responses or {{$json.message.text}} for original message.',
             },
             {
                 displayName: 'Parse Mode',
@@ -68,62 +68,40 @@ const telegramSendMessageNode = {
         ],
     },
 
-    // Enhanced template replacement function (supports node-prefixed templates)
-    replaceTemplate(template, data) {
-        if (!template || typeof template !== 'string') return template;
-        if (!data || typeof data !== 'object') return template;
-
-        let result = template;
+    // New JSON Template Parser - supports {{$json.path.to.value}} syntax
+    parseJsonExpression(inputStr, json) {
+        if (!inputStr) return inputStr || '';
         
-        try {
-            // Replace templates like {{message.text}}, {{telegram.message.chat.id}}, etc.
-            result = result.replace(/\{\{([^}]+)\}\}/g, (match, path) => {
-                const pathParts = path.trim().split('.');
+        return inputStr.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
+            try {
+                if (!json) return match; // Keep original if no JSON data
                 
-                // Handle node-prefixed templates (e.g., telegram.message.chat.id)
-                if (pathParts.length > 1) {
-                    const nodePrefix = pathParts[0];
-                    
-                    // Skip the node prefix and use the rest of the path
-                    if (['telegram', 'aiAgent', 'model', 'storage', 'sendMessage'].includes(nodePrefix)) {
-                        const actualPath = pathParts.slice(1).join('.');
-                        let value;
-                        
-                        // For telegram prefix, look in _telegram or _originalTrigger
-                        if (nodePrefix === 'telegram') {
-                            value = telegramSendMessageNode.getNestedValue(data._telegram, actualPath) || 
-                                   telegramSendMessageNode.getNestedValue(data._originalTrigger, actualPath);
-                        } else {
-                            // For other prefixes, look in main data
-                            value = telegramSendMessageNode.getNestedValue(data, actualPath);
-                        }
-                        
-                        if (value !== undefined && value !== null) {
-                            if (typeof value === 'object') {
-                                return JSON.stringify(value);
-                            }
-                            return String(value);
-                        }
+                const keys = path.split('.');
+                let value = json;
+                
+                for (const key of keys) {
+                    if (value && typeof value === 'object' && key in value) {
+                        value = value[key];
+                    } else {
+                        return match; // Keep original if path not found
                     }
                 }
                 
-                // Handle regular templates (without node prefix)
-                const value = telegramSendMessageNode.getNestedValue(data, path.trim());
-                if (value !== undefined && value !== null) {
-                    if (typeof value === 'object') {
-                        return JSON.stringify(value);
-                    }
+                // Convert value to string
+                if (typeof value === 'string') {
+                    return value;
+                } else if (typeof value === 'number' || typeof value === 'boolean') {
                     return String(value);
+                } else if (typeof value === 'object' && value !== null) {
+                    return JSON.stringify(value, null, 2);
+                } else {
+                    return String(value || '');
                 }
-                
-                return match; // Keep original if not found
-            });
-        } catch (error) {
-            console.error('Error in template replacement:', error);
-            return template;
-        }
-
-        return result;
+            } catch (error) {
+                console.error('Error parsing JSON expression:', error);
+                return match; // Keep original on error
+            }
+        });
     },
 
     // Helper function to get nested object values
@@ -173,8 +151,8 @@ const telegramSendMessageNode = {
             console.log('- Original trigger chat data:', inputData._originalTrigger.message.chat);
         }
         
-        const processedChatId = telegramSendMessageNode.replaceTemplate(chatId, inputData);
-        const processedMessage = telegramSendMessageNode.replaceTemplate(messageText, inputData);
+        const processedChatId = telegramSendMessageNode.parseJsonExpression(chatId, inputData);
+        const processedMessage = telegramSendMessageNode.parseJsonExpression(messageText, inputData);
         
         console.log('Processed chatId:', processedChatId);
         console.log('Processed messageText:', processedMessage);

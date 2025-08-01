@@ -83,34 +83,38 @@ const googleDocsNode = {
         const { action, documentUrl, documentTitle, content } = nodeConfig;
         const backendUrl = process.env.BASE_URL || 'http://localhost:3013';
         
-        // Template replacement function (same as AI Agent)
-        const replaceTemplate = (template, data) => {
-            if (!template) return template;
-            return template.replace(/\{\{([^}]+)\}\}/g, (match, variablePath) => {
+        // New JSON Template Parser - supports {{$json.path.to.value}} syntax
+        const parseJsonExpression = (inputStr, json) => {
+            if (!inputStr) return inputStr || '';
+            
+            return inputStr.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
                 try {
-                    const pathParts = variablePath.trim().split('.');
-                    let value = data;
+                    if (!json) return match; // Keep original if no JSON data
                     
-                    for (const part of pathParts) {
-                        if (value && typeof value === 'object' && part in value) {
-                            value = value[part];
+                    const keys = path.split('.');
+                    let value = json;
+                    
+                    for (const key of keys) {
+                        if (value && typeof value === 'object' && key in value) {
+                            value = value[key];
                         } else {
-                            return match;
+                            return match; // Keep original if path not found
                         }
                     }
                     
+                    // Convert value to string
                     if (typeof value === 'string') {
                         return value;
                     } else if (typeof value === 'number' || typeof value === 'boolean') {
                         return String(value);
-                    } else if (typeof value === 'object') {
+                    } else if (typeof value === 'object' && value !== null) {
                         return JSON.stringify(value, null, 2);
                     } else {
-                        return match;
+                        return String(value || '');
                     }
                 } catch (error) {
-                    console.warn(`Template replacement error for ${variablePath}:`, error);
-                    return match;
+                    console.error('Error parsing JSON expression:', error);
+                    return match; // Keep original on error
                 }
             });
         };
@@ -139,7 +143,7 @@ const googleDocsNode = {
                         throw new Error('Document URL is required for Update action.');
                     }
                     
-                    const processedContent = replaceTemplate(content, inputData);
+                    const processedContent = parseJsonExpression(content, inputData);
                     if (!processedContent || !processedContent.trim()) {
                         throw new Error('Content cannot be empty for Update action.');
                     }
@@ -158,7 +162,7 @@ const googleDocsNode = {
                     };
 
                 case 'create':
-                    const processedTitle = replaceTemplate(documentTitle, inputData) || 'New Document';
+                    const processedTitle = parseJsonExpression(documentTitle, inputData) || 'New Document';
                     
                     const createResponse = await axios.post(`${backendUrl}/api/create-doc`, {
                         title: processedTitle
@@ -166,7 +170,7 @@ const googleDocsNode = {
                     
                     // If content is provided, add it to the new document
                     if (content && content.trim()) {
-                        const processedCreateContent = replaceTemplate(content, inputData);
+                        const processedCreateContent = parseJsonExpression(content, inputData);
                         if (processedCreateContent && processedCreateContent.trim()) {
                             await axios.post(`${backendUrl}/api/update-doc`, {
                                 docUrl: createResponse.data.url,
@@ -180,7 +184,7 @@ const googleDocsNode = {
                         title: createResponse.data.title,
                         documentId: createResponse.data.documentId,
                         url: createResponse.data.url,
-                        initialContent: content ? replaceTemplate(content, inputData) : null
+                        initialContent: content ? parseJsonExpression(content, inputData) : null
                     };
 
                 default:
