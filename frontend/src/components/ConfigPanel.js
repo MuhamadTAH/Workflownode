@@ -563,9 +563,9 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       storedData: node.data.storedData || {},
       // Memory fields
       userId: node.data.userId || 'default',
-      // Telegram Send Message specific fields
-      chatId: node.data.chatId || '{{message.chat.id}}',
-      messageText: node.data.messageText || 'Hello! You sent: {{message.text}}',
+      // Telegram Send Message specific fields - UPDATED TEMPLATES
+      chatId: node.data.chatId || '{{$json.message.chat.id}}',
+      messageText: node.data.messageText || '{{$json.response}}',
       parseMode: node.data.parseMode || 'Markdown',
       disableNotification: node.data.disableNotification || false
     };
@@ -703,20 +703,17 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         
         // 🔧 RESET TELEGRAM SEND MESSAGE NODES TO NEW DEFAULTS (ONE TIME ONLY)
         if (node.data.type === 'telegramSendMessage') {
-          // Check if already reset to avoid infinite loops
-          const resetKey = `telegram-reset-${node.id}`;
-          const alreadyReset = localStorage.getItem(resetKey);
+          // Always force correct templates for Telegram Send Message nodes
+          console.log('🔄 Forcing correct templates for Telegram Send Message node');
+          console.log('Old config:', parsedConfig);
           
-          if (!alreadyReset) {
-            console.log('🔄 Resetting Telegram Send Message node to new defaults (one-time)');
-            parsedConfig.chatId = '{{$json.message.chat.id}}';
-            parsedConfig.messageText = '{{$json.response}}';
-            parsedConfig.parseMode = 'Markdown';
-            parsedConfig.disableNotification = false;
-            
-            // Mark as reset to prevent future resets
-            localStorage.setItem(resetKey, 'true');
-          }
+          // Force correct templates regardless of saved data
+          parsedConfig.chatId = '{{$json.message.chat.id}}';
+          parsedConfig.messageText = '{{$json.response}}';
+          parsedConfig.parseMode = 'Markdown';
+          parsedConfig.disableNotification = false;
+          
+          console.log('New config:', parsedConfig);
         }
         
         setFormData(prev => ({ ...prev, ...parsedConfig }));
