@@ -1981,133 +1981,81 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
 
   return (
     <div className="config-panel-overlay" onClick={handleClose}>
-      <div className="config-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="panel-header">
-          <h3><i className={node.data.icon + ' mr-2'}></i>{formData.label}</h3>
-          <div className="flex items-center gap-3">
-            {/* Auto-save status indicator */}
-            <div className={`text-xs px-2 py-1 rounded-md ${
-              autoSaveStatus === 'saving' ? 'bg-yellow-100 text-yellow-800' :
-              autoSaveStatus === 'saved' ? 'bg-green-100 text-green-800' :
-              autoSaveStatus === 'error' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600'
-            }`}>
-              {autoSaveStatus === 'saving' && '💾 Saving...'}
-              {autoSaveStatus === 'saved' && '✅ Saved'}
-              {autoSaveStatus === 'error' && '❌ Save Error'}
-            </div>
-            <button onClick={handleClose} className="close-button">&times;</button>
+      <div>
+        {/* INPUT Column */}
+        <div className="side-panel input-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="panel-header">
+            <h3>INPUT</h3>
+            <button onClick={handleGetData} disabled={isLoading} className="action-button">
+              {isLoading ? '...' : 'GET'}
+            </button>
+          </div>
+          <div className="panel-content">
+            {availableNodes.length > 0 && (
+              <div className="form-group">
+                <select 
+                  value={selectedDataSource} 
+                  onChange={(e) => setSelectedDataSource(e.target.value)}
+                  className="w-full p-2 border rounded-md bg-white text-sm"
+                >
+                  <option value="auto">🔄 Auto (closest node)</option>
+                  {availableNodes.map(node => (
+                    <option key={node.id} value={node.id}>
+                      {'→'.repeat(node.distance)} {node.type === 'trigger' ? '📨' : node.type === 'aiAgent' ? '🤖' : node.type === 'googleDocs' ? '📝' : node.type === 'dataStorage' ? '💾' : '⚙️'} {node.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {inputData ? (
+              <div className="json-tree-container">
+                <NodeOrganizedJSONViewer data={inputData} />
+              </div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-state-icon">
+                  <i className="fa-solid fa-hand-pointer"></i>
+                </div>
+                <div className="empty-state-title">Wire me up</div>
+                <div className="empty-state-description">Connect this node to see input data flow</div>
+              </div>
+            )}
           </div>
         </div>
-        <div className="panel-content flex gap-4">
-          {/* LEFT SECTION - INPUT */}
-          <div className="panel-section flex-1">
-            <div className="section-header flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span>INPUT</span>
-                {availableNodes.length > 0 && (
-                  <select 
-                    value={selectedDataSource} 
-                    onChange={(e) => setSelectedDataSource(e.target.value)}
-                    className="text-xs px-2 py-1 border border-gray-300 rounded bg-white"
-                  >
-                    <option value="auto">🔄 Auto (closest node)</option>
-                    {availableNodes.map(node => (
-                      <option key={node.id} value={node.id}>
-                        {'→'.repeat(node.distance)} {node.type === 'trigger' ? '📨' : node.type === 'aiAgent' ? '🤖' : node.type === 'googleDocs' ? '📝' : node.type === 'dataStorage' ? '💾' : '⚙️'} {node.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <button onClick={handleGetData} disabled={isLoading} className="bg-green-500 text-white px-3 py-1 text-sm rounded hover:bg-green-600 disabled:bg-green-300">
-                {isLoading ? '...' : 'GET'}
-              </button>
+
+        {/* PARAMETERS Column */}
+        <div className="main-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="panel-header">
+            <div className="left-side">
+              <i className={`node-icon ${node.data.icon}`}></i>
+              <h3 className="node-title">{formData.label}</h3>
             </div>
-            <div className="section-content">
-              {inputData ? (
-                <div>
-                  {/* Show data source and type indicator */}
-                  {(() => {
-                    const dataType = detectDataType(inputData);
-                    const suggestions = getTemplateSuggestions(dataType, inputData);
-                    const sourceNode = selectedDataSource !== 'auto' ? availableNodes.find(n => n.id === selectedDataSource) : null;
-                    
-                    const typeColors = {
-                      telegram: 'bg-blue-100 text-blue-800',
-                      ai_response: 'bg-green-100 text-green-800', 
-                      google_docs: 'bg-yellow-100 text-yellow-800',
-                      data_storage: 'bg-purple-100 text-purple-800',
-                      generic: 'bg-gray-100 text-gray-800',
-                      unknown: 'bg-red-100 text-red-800'
-                    };
-                    
-                    const typeIcons = {
-                      telegram: '📨',
-                      ai_response: '🤖',
-                      google_docs: '📝', 
-                      data_storage: '💾',
-                      generic: '📊',
-                      unknown: '❓'
-                    };
-                    
-                    return (
-                      <>
-                        <div className={`${typeColors[dataType]} text-xs px-2 py-1 rounded mb-2 flex items-center justify-between`}>
-                          <span>
-                            {typeIcons[dataType]} {dataType.replace('_', ' ').toUpperCase()} Data
-                            {sourceNode && (
-                              <span>
-                                {' from '}
-                                {sourceNode.distance > 1 && (
-                                  <span className="opacity-70">{'→'.repeat(sourceNode.distance - 1)}</span>
-                                )}
-                                {sourceNode.label}
-                                {sourceNode.distance > 1 && (
-                                  <span className="ml-1 opacity-70">({sourceNode.distance} steps back)</span>
-                                )}
-                              </span>
-                            )}
-                          </span>
-                          {suggestions.length > 0 && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs opacity-75">Quick:</span>
-                              {suggestions.slice(0, 2).map((suggestion, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => navigator.clipboard.writeText(suggestion)}
-                                  className="text-xs bg-white/50 hover:bg-white/80 px-1 rounded font-mono"
-                                  title={`Copy ${suggestion}`}
-                                >
-                                  {suggestion.split('.').pop().replace('}}', '')}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    );
-                  })()}
-                  {inputData._metadata?.fromCache && (
-                    <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mb-2">
-                      📁 Cached data from {inputData._metadata.sourceNode} ({new Date(inputData._metadata.lastExecuted).toLocaleTimeString()})
-                    </div>
-                  )}
-                  <NodeOrganizedJSONViewer 
-                    data={inputData}
-                  />
-                </div>
-              ) : (
-                <div className="text-gray-400 text-sm text-center py-8">
-                  Click GET to fetch input data
-                </div>
-              )}
+            <div className="right-side">
+              {/* Auto-save status indicator */}
+              <div className={`text-xs px-2 py-1 rounded-md ${
+                autoSaveStatus === 'saving' ? 'bg-yellow-100 text-yellow-800' :
+                autoSaveStatus === 'saved' ? 'bg-green-100 text-green-800' :
+                autoSaveStatus === 'error' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600'
+              }`}>
+                {autoSaveStatus === 'saving' && '💾 Saving...'}
+                {autoSaveStatus === 'saved' && '✅ Saved'}
+                {autoSaveStatus === 'error' && '❌ Save Error'}
+              </div>
+              <button className="execute-button">
+                <i className="fa-solid fa-play"></i>
+                Execute Step
+              </button>
+              <button onClick={handleClose} className="close-button">&times;</button>
             </div>
           </div>
-
-          {/* MIDDLE SECTION - PARAMETERS */}
-          <div className="panel-section flex-1">
-            <div className="section-header">PARAMETERS</div>
-            <div className="section-content">
+          
+          <div className="tabs">
+            <button className="tab active">Parameters</button>
+            <button className="tab">Settings</button>
+          </div>
+          
+          <div className="panel-content">
               <EnhancedTextInput 
                 label="Label" 
                 name="label" 
@@ -2654,35 +2602,38 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                   </div>
                 </>
               )}
-
-            </div>
           </div>
+        </div>
 
-          {/* RIGHT SECTION - OUTPUT */}
-          <div className="panel-section flex-1">
-            <div className="section-header flex justify-between items-center">
-              <span>OUTPUT</span>
-              <button onClick={handlePostData} disabled={isLoading || !inputData} className="bg-blue-500 text-white px-3 py-1 text-sm rounded hover:bg-blue-600 disabled:bg-blue-300">
-                {isLoading ? '...' : 'POST'}
-              </button>
-            </div>
-            <div className="section-content">
-              {outputData ? (
-                <div className="bg-gray-50 p-3 rounded text-sm font-mono max-h-64 overflow-y-auto">
-                  <pre>{JSON.stringify(outputData, null, 2)}</pre>
+        {/* OUTPUT Column */}
+        <div className="side-panel output-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="panel-header">
+            <h3>OUTPUT</h3>
+            <button onClick={handlePostData} disabled={isLoading || !inputData} className="action-button">
+              {isLoading ? '...' : 'POST'}
+            </button>
+          </div>
+          <div className="panel-content">
+            {outputData ? (
+              <div className="json-tree-container">
+                <pre className="text-sm font-mono">{JSON.stringify(outputData, null, 2)}</pre>
+              </div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-state-icon">
+                  <i className="fa-solid fa-play"></i>
                 </div>
-              ) : (
-                <div className="text-gray-400 text-sm text-center py-8">
-                  Click POST to process data
-                </div>
-              )}
-              {node.data.type === 'modelNode' && (
-                <div className="mt-4 border-t pt-4">
-                  <div className="text-sm font-semibold text-gray-700 mb-2">💬 Interactive Chat</div>
-                  <ChatbotInterface nodeConfig={formData} />
-                </div>
-              )}
-            </div>
+                <div className="empty-state-title">Execute this node</div>
+                <div className="empty-state-description">Run the workflow to see output results</div>
+              </div>
+            )}
+            
+            {node.data.type === 'modelNode' && (
+              <div className="mt-4 border-t pt-4">
+                <div className="text-sm font-semibold text-gray-700 mb-2">💬 Interactive Chat</div>
+                <ChatbotInterface nodeConfig={formData} />
+              </div>
+            )}
           </div>
         </div>
       </div>
