@@ -1047,21 +1047,13 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
   // Handle node selection change
   const handleNodeSelectionChange = (e) => {
     const newNodeId = e.target.value;
-    console.log('🔄 Node selection changed:', {
-      previousNodeId: selectedNodeId,
-      newNodeId: newNodeId,
-      availableNodes: availableNodes.map(n => ({ id: n.id, label: n.label, type: n.type }))
-    });
+    // Node selection changed (debug logging removed for performance)
     
     setSelectedNodeId(newNodeId);
     
     // Load data from the selected node
     const nodeData = loadDataFromNode(newNodeId);
-    console.log('📊 Loading data from selected node:', {
-      nodeId: newNodeId,
-      dataExists: !!nodeData,
-      dataKeys: nodeData ? Object.keys(nodeData) : 'No data'
-    });
+    // Loading data from selected node (debug logging removed for performance)
     
     if (nodeData) {
       setInputData(nodeData);
@@ -1268,11 +1260,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       // Find edges that connect TO this node (incoming connections)
       const incomingEdges = workflowEdges.filter(edge => edge.target === node.id);
       
-      console.log('Debug - Looking for previous node:', {
-        currentNodeId: node.id,
-        incomingEdges: incomingEdges,
-        allEdges: workflowEdges
-      });
+      // Looking for previous node (debug logging removed for performance)
       
       if (incomingEdges.length === 0) {
         return null; // No previous node connected
@@ -1604,7 +1592,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
         // Find connected Data Storage nodes for AI Agent
         const connectedNodes = node.data.type === 'aiAgent' ? findConnectedDataStorageNodes() : [];
         
-        console.log('Connected Data Storage nodes:', connectedNodes);
+        // Connected Data Storage nodes found (debug logging removed for performance)
         
         // Process through the node
         const response = await fetch(config.BACKEND_URL + '/api/nodes/run-node', {
