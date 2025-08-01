@@ -1,0 +1,266 @@
+/*
+=================================================================
+BACKEND FILE: src/nodes/actions/telegramSendMessageNode.js
+=================================================================
+This file defines the Telegram Send Message node for sending messages to Telegram bot chats.
+*/
+
+const axios = require('axios');
+
+const telegramSendMessageNode = {
+    description: {
+        displayName: 'Telegram Send Message',
+        name: 'telegramSendMessage',
+        icon: 'fa:telegram',
+        group: 'actions',
+        version: 1,
+        description: 'Sends a message to a Telegram bot chat.',
+        defaults: {
+            name: 'Telegram Send Message',
+        },
+        properties: [
+            {
+                displayName: 'Bot API Token',
+                name: 'botToken',
+                type: 'string',
+                typeOptions: {
+                    password: true,
+                },
+                default: '',
+                required: true,
+                description: 'The API token for your Telegram bot.',
+                placeholder: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
+            },
+            {
+                displayName: 'Chat ID',
+                name: 'chatId',
+                type: 'string',
+                default: '{{$json.message.chat.id}}',
+                required: true,
+                description: 'Chat ID where to send the message. Use template variables like {{$json.message.chat.id}} or {{telegram.message.chat.id}}',
+                placeholder: '123456789 or {{$json.message.chat.id}}',
+            },
+            {
+                displayName: 'Message Text',
+                name: 'messageText',
+                type: 'string',
+                typeOptions: {
+                    rows: 4,
+                },
+                default: 'Hello! This is a message from your bot.',
+                required: true,
+                description: 'The message text to send. Supports template variables like {{$json.response}} or {{aiAgent.reply}}',
+            },
+            {
+                displayName: 'Parse Mode',
+                name: 'parseMode',
+                type: 'options',
+                options: [
+                    { name: 'None', value: '' },
+                    { name: 'Markdown', value: 'Markdown' },
+                    { name: 'MarkdownV2', value: 'MarkdownV2' },
+                    { name: 'HTML', value: 'HTML' },
+                ],
+                default: '',
+                required: false,
+                description: 'Message formatting mode.',
+            },
+            {
+                displayName: 'Disable Web Page Preview',
+                name: 'disableWebPagePreview',
+                type: 'boolean',
+                default: false,
+                required: false,
+                description: 'Disables link previews for links in this message.',
+            },
+            {
+                displayName: 'Disable Notification',
+                name: 'disableNotification',
+                type: 'boolean',
+                default: false,
+                required: false,
+                description: 'Sends the message silently. Users will receive a notification with no sound.',
+            },
+        ],
+    },
+
+    // Universal Template Parser - supports both {{$json.xxx}} and {{nodePrefix.xxx}} formats
+    parseUniversalTemplate(inputStr, json) {
+        if (!inputStr || typeof inputStr !== 'string') return inputStr || '';
+        
+        let result = inputStr;
+        
+        // 1. Handle {{$json.path.to.value}} format (backend system)
+        result = result.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
+            try {
+                if (!json) return match;
+                
+                const keys = path.split('.');
+                let value = json;
+                for (const key of keys) {
+                    if (value && typeof value === 'object' && key in value) {
+                        value = value[key];
+                    } else {
+                        return match; // Keep original if not found
+                    }
+                }
+                return String(value || '');
+            } catch (error) {
+                console.error('Error parsing $json template:', error);
+                return match;
+            }
+        });
+        
+        // 2. Handle {{nodePrefix.path.to.value}} format (frontend system)
+        result = result.replace(/\{\{\s*([a-zA-Z]+)\.(.*?)\s*\}\}/g, (match, nodePrefix, path) => {
+            try {
+                if (!json) return match;
+                
+                let dataSource = null;
+                
+                // Map node prefixes to data locations
+                if (nodePrefix === 'telegram' && json._telegram) {
+                    dataSource = json._telegram;
+                } else if (nodePrefix === 'telegram' && json._originalTrigger) {
+                    dataSource = json._originalTrigger;
+                } else if (nodePrefix === 'aiAgent' && json.reply) {
+                    if (path === 'reply' || path === 'response') return json.reply;
+                    dataSource = json;
+                } else if (json[nodePrefix]) {
+                    dataSource = json[nodePrefix];
+                } else {
+                    dataSource = json;
+                }
+                
+                // Navigate the path in data source
+                const keys = path.split('.');
+                let value = dataSource;
+                for (const key of keys) {
+                    if (value && typeof value === 'object' && key in value) {
+                        value = value[key];
+                    } else {
+                        return match;
+                    }
+                }
+                return String(value || '');
+            } catch (error) {
+                console.error('Error parsing nodePrefix template:', error);
+                return match;
+            }
+        });
+        
+        return result;
+    },
+
+    // Execute the Telegram Send Message node
+    async execute(nodeConfig, inputData, connectedNodes = []) {
+        const { 
+            botToken, 
+            chatId, 
+            messageText, 
+            parseMode = '', 
+            disableWebPagePreview = false, 
+            disableNotification = false 
+        } = nodeConfig;
+        
+        if (!botToken) {
+            throw new Error('Bot API Token is required for Telegram Send Message node.');
+        }
+
+        if (!chatId) {
+            throw new Error('Chat ID is required for Telegram Send Message node.');
+        }
+
+        if (!messageText) {
+            throw new Error('Message Text is required for Telegram Send Message node.');
+        }
+
+        // Process template variables in chatId and messageText
+        const processedChatId = this.parseUniversalTemplate(chatId, inputData);
+        const processedMessageText = this.parseUniversalTemplate(messageText, inputData);
+
+        if (!processedChatId.trim()) {
+            throw new Error('Processed Chat ID cannot be empty. Check your template variables.');
+        }
+
+        if (!processedMessageText.trim()) {
+            throw new Error('Processed Message Text cannot be empty. Check your template variables.');
+        }
+
+        // Validate chat ID is numeric (Telegram chat IDs are numbers)
+        const numericChatId = processedChatId.trim();
+        if (!numericChatId.match(/^-?\d+$/)) {
+            throw new Error(`Invalid Chat ID format: "${numericChatId}". Chat ID must be a number.`);
+        }
+
+        // Prepare the API request
+        const telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        
+        const requestData = {
+            chat_id: numericChatId,
+            text: processedMessageText,
+            disable_web_page_preview: disableWebPagePreview,
+            disable_notification: disableNotification,
+        };
+
+        // Add parse mode if specified
+        if (parseMode && parseMode.trim()) {
+            requestData.parse_mode = parseMode;
+        }
+
+        try {
+            console.log('Sending Telegram message to chat:', numericChatId);
+            console.log('Message text:', processedMessageText.substring(0, 100) + (processedMessageText.length > 100 ? '...' : ''));
+            
+            const response = await axios.post(telegramApiUrl, requestData);
+            
+            const messageData = response.data;
+            
+            if (messageData.ok) {
+                console.log('Message sent successfully:', messageData.result.message_id);
+                
+                return {
+                    success: true,
+                    messageId: messageData.result.message_id,
+                    chatId: numericChatId,
+                    sentText: processedMessageText,
+                    timestamp: new Date().toISOString(),
+                    botToken: botToken.substring(0, 10) + '...', // Partial token for logging
+                    parseMode: parseMode,
+                    telegramResponse: messageData.result,
+                    originalChatId: chatId,
+                    originalMessageText: messageText
+                };
+            } else {
+                throw new Error(`Telegram API error: ${messageData.description || 'Unknown error'}`);
+            }
+            
+        } catch (error) {
+            console.error('Failed to send Telegram message:', error.response ? error.response.data : error.message);
+            
+            // Provide helpful error messages
+            let errorMessage = 'Failed to send Telegram message';
+            if (error.response && error.response.data) {
+                const telegramError = error.response.data;
+                if (telegramError.description) {
+                    errorMessage += `: ${telegramError.description}`;
+                    
+                    // Provide specific guidance for common errors
+                    if (telegramError.description.includes('chat not found')) {
+                        errorMessage += ' (Check if the chat ID is correct and the bot has access to this chat)';
+                    } else if (telegramError.description.includes('Unauthorized')) {
+                        errorMessage += ' (Check if the bot token is correct)';
+                    } else if (telegramError.description.includes('blocked')) {
+                        errorMessage += ' (The bot has been blocked by the user)';
+                    }
+                }
+            } else {
+                errorMessage += `: ${error.message}`;
+            }
+            
+            throw new Error(errorMessage);
+        }
+    },
+};
+
+module.exports = telegramSendMessageNode;
