@@ -37,7 +37,7 @@ const FlowEditorComponent = () => {
   const [selectedNode, setSelectedNode] = useState(null);
   const [clipboard, setClipboard] = useState(null);
   
-  const { getNodes, setViewport, toObject, project } = useReactFlow();
+  const { getNodes, setViewport, toObject, screenToFlowPosition } = useReactFlow();
 
   const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
 
@@ -49,14 +49,13 @@ const FlowEditorComponent = () => {
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
-      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const nodeDataString = event.dataTransfer.getData('application/reactflow');
       if (!nodeDataString) return;
       
       const nodeData = JSON.parse(nodeDataString);
-      const position = project({
-        x: event.clientX - reactFlowBounds.left,
-        y: event.clientY - reactFlowBounds.top,
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
       });
 
       const newNode = {
