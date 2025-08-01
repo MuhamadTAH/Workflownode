@@ -764,33 +764,71 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     });
   }, [edges, nodes, node.id]);
 
-  // Update available nodes when edges or nodes change - FIXED to avoid infinite loops
+  // Find ALL upstream nodes in the workflow chain (recursive traversal)
+  const findAllUpstreamNodes = useCallback((targetNodeId, visited = new Set()) => {
+    if (!edges || !nodes || visited.has(targetNodeId)) {
+      return [];
+    }
+    
+    visited.add(targetNodeId);
+    
+    // Find edges that connect TO the target node
+    const incomingEdges = edges.filter(edge => edge.target === targetNodeId);
+    const upstreamNodes = [];
+    
+    for (const edge of incomingEdges) {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      if (sourceNode) {
+        // Add this source node
+        upstreamNodes.push({
+          id: sourceNode.id,
+          label: sourceNode.data.label || sourceNode.data.type || 'Unnamed Node',
+          type: sourceNode.data.type || 'unknown',
+          distance: 1 // Direct parent
+        });
+        
+        // Recursively find upstream nodes from this source
+        const nestedUpstream = findAllUpstreamNodes(edge.source, visited);
+        upstreamNodes.push(...nestedUpstream.map(node => ({
+          ...node,
+          distance: node.distance + 1
+        })));
+      }
+    }
+    
+    return upstreamNodes;
+  }, [edges, nodes]);
+
+  // Update available nodes when edges or nodes change - includes ALL upstream nodes
   useEffect(() => {
     if (!edges || !nodes) {
       setAvailableNodes([]);
       return;
     }
     
-    // Find edges that connect TO this node (incoming connections)
-    const incomingEdges = edges.filter(edge => edge.target === node.id);
+    const allUpstreamNodes = findAllUpstreamNodes(node.id);
     
-    if (incomingEdges.length === 0) {
-      setAvailableNodes([]);
-      return;
+    // Remove duplicates and sort by distance (closest first)
+    const uniqueNodes = [];
+    const seenIds = new Set();
+    
+    for (const upstreamNode of allUpstreamNodes) {
+      if (!seenIds.has(upstreamNode.id)) {
+        seenIds.add(upstreamNode.id);
+        uniqueNodes.push(upstreamNode);
+      }
     }
     
-    // Get source nodes for each incoming edge
-    const connectedNodes = incomingEdges.map(edge => {
-      const sourceNode = nodes.find(n => n.id === edge.source);
-      return sourceNode ? {
-        id: sourceNode.id,
-        label: sourceNode.data.label || sourceNode.data.type || 'Unnamed Node',
-        type: sourceNode.data.type || 'unknown'
-      } : null;
-    }).filter(Boolean);
+    // Sort by distance (direct parents first), then by label
+    uniqueNodes.sort((a, b) => {
+      if (a.distance !== b.distance) {
+        return a.distance - b.distance;
+      }
+      return a.label.localeCompare(b.label);
+    });
     
-    setAvailableNodes(connectedNodes);
-  }, [edges, nodes, node.id]);
+    setAvailableNodes(uniqueNodes);
+  }, [edges, nodes, node.id, findAllUpstreamNodes]);
 
   // Automatically load data when data source changes
   useEffect(() => {
@@ -1851,10 +1889,10 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                     onChange={(e) => setSelectedDataSource(e.target.value)}
                     className="text-xs px-2 py-1 border border-gray-300 rounded bg-white"
                   >
-                    <option value="auto">🔄 Auto</option>
+                    <option value="auto">🔄 Auto (closest node)</option>
                     {availableNodes.map(node => (
                       <option key={node.id} value={node.id}>
-                        {node.type === 'trigger' ? '📨' : node.type === 'aiAgent' ? '🤖' : node.type === 'googleDocs' ? '📝' : node.type === 'dataStorage' ? '💾' : '⚙️'} {node.label}
+                        {'→'.repeat(node.distance)} {node.type === 'trigger' ? '📨' : node.type === 'aiAgent' ? '🤖' : node.type === 'googleDocs' ? '📝' : node.type === 'dataStorage' ? '💾' : '⚙️'} {node.label}
                       </option>
                     ))}
                   </select>
@@ -1896,7 +1934,18 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                         <div className={`${typeColors[dataType]} text-xs px-2 py-1 rounded mb-2 flex items-center justify-between`}>
                           <span>
                             {typeIcons[dataType]} {dataType.replace('_', ' ').toUpperCase()} Data
-                            {sourceNode && ` from ${sourceNode.label}`}
+                            {sourceNode && (
+                              <span>
+                                {' from '}
+                                {sourceNode.distance > 1 && (
+                                  <span className="opacity-70">{'→'.repeat(sourceNode.distance - 1)}</span>
+                                )}
+                                {sourceNode.label}
+                                {sourceNode.distance > 1 && (
+                                  <span className="ml-1 opacity-70">({sourceNode.distance} steps back)</span>
+                                )}
+                              </span>
+                            )}
                           </span>
                           {suggestions.length > 0 && (
                             <div className="flex items-center gap-1">
