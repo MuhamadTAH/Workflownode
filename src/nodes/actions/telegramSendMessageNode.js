@@ -93,25 +93,38 @@ const telegramSendMessageNode = {
         
         // Universal Template Parser - supports both {{$json.xxx}} and {{nodePrefix.xxx}} formats
         const parseUniversalTemplate = (inputStr, json) => {
+            console.log('Template parsing - input:', inputStr);
+            console.log('Template parsing - json keys:', json ? Object.keys(json) : 'null');
+            
             if (!inputStr || typeof inputStr !== 'string') return inputStr || '';
             
             let result = inputStr;
             
             // 1. Handle {{$json.path.to.value}} format (backend system)
             result = result.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
+                console.log('$json template found - match:', match, 'path:', path);
                 try {
-                    if (!json) return match;
+                    if (!json) {
+                        console.log('No json data available');
+                        return match;
+                    }
                     
                     const keys = path.split('.');
+                    console.log('Path keys:', keys);
                     let value = json;
                     for (const key of keys) {
+                        console.log('Looking for key:', key, 'in:', typeof value === 'object' ? Object.keys(value) : value);
                         if (value && typeof value === 'object' && key in value) {
                             value = value[key];
+                            console.log('Found value:', value);
                         } else {
+                            console.log('Key not found, returning original match');
                             return match; // Keep original if not found
                         }
                     }
-                    return String(value || '');
+                    const finalValue = String(value || '');
+                    console.log('Final replacement value:', finalValue);
+                    return finalValue;
                 } catch (error) {
                     console.error('Error parsing $json template:', error);
                     return match;
