@@ -37,7 +37,8 @@
       "Bash(find:*)",
       "Bash(npm run lint)",
       "Bash(npm run build:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "WebFetch(domain:workflownode.onrender.com)"
     ],
     "deny": []
   }
