@@ -5,7 +5,6 @@ FRONTEND FILE: src/components/.js (CORRECTED)
 */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import config from '../config';
-import '../styles/ConfigPanel.css';
 
 // Add CSS styles for drag and drop
 const dragDropStyles = `

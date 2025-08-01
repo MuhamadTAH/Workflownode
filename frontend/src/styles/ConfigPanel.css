@@ -2,9 +2,7 @@
 =================================================================
 FRONTEND FILE: src/styles/ConfigPanel.css
 =================================================================
-Updated ConfigPanel styles with enhanced design
 */
-
 .config-panel-overlay {
   position: fixed;
   top: 0;
@@ -55,10 +53,6 @@ Updated ConfigPanel styles with enhanced design
   padding: 0 8px;
 }
 
-.close-button:hover {
-  color: #374151;
-}
-
 .panel-content {
   display: flex;
   flex-grow: 1;
@@ -97,31 +91,19 @@ Updated ConfigPanel styles with enhanced design
   align-items: center;
 }
 
-.section-content {
-  flex-grow: 1;
-  overflow-y: auto;
-}
-
 .action-button {
-  background-color: #e5e7eb;
-  color: #374151;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  border: none;
+    background-color: #e5e7eb;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
 .action-button:hover {
-  background-color: #d1d5db;
-}
-
-.action-button:disabled {
-  background-color: #f3f4f6;
-  color: #9ca3af;
-  cursor: not-allowed;
+    background-color: #d1d5db;
 }
 
 .form-group {
@@ -137,305 +119,44 @@ Updated ConfigPanel styles with enhanced design
 }
 
 .form-group input,
-.form-group textarea,
-.form-group select {
+.form-group textarea {
   width: 100%;
   padding: 10px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
   background-color: #fff;
-  transition: border-color 0.2s ease;
-}
-
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 1px #3b82f6;
 }
 
 .form-group textarea {
   resize: vertical;
-  font-family: inherit;
 }
 
-.form-group select {
-  cursor: pointer;
-}
-
-/* Checkbox styling */
-.form-group input[type="checkbox"] {
-  width: auto;
-  margin-right: 8px;
-}
-
-/* Button styling */
-button {
-  transition: all 0.2s ease;
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-/* Draggable elements */
 .draggable-key {
-  padding: 2px 4px;
-  margin: 2px 0;
-  border-radius: 4px;
-  cursor: grab;
-  transition: background-color 0.2s ease;
+    padding: 2px 4px;
+    margin: 2px 0;
+    border-radius: 4px;
+    cursor: grab;
+    transition: background-color 0.2s ease;
 }
 
 .draggable-key:hover {
-  background-color: #e0e7ff;
+    background-color: #e0e7ff;
 }
 
-.draggable-key:active {
-  cursor: grabbing;
-}
-
-/* Live preview styling */
 .live-preview-bar {
-  margin-top: -5px;
-  padding: 8px 12px;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-top: none;
-  border-radius: 0 0 6px 6px;
-  font-size: 13px;
-  color: #374151;
-  line-height: 1.5;
+    margin-top: -5px;
+    padding: 8px 12px;
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.5;
 }
 
 .live-preview-bar strong {
-  color: #1d4ed8;
-  font-weight: 600;
-}
-
-/* Status indicators */
-.status-indicator {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status-valid {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.status-invalid {
-  background-color: #fee2e2;
-  color: #991b1b;
-}
-
-.status-pending {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-/* Node organization styling */
-.node-section {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  overflow: hidden;
-}
-
-.node-header {
-  background-color: #f9fafb;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  transition: background-color 0.2s ease;
-}
-
-.node-header:hover {
-  background-color: #f3f4f6;
-}
-
-.node-content {
-  padding: 16px;
-  background-color: #fefefe;
-}
-
-/* Auto-save indicator */
-.auto-save-indicator {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.auto-save-saving {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.auto-save-saved {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.auto-save-error {
-  background-color: #fee2e2;
-  color: #991b1b;
-}
-
-/* Memory visualization */
-.memory-stats {
-  background-color: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 16px;
-}
-
-.memory-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.memory-stat-card {
-  background-color: white;
-  padding: 8px;
-  border-radius: 4px;
-  text-align: center;
-  border: 1px solid #e0f2fe;
-}
-
-.memory-stat-value {
-  font-size: 18px;
-  font-weight: bold;
-  color: #0369a1;
-}
-
-.memory-stat-label {
-  font-size: 12px;
-  color: #64748b;
-  margin-top: 2px;
-}
-
-/* Responsive design */
-@media (max-width: 1024px) {
-  .config-panel {
-    width: 95%;
-    height: 80%;
-  }
-  
-  .panel-content {
-    flex-direction: column;
-  }
-  
-  .panel-section {
-    border-right: none;
-    border-bottom: 1px solid #e5e7eb;
-    max-height: 300px;
-  }
-  
-  .panel-section:last-child {
-    border-bottom: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .config-panel {
-    width: 98%;
-    height: 90%;
-  }
-  
-  .panel-section {
-    padding: 12px;
-    max-height: 250px;
-  }
-  
-  .section-header {
-    font-size: 11px;
-    margin-bottom: 12px;
-  }
-}
-
-/* Animation for expanding sections */
-.expand-enter {
-  opacity: 0;
-  max-height: 0;
-}
-
-.expand-enter-active {
-  opacity: 1;
-  max-height: 500px;
-  transition: opacity 0.3s ease, max-height 0.3s ease;
-}
-
-.expand-exit {
-  opacity: 1;
-  max-height: 500px;
-}
-
-.expand-exit-active {
-  opacity: 0;
-  max-height: 0;
-  transition: opacity 0.3s ease, max-height 0.3s ease;
-}
-
-/* Custom scrollbar */
-.section-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.section-content::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 3px;
-}
-
-.section-content::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-.section-content::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Focus states */
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 1px #3b82f6;
-}
-
-/* Loading state */
-.loading {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-/* Drag and drop visual feedback */
-.drag-over {
-  border-color: #10b981 !important;
-  background-color: #f0fdf4 !important;
-  box-shadow: 0 0 0 2px #10b981 !important;
-}
-
-.drag-field {
-  transition: all 0.2s ease;
-}
-
-.drag-field:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    color: #1d4ed8;
+    font-weight: 600;
 }
