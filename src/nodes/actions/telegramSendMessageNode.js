@@ -86,6 +86,11 @@ const telegramSendMessageNode = {
 
     // Execute the Telegram Send Message node
     async execute(nodeConfig, inputData, connectedNodes = []) {
+        console.log('=== TELEGRAM SEND MESSAGE DEBUG ===');
+        console.log('nodeConfig:', JSON.stringify(nodeConfig, null, 2));
+        console.log('inputData:', JSON.stringify(inputData, null, 2));
+        console.log('connectedNodes:', connectedNodes?.length || 0);
+        
         // Universal Template Parser - supports both {{$json.xxx}} and {{nodePrefix.xxx}} formats
         const parseUniversalTemplate = (inputStr, json) => {
             if (!inputStr || typeof inputStr !== 'string') return inputStr || '';
@@ -176,8 +181,14 @@ const telegramSendMessageNode = {
         }
 
         // Process template variables in chatId and messageText
+        console.log('Original chatId:', chatId);
+        console.log('Original messageText:', messageText);
+        
         const processedChatId = parseUniversalTemplate(chatId, inputData);
         const processedMessageText = parseUniversalTemplate(messageText, inputData);
+        
+        console.log('Processed chatId:', processedChatId);
+        console.log('Processed messageText:', processedMessageText);
 
         if (!processedChatId.trim()) {
             throw new Error('Processed Chat ID cannot be empty. Check your template variables.');
