@@ -102,63 +102,37 @@ const aiAgentNode = {
             }
         }
 
-        // Advanced template replacement for nested JSON paths with node prefixes
-        const replaceTemplate = (template, data) => {
-            return template.replace(/\{\{([^}]+)\}\}/g, (match, variablePath) => {
+        // New JSON Template Parser - supports {{$json.path.to.value}} syntax
+        const parseJsonExpression = (inputStr, json) => {
+            if (!inputStr) return inputStr || '';
+            
+            return inputStr.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
                 try {
-                    const pathParts = variablePath.trim().split('.');
-                    let value;
+                    if (!json) return match; // Keep original if no JSON data
                     
-                    // Handle node-prefixed templates (e.g., telegram.message.text)
-                    if (pathParts.length > 1) {
-                        const nodePrefix = pathParts[0];
-                        const actualPath = pathParts.slice(1);
-                        
-                        // For telegram prefix, look in _telegram or _originalTrigger
-                        if (nodePrefix === 'telegram') {
-                            value = data._telegram || data._originalTrigger;
-                            for (const part of actualPath) {
-                                if (value && typeof value === 'object' && part in value) {
-                                    value = value[part];
-                                } else {
-                                    return match; // Keep original if path not found
-                                }
-                            }
+                    const keys = path.split('.');
+                    let value = json;
+                    
+                    for (const key of keys) {
+                        if (value && typeof value === 'object' && key in value) {
+                            value = value[key];
                         } else {
-                            // For other prefixes, navigate through main data
-                            value = data;
-                            for (const part of pathParts) {
-                                if (value && typeof value === 'object' && part in value) {
-                                    value = value[part];
-                                } else {
-                                    return match; // Keep original if path not found
-                                }
-                            }
-                        }
-                    } else {
-                        // Regular template without node prefix
-                        value = data;
-                        for (const part of pathParts) {
-                            if (value && typeof value === 'object' && part in value) {
-                                value = value[part];
-                            } else {
-                                return match; // Keep original if path not found
-                            }
+                            return match; // Keep original if path not found
                         }
                     }
                     
-                    // Convert value to string, handling different types
+                    // Convert value to string
                     if (typeof value === 'string') {
                         return value;
                     } else if (typeof value === 'number' || typeof value === 'boolean') {
                         return String(value);
-                    } else if (typeof value === 'object') {
-                        return JSON.stringify(value);
+                    } else if (typeof value === 'object' && value !== null) {
+                        return JSON.stringify(value, null, 2);
                     } else {
-                        return match; // Keep original if unable to convert
+                        return String(value || '');
                     }
                 } catch (error) {
-                    console.warn(`Template replacement error for ${variablePath}:`, error);
+                    console.error('Error parsing JSON expression:', error);
                     return match; // Keep original on error
                 }
             });
@@ -168,7 +142,7 @@ const aiAgentNode = {
         const combinedData = { ...inputData, ...availableData };
         
         // Process user prompt template with combined data
-        const processedUserPrompt = replaceTemplate(userPrompt, combinedData);
+        const processedUserPrompt = parseJsonExpression(userPrompt, combinedData);
 
         if (!processedUserPrompt.trim()) {
             throw new Error('Processed user message cannot be empty.');

@@ -44,7 +44,7 @@ if (typeof document !== 'undefined') {
 // Draggable JSON Field Component
 const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '' }) => {
   const handleDragStart = (e) => {
-    const templateVariable = nodePrefix ? `{{${nodePrefix}.${path}}}` : '{{' + path + '}}';
+    const templateVariable = `{{$json.${path}}}`;
     e.dataTransfer.setData('text/plain', templateVariable);
     e.dataTransfer.effectAllowed = 'copy';
   };
@@ -63,7 +63,7 @@ const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '' }) => {
           draggable={true}
           onDragStart={handleDragStart}
           onDragEnd={(e) => {}}
-          title={`Drag to insert ${nodePrefix ? `{{${nodePrefix}.${path}}}` : '{{' + path + '}}'}`}
+          title={`Drag to insert {{$json.${path}}}`}
           style={{ userSelect: 'none' }}
         >
           {path.split('.').pop()}
@@ -224,96 +224,55 @@ const DraggableJSONViewer = ({ data, nodePrefix = '' }) => {
 const UniversalLivePreview = ({ text, data, isFocused, nodeMapping = null }) => {
   if (!text) return null;
 
-  // Function to replace template variables with actual data (enhanced for node-prefixed templates)
-  const processTemplate = (template, fallbackData, nodeMapping) => {
-    if (!template) return template || '';
+  // New JSON Template Parser - supports {{$json.path.to.value}} syntax
+  const parseJsonExpression = (inputStr, json) => {
+    if (!inputStr) return inputStr || '';
     
-    return template.replace(/\{\{([^}]+)\}\}/g, (match, variablePath) => {
+    return inputStr.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
       try {
-        const pathParts = variablePath.trim().split('.');
+        if (!json) return match; // Keep original if no JSON data
         
-        // First, try to use the fallback data directly (current input data)
-        if (fallbackData) {
-          let value = fallbackData;
-          
-          for (const part of pathParts) {
-            if (value && typeof value === 'object' && part in value) {
-              value = value[part];
-            } else {
-              // If direct path fails, break and try node-prefixed logic
-              value = null;
-              break;
-            }
-          }
-          
-          if (value !== null) {
-            // Convert value to string
-            if (typeof value === 'string') {
-              return value;
-            } else if (typeof value === 'number' || typeof value === 'boolean') {
-              return String(value);
-            } else if (typeof value === 'object') {
-              return JSON.stringify(value, null, 2);
-            }
+        const keys = path.split('.');
+        let value = json;
+        
+        for (const key of keys) {
+          if (value && typeof value === 'object' && key in value) {
+            value = value[key];
+          } else {
+            return match; // Keep original if path not found
           }
         }
         
-        // Check if this is a node-prefixed template (e.g., telegram.message.text)
-        if (pathParts.length > 1 && nodeMapping) {
-          const nodeName = pathParts[0];
-          const fieldPath = pathParts.slice(1).join('.');
-          
-          if (nodeMapping[nodeName]) {
-            // Get data from the specific node
-            const nodeId = nodeMapping[nodeName].id;
-            const nodeExecutionKey = 'node-execution-' + nodeId;
-            const executionData = localStorage.getItem(nodeExecutionKey);
-            
-            if (executionData) {
-              try {
-                const parsed = JSON.parse(executionData);
-                const nodeData = parsed.outputData || parsed.inputData;
-                
-                if (nodeData) {
-                  let value = nodeData;
-                  const fieldParts = fieldPath.split('.');
-                  
-                  for (const part of fieldParts) {
-                    if (value && typeof value === 'object' && part in value) {
-                      value = value[part];
-                    } else {
-                      return match; // Keep original if path not found
-                    }
-                  }
-                  
-                  // Convert value to string
-                  if (typeof value === 'string') {
-                    return value;
-                  } else if (typeof value === 'number' || typeof value === 'boolean') {
-                    return String(value);
-                  } else if (typeof value === 'object') {
-                    return JSON.stringify(value, null, 2);
-                  }
-                }
-              } catch (error) {
-                console.error('Error parsing node data for preview:', error);
-              }
-            }
-          }
+        // Convert value to string
+        if (typeof value === 'string') {
+          return value;
+        } else if (typeof value === 'number' || typeof value === 'boolean') {
+          return String(value);
+        } else if (typeof value === 'object' && value !== null) {
+          return JSON.stringify(value, null, 2);
+        } else {
+          return String(value || '');
         }
-        
-        return match; // Keep original if unable to resolve
       } catch (error) {
+        console.error('Error parsing JSON expression:', error);
         return match; // Keep original on error
       }
     });
   };
 
-  const processedText = processTemplate(text, data, nodeMapping);
-  const hasTemplateVars = /\{\{[^}]+\}\}/.test(text);
+  const processedText = parseJsonExpression(text, data);
+  const hasTemplateVars = /\{\{\s*\$json\./.test(text);
   const textChanged = processedText !== text;
   
   // Template processing completed (debug logging removed for performance)
+
+  // Debug mode - show parsed values
+  const showDebug = hasTemplateVars && data;
+  const debugInfo = showDebug ? {
+    originalExpressions: (text.match(/\{\{\s*\$json\.[^}]+\}\}/g) || []),
+    dataKeys: Object.keys(data || {}),
+    hasData: !!data
+  } : null;
 
   // Always show preview when focused or when there's content
   return (
@@ -337,7 +296,15 @@ const UniversalLivePreview = ({ text, data, isFocused, nodeMapping = null }) => 
       )}
       {!hasTemplateVars && (
         <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-          💡 Add {"{{variables}}"} to use dynamic content from input data
+          💡 Add {"{{$json.field}}"} to use dynamic content from input data
+        </div>
+      )}
+      {showDebug && (
+        <div className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded border">
+          <div className="font-semibold mb-1">🔍 Debug Info:</div>
+          <div>Found expressions: {debugInfo.originalExpressions.join(', ') || 'None'}</div>
+          <div>Available data keys: {debugInfo.dataKeys.join(', ') || 'None'}</div>
+          <div>Has data: {debugInfo.hasData ? '✅' : '❌'}</div>
         </div>
       )}
     </div>
