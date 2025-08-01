@@ -169,6 +169,61 @@ const telegramSendMessageNode = {
                 }
             });
             
+            // 3. Handle n8n-style syntax: {{ $('NodeName').item.json.field }}
+            result = result.replace(/\{\{\s*\$\('([^']+)'\)\.item\.json\.(.*?)\s*\}\}/g, (match, nodeName, path) => {
+                console.log('n8n template found - nodeName:', nodeName, 'path:', path);
+                try {
+                    if (!json) {
+                        console.log('No json data available for n8n template');
+                        return match;
+                    }
+                    
+                    // Look for data from the specified node
+                    let nodeData = null;
+                    
+                    // Check if we have node-organized data
+                    if (json[nodeName]) {
+                        nodeData = json[nodeName];
+                        console.log('Found node data for', nodeName, ':', typeof nodeData === 'object' ? Object.keys(nodeData) : nodeData);
+                    } else if (json._nodes && json._nodes[nodeName]) {
+                        nodeData = json._nodes[nodeName];
+                        console.log('Found node data in _nodes for', nodeName);
+                    } else {
+                        // Fallback: if this is the trigger node, use the main data
+                        if (nodeName.toLowerCase().includes('trigger') && (json.message || json.update_id)) {
+                            nodeData = json;
+                            console.log('Using main data as trigger node data');
+                        } else {
+                            console.log('Node data not found for:', nodeName);
+                            return match;
+                        }
+                    }
+                    
+                    // Navigate the path in the node data
+                    const keys = path.split('.');
+                    console.log('n8n path keys:', keys);
+                    let value = nodeData;
+                    
+                    for (const key of keys) {
+                        console.log('Looking for n8n key:', key, 'in:', typeof value === 'object' ? Object.keys(value) : value);
+                        if (value && typeof value === 'object' && key in value) {
+                            value = value[key];
+                            console.log('Found n8n value:', value);
+                        } else {
+                            console.log('n8n key not found, returning original match');
+                            return match;
+                        }
+                    }
+                    
+                    const finalValue = String(value || '');
+                    console.log('Final n8n replacement value:', finalValue);
+                    return finalValue;
+                } catch (error) {
+                    console.error('Error parsing n8n template:', error);
+                    return match;
+                }
+            });
+            
             return result;
         };
 

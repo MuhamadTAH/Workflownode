@@ -42,9 +42,15 @@ if (typeof document !== 'undefined') {
 }
 
 // Draggable JSON Field Component
-const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '', dataType = 'generic' }) => {
+const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '', dataType = 'generic', nodeName = '' }) => {
   const handleDragStart = (e) => {
-    const templateVariable = `{{$json.${path}}}`;
+    // Generate n8n-style template if nodeName is provided
+    let templateVariable;
+    if (nodeName) {
+      templateVariable = `{{ $('${nodeName}').item.json.${path} }}`;
+    } else {
+      templateVariable = `{{$json.${path}}}`;
+    }
     e.dataTransfer.setData('text/plain', templateVariable);
     e.dataTransfer.effectAllowed = 'copy';
   };
@@ -117,6 +123,7 @@ const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '', dataType 
           level={level + 1}
           nodePrefix={nodePrefix}
           dataType={dataType}
+          nodeName={nodeName}
         />
       ))}
       <div className="text-gray-600 font-mono text-sm">
@@ -223,7 +230,7 @@ const MemoryVisualization = ({ data }) => {
 };
 
 // Enhanced JSON Viewer with draggable fields
-const DraggableJSONViewer = ({ data, nodePrefix = '', dataType = 'generic' }) => {
+const DraggableJSONViewer = ({ data, nodePrefix = '', dataType = 'generic', nodeName = '' }) => {
   if (!data || typeof data !== 'object') {
     return (
       <div className="text-gray-400 text-sm text-center py-4">
@@ -243,7 +250,7 @@ const DraggableJSONViewer = ({ data, nodePrefix = '', dataType = 'generic' }) =>
         )}
       </div>
       {Object.entries(data).map(([key, value]) => (
-        <DraggableJSONField key={key} path={key} value={value} nodePrefix={nodePrefix} dataType={dataType} />
+        <DraggableJSONField key={key} path={key} value={value} nodePrefix={nodePrefix} dataType={dataType} nodeName={nodeName} />
       ))}
     </div>
   );
