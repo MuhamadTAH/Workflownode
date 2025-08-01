@@ -1002,8 +1002,9 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
       setIsLoading(false);
   };
 
-  const handleCheckToken = async () => {
-      if (!formData.token) {
+  const handleCheckToken = async (tokenField = 'token') => {
+      const tokenValue = tokenField === 'botToken' ? formData.botToken : formData.token;
+      if (!tokenValue) {
           setVerificationStatus({ ok: false, message: 'Please enter a token first.' });
           return;
       }
@@ -1013,33 +1014,12 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
           const response = await fetch(config.BACKEND_URL + '/api/telegram/verify-token', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token: formData.token })
+              body: JSON.stringify({ token: tokenValue })
           });
           const result = await response.json();
           setVerificationStatus(result);
       } catch (error) {
           setVerificationStatus({ ok: false, message: 'Network error. Is the backend running?' });
-      }
-      setIsLoading(false);
-  };
-
-  const handleCheckTelegramToken = async () => {
-      if (!formData.botToken) {
-          setVerificationStatus({ ok: false, message: 'Please enter a bot token first.' });
-          return;
-      }
-      setIsLoading(true);
-      setVerificationStatus(null);
-      try {
-          const response = await fetch(config.BACKEND_URL + '/api/telegram/verify-token', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token: formData.botToken })
-          });
-          const result = await response.json();
-          setVerificationStatus(result);
-      } catch (error) {
-          setVerificationStatus({ ok: false, message: 'Network error or server issue.' });
       }
       setIsLoading(false);
   };
@@ -2278,7 +2258,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
                         placeholder="Enter your Telegram Bot Token"
                       />
                       <button 
-                        onClick={handleCheckTelegramToken} 
+                        onClick={() => handleCheckToken('botToken')} 
                         disabled={isLoading} 
                         className="bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-600 disabled:bg-indigo-300"
                       >
