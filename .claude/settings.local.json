@@ -41,7 +41,8 @@
       "Bash(node:*)",
       "WebFetch(domain:workflownode.onrender.com)",
       "Bash(git clone:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }
