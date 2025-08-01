@@ -176,8 +176,8 @@ const telegramSendMessageNode = {
         }
 
         // Process template variables in chatId and messageText
-        const processedChatId = this.parseUniversalTemplate(chatId, inputData);
-        const processedMessageText = this.parseUniversalTemplate(messageText, inputData);
+        const processedChatId = telegramSendMessageNode.parseUniversalTemplate(chatId, inputData);
+        const processedMessageText = telegramSendMessageNode.parseUniversalTemplate(messageText, inputData);
 
         if (!processedChatId.trim()) {
             throw new Error('Processed Chat ID cannot be empty. Check your template variables.');
