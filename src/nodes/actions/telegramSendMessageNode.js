@@ -84,76 +84,76 @@ const telegramSendMessageNode = {
         ],
     },
 
-    // Universal Template Parser - supports both {{$json.xxx}} and {{nodePrefix.xxx}} formats
-    parseUniversalTemplate(inputStr, json) {
-        if (!inputStr || typeof inputStr !== 'string') return inputStr || '';
-        
-        let result = inputStr;
-        
-        // 1. Handle {{$json.path.to.value}} format (backend system)
-        result = result.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
-            try {
-                if (!json) return match;
-                
-                const keys = path.split('.');
-                let value = json;
-                for (const key of keys) {
-                    if (value && typeof value === 'object' && key in value) {
-                        value = value[key];
-                    } else {
-                        return match; // Keep original if not found
-                    }
-                }
-                return String(value || '');
-            } catch (error) {
-                console.error('Error parsing $json template:', error);
-                return match;
-            }
-        });
-        
-        // 2. Handle {{nodePrefix.path.to.value}} format (frontend system)
-        result = result.replace(/\{\{\s*([a-zA-Z]+)\.(.*?)\s*\}\}/g, (match, nodePrefix, path) => {
-            try {
-                if (!json) return match;
-                
-                let dataSource = null;
-                
-                // Map node prefixes to data locations
-                if (nodePrefix === 'telegram' && json._telegram) {
-                    dataSource = json._telegram;
-                } else if (nodePrefix === 'telegram' && json._originalTrigger) {
-                    dataSource = json._originalTrigger;
-                } else if (nodePrefix === 'aiAgent' && json.reply) {
-                    if (path === 'reply' || path === 'response') return json.reply;
-                    dataSource = json;
-                } else if (json[nodePrefix]) {
-                    dataSource = json[nodePrefix];
-                } else {
-                    dataSource = json;
-                }
-                
-                // Navigate the path in data source
-                const keys = path.split('.');
-                let value = dataSource;
-                for (const key of keys) {
-                    if (value && typeof value === 'object' && key in value) {
-                        value = value[key];
-                    } else {
-                        return match;
-                    }
-                }
-                return String(value || '');
-            } catch (error) {
-                console.error('Error parsing nodePrefix template:', error);
-                return match;
-            }
-        });
-        
-        return result;
-    },
-
     // Execute the Telegram Send Message node
     async execute(nodeConfig, inputData, connectedNodes = []) {
+        // Universal Template Parser - supports both {{$json.xxx}} and {{nodePrefix.xxx}} formats
+        const parseUniversalTemplate = (inputStr, json) => {
+            if (!inputStr || typeof inputStr !== 'string') return inputStr || '';
+            
+            let result = inputStr;
+            
+            // 1. Handle {{$json.path.to.value}} format (backend system)
+            result = result.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
+                try {
+                    if (!json) return match;
+                    
+                    const keys = path.split('.');
+                    let value = json;
+                    for (const key of keys) {
+                        if (value && typeof value === 'object' && key in value) {
+                            value = value[key];
+                        } else {
+                            return match; // Keep original if not found
+                        }
+                    }
+                    return String(value || '');
+                } catch (error) {
+                    console.error('Error parsing $json template:', error);
+                    return match;
+                }
+            });
+            
+            // 2. Handle {{nodePrefix.path.to.value}} format (frontend system)
+            result = result.replace(/\{\{\s*([a-zA-Z]+)\.(.*?)\s*\}\}/g, (match, nodePrefix, path) => {
+                try {
+                    if (!json) return match;
+                    
+                    let dataSource = null;
+                    
+                    // Map node prefixes to data locations
+                    if (nodePrefix === 'telegram' && json._telegram) {
+                        dataSource = json._telegram;
+                    } else if (nodePrefix === 'telegram' && json._originalTrigger) {
+                        dataSource = json._originalTrigger;
+                    } else if (nodePrefix === 'aiAgent' && json.reply) {
+                        if (path === 'reply' || path === 'response') return json.reply;
+                        dataSource = json;
+                    } else if (json[nodePrefix]) {
+                        dataSource = json[nodePrefix];
+                    } else {
+                        dataSource = json;
+                    }
+                    
+                    // Navigate the path in data source
+                    const keys = path.split('.');
+                    let value = dataSource;
+                    for (const key of keys) {
+                        if (value && typeof value === 'object' && key in value) {
+                            value = value[key];
+                        } else {
+                            return match;
+                        }
+                    }
+                    return String(value || '');
+                } catch (error) {
+                    console.error('Error parsing nodePrefix template:', error);
+                    return match;
+                }
+            });
+            
+            return result;
+        };
+
         const { 
             botToken, 
             chatId, 
@@ -176,8 +176,8 @@ const telegramSendMessageNode = {
         }
 
         // Process template variables in chatId and messageText
-        const processedChatId = telegramSendMessageNode.parseUniversalTemplate(chatId, inputData);
-        const processedMessageText = telegramSendMessageNode.parseUniversalTemplate(messageText, inputData);
+        const processedChatId = parseUniversalTemplate(chatId, inputData);
+        const processedMessageText = parseUniversalTemplate(messageText, inputData);
 
         if (!processedChatId.trim()) {
             throw new Error('Processed Chat ID cannot be empty. Check your template variables.');
