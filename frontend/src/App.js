@@ -100,7 +100,13 @@ const FlowEditorComponent = () => {
           const response = await fetch('https://workflownode.onrender.com/api/workflows/123/activate', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ triggerNode })
+              body: JSON.stringify({ 
+                triggerNode,
+                workflow: {
+                  nodes: nodes,
+                  edges: edges
+                }
+              })
           });
           
           const result = await response.json();
