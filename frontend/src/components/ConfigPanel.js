@@ -1719,7 +1719,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     setOutputData(null);
     
     try {
-      if (node.data.type === 'modelNode' || node.data.type === 'aiAgent' || node.data.type === 'googleDocs' || node.data.type === 'dataStorage') {
+      if (node.data.type === 'modelNode' || node.data.type === 'aiAgent' || node.data.type === 'googleDocs' || node.data.type === 'dataStorage' || node.data.type === 'telegramSendMessage') {
         // Find connected Data Storage nodes for AI Agent
         const connectedNodes = node.data.type === 'aiAgent' ? findConnectedDataStorageNodes() : [];
         
