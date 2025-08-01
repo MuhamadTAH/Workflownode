@@ -72,33 +72,53 @@ const telegramSendMessageNode = {
     parseJsonExpression(inputStr, json) {
         if (!inputStr) return inputStr || '';
         
+        console.log('🔍 TEMPLATE PARSER DEBUG:');
+        console.log('  Input string:', inputStr);
+        console.log('  JSON data keys:', json ? Object.keys(json) : 'No JSON data');
+        console.log('  JSON data structure:', JSON.stringify(json, null, 2));
+        
         return inputStr.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
             try {
-                if (!json) return match; // Keep original if no JSON data
+                console.log('  🎯 Processing template:', match, '-> path:', path);
+                
+                if (!json) {
+                    console.log('  ❌ No JSON data available, keeping original:', match);
+                    return match; // Keep original if no JSON data
+                }
                 
                 const keys = path.split('.');
                 let value = json;
                 
-                for (const key of keys) {
+                console.log('  📍 Traversing path:', keys);
+                for (let i = 0; i < keys.length; i++) {
+                    const key = keys[i];
+                    console.log(`    Step ${i + 1}: Looking for key "${key}" in:`, typeof value === 'object' ? Object.keys(value) : value);
+                    
                     if (value && typeof value === 'object' && key in value) {
                         value = value[key];
+                        console.log(`    ✅ Found "${key}":`, value);
                     } else {
+                        console.log(`    ❌ Key "${key}" not found, keeping original:`, match);
                         return match; // Keep original if path not found
                     }
                 }
                 
                 // Convert value to string
+                let result;
                 if (typeof value === 'string') {
-                    return value;
+                    result = value;
                 } else if (typeof value === 'number' || typeof value === 'boolean') {
-                    return String(value);
+                    result = String(value);
                 } else if (typeof value === 'object' && value !== null) {
-                    return JSON.stringify(value, null, 2);
+                    result = JSON.stringify(value, null, 2);
                 } else {
-                    return String(value || '');
+                    result = String(value || '');
                 }
+                
+                console.log('  🎉 Template replacement successful:', match, '->', result);
+                return result;
             } catch (error) {
-                console.error('Error parsing JSON expression:', error);
+                console.error('  💥 Error parsing JSON expression:', error);
                 return match; // Keep original on error
             }
         });
