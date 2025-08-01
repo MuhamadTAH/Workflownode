@@ -764,19 +764,61 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     });
   }, [edges, nodes, node.id]);
 
-  // TEMPORARILY DISABLED: Update available nodes when edges or nodes change
-  // This was causing infinite render loops, so we're simplifying for now
-  // useEffect(() => {
-  //   const connectedNodes = findAllConnectedPreviousNodes();
-  //   console.log('🔍 Updating available nodes:', {
-  //     currentNodeId: node.id,
-  //     currentNodeLabel: node.data.label,
-  //     previouslySelected: selectedNodeId,
-  //     newConnectedNodes: connectedNodes.map(n => ({ id: n.id, label: n.label, type: n.type }))
-  //   });
-  //   
-  //   setAvailableNodes(connectedNodes);
-  // }, [edges, nodes, node.id]);
+  // Update available nodes when edges or nodes change - FIXED to avoid infinite loops
+  useEffect(() => {
+    if (!edges || !nodes) {
+      setAvailableNodes([]);
+      return;
+    }
+    
+    // Find edges that connect TO this node (incoming connections)
+    const incomingEdges = edges.filter(edge => edge.target === node.id);
+    
+    if (incomingEdges.length === 0) {
+      setAvailableNodes([]);
+      return;
+    }
+    
+    // Get source nodes for each incoming edge
+    const connectedNodes = incomingEdges.map(edge => {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      return sourceNode ? {
+        id: sourceNode.id,
+        label: sourceNode.data.label || sourceNode.data.type || 'Unnamed Node',
+        type: sourceNode.data.type || 'unknown'
+      } : null;
+    }).filter(Boolean);
+    
+    setAvailableNodes(connectedNodes);
+  }, [edges, nodes, node.id]);
+
+  // Automatically load data when data source changes
+  useEffect(() => {
+    if (selectedDataSource !== 'auto' && availableNodes.length > 0) {
+      // Check if the selected data source is valid
+      const validSource = availableNodes.find(n => n.id === selectedDataSource);
+      if (validSource) {
+        // Load data from the selected source
+        const nodeData = loadDataFromNode(selectedDataSource);
+        if (nodeData) {
+          setInputData(nodeData);
+          
+          // Save to localStorage for template preview
+          const nodeExecutionKey = 'node-execution-' + node.id;
+          const executionData = {
+            nodeId: node.id,
+            nodeType: node.data.type,
+            inputData: nodeData,
+            outputData: null,
+            timestamp: new Date().toISOString(),
+            config: formData,
+            dataSource: selectedDataSource
+          };
+          localStorage.setItem(nodeExecutionKey, JSON.stringify(executionData));
+        }
+      }
+    }
+  }, [selectedDataSource, availableNodes, node.id, formData]);
 
   // TEMPORARILY DISABLED: Separate effect to handle node selection to avoid infinite loops
   // useEffect(() => {
@@ -1098,24 +1140,7 @@ const ConfigPanel = ({ node, onClose, nodes, edges }) => {
     return null;
   };
 
-  // Handle node selection change
-  const handleNodeSelectionChange = (e) => {
-    const newNodeId = e.target.value;
-    // Node selection changed (debug logging removed for performance)
-    
-    setSelectedNodeId(newNodeId);
-    
-    // Load data from the selected node
-    const nodeData = loadDataFromNode(newNodeId);
-    // Loading data from selected node (debug logging removed for performance)
-    
-    if (nodeData) {
-      setInputData(nodeData);
-    } else {
-      // Clear input data if no data available
-      setInputData(null);
-    }
-  };
+  // Data source selection is now handled automatically by useEffect above
 
   const handleGetData = async () => {
     setIsLoading(true);
