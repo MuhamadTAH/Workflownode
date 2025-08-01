@@ -312,6 +312,8 @@ const UniversalLivePreview = ({ text, data, isFocused, nodeMapping = null }) => 
   const processedText = processTemplate(text, data, nodeMapping);
   const hasTemplateVars = /\{\{[^}]+\}\}/.test(text);
   const textChanged = processedText !== text;
+  
+  // Template processing completed (debug logging removed for performance)
 
   // Always show preview when focused or when there's content
   return (
