@@ -86,14 +86,18 @@ const telegramSendMessageNode = {
             throw new Error('Message Text is required');
         }
 
-        // Template Parser - using the same one that works in AI Agent
-        const parseJsonExpression = (inputStr, json) => {
+        // UNIVERSAL Template Parser - handles BOTH {{$json.xxx}} AND {{nodePrefix.xxx}} formats
+        const parseUniversalTemplate = (inputStr, json) => {
             if (!inputStr) return inputStr || '';
             
             console.log('🔄 Processing template:', inputStr);
-            console.log('📋 Available data:', JSON.stringify(json, null, 2));
+            console.log('📋 Available data keys:', Object.keys(json || {}));
+            console.log('📋 Full available data:', JSON.stringify(json, null, 2));
             
-            return inputStr.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
+            let result = inputStr;
+            
+            // 1. Handle {{$json.path.to.value}} format (new system)
+            result = result.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
                 try {
                     if (!json) return match;
                     
@@ -104,28 +108,89 @@ const telegramSendMessageNode = {
                         if (value && typeof value === 'object' && key in value) {
                             value = value[key];
                         } else {
-                            console.log('❌ Path not found:', path, 'in', Object.keys(json));
+                            console.log('❌ $json path not found:', path, 'in', Object.keys(json));
                             return match;
                         }
                     }
                     
-                    const result = typeof value === 'string' ? value : 
-                                 typeof value === 'number' || typeof value === 'boolean' ? String(value) :
-                                 typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) :
-                                 String(value || '');
+                    const processedValue = typeof value === 'string' ? value : 
+                                         typeof value === 'number' || typeof value === 'boolean' ? String(value) :
+                                         typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) :
+                                         String(value || '');
                     
-                    console.log('✅ Template replaced:', match, '->', result);
-                    return result;
+                    console.log('✅ $json template replaced:', match, '->', processedValue);
+                    return processedValue;
                 } catch (error) {
-                    console.error('💥 Template error:', error);
+                    console.error('💥 $json template error:', error);
                     return match;
                 }
             });
+            
+            // 2. Handle {{nodePrefix.path.to.value}} format (frontend system)
+            result = result.replace(/\{\{\s*([a-zA-Z]+)\.(.*?)\s*\}\}/g, (match, nodePrefix, path) => {
+                try {
+                    console.log('🎯 Processing node-prefixed template:', match, 'prefix:', nodePrefix, 'path:', path);
+                    
+                    if (!json) return match;
+                    
+                    // Map frontend node prefixes to data locations
+                    let dataSource = null;
+                    
+                    if (nodePrefix === 'telegram' && json._telegram) {
+                        dataSource = json._telegram;
+                    } else if (nodePrefix === 'telegram' && json._originalTrigger) {
+                        dataSource = json._originalTrigger;
+                    } else if (nodePrefix === 'aiAgent' && json.reply) {
+                        // For AI Agent responses, map common paths
+                        if (path === 'reply') return json.reply;
+                        if (path === 'response') return json.reply;
+                    } else if (nodePrefix === 'aiAgent' && json.userMessage) {
+                        if (path === 'userMessage') return json.userMessage;
+                    } else if (json[nodePrefix]) {
+                        dataSource = json[nodePrefix];
+                    } else {
+                        // Try to find the data in the main object
+                        dataSource = json;
+                    }
+                    
+                    if (!dataSource) {
+                        console.log('❌ Node prefix not found:', nodePrefix, 'in data keys:', Object.keys(json));
+                        return match;
+                    }
+                    
+                    // Navigate the path in the data source
+                    const keys = path.split('.');
+                    let value = dataSource;
+                    
+                    for (const key of keys) {
+                        if (value && typeof value === 'object' && key in value) {
+                            value = value[key];
+                        } else {
+                            console.log('❌ Node-prefixed path not found:', path, 'in', Object.keys(dataSource));
+                            return match;
+                        }
+                    }
+                    
+                    const processedValue = typeof value === 'string' ? value : 
+                                         typeof value === 'number' || typeof value === 'boolean' ? String(value) :
+                                         typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) :
+                                         String(value || '');
+                    
+                    console.log('✅ Node-prefixed template replaced:', match, '->', processedValue);
+                    return processedValue;
+                } catch (error) {
+                    console.error('💥 Node-prefixed template error:', error);
+                    return match;
+                }
+            });
+            
+            console.log('🎉 Final template result:', result);
+            return result;
         };
 
-        // Process templates
-        const processedChatId = parseJsonExpression(chatId, inputData);
-        const processedMessage = parseJsonExpression(messageText, inputData);
+        // Process templates using universal parser
+        const processedChatId = parseUniversalTemplate(chatId, inputData);
+        const processedMessage = parseUniversalTemplate(messageText, inputData);
         
         console.log('🎯 Final processed values:');
         console.log('  Chat ID:', processedChatId);
