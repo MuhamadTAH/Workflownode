@@ -222,19 +222,27 @@ export const processTemplate = (template, data) => {
   // 1. Handle {{$json.path}} format (traditional backend format)
   result = result.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
     try {
+      console.log('Processing $json template:', match, 'path:', path);
+      console.log('Data structure:', data);
+      
       const keys = path.split('.');
       let value = data;
       
       for (const key of keys) {
         if (value && typeof value === 'object' && key in value) {
           value = value[key];
+          console.log(`After key '${key}':`, value);
         } else {
+          console.log(`Key '${key}' not found in:`, value);
           return match; // Keep original if path not found
         }
       }
       
-      return typeof value === 'string' ? value : JSON.stringify(value);
+      const result = typeof value === 'string' ? value : JSON.stringify(value);
+      console.log('$json result:', result);
+      return result;
     } catch (error) {
+      console.error('Error in $json processing:', error);
       return match;
     }
   });
@@ -269,6 +277,9 @@ export const processTemplate = (template, data) => {
   // 3. Handle {{stepName.field}} format (workflow chain format)
   result = result.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\.(.*?)\s*\}\}/g, (match, stepName, path) => {
     try {
+      console.log('Processing template:', match, 'stepName:', stepName, 'path:', path);
+      console.log('Available data keys:', Object.keys(data));
+      
       // Look for data with step prefix
       const stepKey = Object.keys(data).find(key => 
         key.includes(stepName) || 
@@ -276,23 +287,33 @@ export const processTemplate = (template, data) => {
         key.startsWith(`step_`) && key.includes(stepName)
       );
       
+      console.log('Found stepKey:', stepKey);
+      
       if (stepKey && data[stepKey]) {
         const keys = path.split('.');
         let value = data[stepKey];
         
+        console.log('Initial value:', value);
+        
         for (const key of keys) {
           if (value && typeof value === 'object' && key in value) {
             value = value[key];
+            console.log(`After key '${key}':`, value);
           } else {
+            console.log(`Key '${key}' not found in:`, value);
             return match;
           }
         }
         
-        return typeof value === 'string' ? value : JSON.stringify(value);
+        const result = typeof value === 'string' ? value : JSON.stringify(value);
+        console.log('Final result:', result);
+        return result;
       }
       
+      console.log('No stepKey found, returning match');
       return match;
     } catch (error) {
+      console.error('Error in template processing:', error);
       return match;
     }
   });
