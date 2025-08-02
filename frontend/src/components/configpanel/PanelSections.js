@@ -80,7 +80,11 @@ const traceWorkflowChain = (currentNodeId, edges, nodes) => {
   buildChain(currentNodeId);
   
   // Remove the current node from the chain (we only want previous nodes)
-  return workflowChain.filter(item => item.id !== currentNodeId);
+  const filteredChain = workflowChain.filter(item => item.id !== currentNodeId);
+  
+  // REVERSE the chain to show immediate previous nodes first
+  // This changes: [Telegram, AI Agent] → [AI Agent, Telegram]
+  return filteredChain.reverse();
 };
 
 // Helper function to get stored output data from connected nodes
@@ -159,15 +163,18 @@ const getWorkflowChainData = async (workflowChain) => {
             hasAnyData = true;
           }
           
-          // Create a readable node name
+          // Create a readable node name with proximity indicator
           const nodeDisplayName = chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`;
+          const proximityLabel = i === 0 ? 'immediate_previous' : 'further_back';
           
-          // Store with step number and readable name
+          // Store with step number and readable name (step 1 = closest to current)
           chainData[`step_${i + 1}_${nodeDisplayName}`] = {
             nodeType: chainNode.type,
             nodeId: chainNode.id,
             position: chainNode.position,
             stepNumber: i + 1,
+            proximity: proximityLabel,
+            distanceFromCurrent: i + 1,
             ...nodeData,
             timestamp: parsedData.timestamp
           };
@@ -178,11 +185,15 @@ const getWorkflowChainData = async (workflowChain) => {
       } else {
         // Node has no stored data, but include it in the chain for visibility
         const nodeDisplayName = chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`;
+        const proximityLabel = i === 0 ? 'immediate_previous' : 'further_back';
+        
         chainData[`step_${i + 1}_${nodeDisplayName}`] = {
           nodeType: chainNode.type,
           nodeId: chainNode.id,
           position: chainNode.position,
           stepNumber: i + 1,
+          proximity: proximityLabel,
+          distanceFromCurrent: i + 1,
           status: 'no_data',
           message: 'No execution data available for this node'
         };
@@ -195,10 +206,11 @@ const getWorkflowChainData = async (workflowChain) => {
         _chainMetadata: {
           totalSteps: workflowChain.length,
           chainLength: workflowChain.length,
-          startNodeType: workflowChain[0]?.type || 'unknown',
-          endNodeType: workflowChain[workflowChain.length - 1]?.type || 'unknown',
+          immediateNode: workflowChain[0]?.type || 'unknown',
+          oldestNode: workflowChain[workflowChain.length - 1]?.type || 'unknown',
           timestamp: new Date().toISOString(),
-          description: `Complete workflow chain data from ${workflowChain.length} nodes`
+          description: `Workflow chain data from ${workflowChain.length} nodes (ordered by proximity to current node)`,
+          ordering: 'immediate_previous_first'
         }
       };
     }
