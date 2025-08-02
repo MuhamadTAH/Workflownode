@@ -236,7 +236,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
     );
   }
 
-  if (node.data.type === 'telegramTrigger') {
+  if (node.data.type === 'trigger') {
     return (
       <>
         <NodeDescription nodeType="telegram_trigger" />
