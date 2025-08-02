@@ -29,6 +29,60 @@ const findConnectedPreviousNodes = (currentNodeId, edges, nodes) => {
   return connectedNodes;
 };
 
+// NEW: Helper function to trace the entire workflow chain from beginning to current node
+const traceWorkflowChain = (currentNodeId, edges, nodes) => {
+  if (!edges || !nodes) return [];
+  
+  const workflowChain = [];
+  const visited = new Set();
+  
+  // Recursive function to build the chain
+  const buildChain = (nodeId) => {
+    if (visited.has(nodeId)) return; // Prevent infinite loops
+    visited.add(nodeId);
+    
+    // Find edges where this node is the target (incoming connections)
+    const incomingEdges = edges.filter(edge => edge.target === nodeId);
+    
+    if (incomingEdges.length === 0) {
+      // This is a start node (no incoming connections)
+      const startNode = nodes.find(n => n.id === nodeId);
+      if (startNode) {
+        workflowChain.unshift({
+          id: startNode.id,
+          type: startNode.data.type,
+          label: startNode.data.label,
+          position: 'start',
+          node: startNode
+        });
+      }
+    } else {
+      // This node has previous nodes, trace them first
+      for (const edge of incomingEdges) {
+        buildChain(edge.source); // Recursive call to build previous nodes
+      }
+      
+      // Add current node to chain
+      const currentNode = nodes.find(n => n.id === nodeId);
+      if (currentNode) {
+        workflowChain.push({
+          id: currentNode.id,
+          type: currentNode.data.type,
+          label: currentNode.data.label,
+          position: workflowChain.length === 0 ? 'start' : 'middle',
+          node: currentNode
+        });
+      }
+    }
+  };
+  
+  // Build the chain for current node
+  buildChain(currentNodeId);
+  
+  // Remove the current node from the chain (we only want previous nodes)
+  return workflowChain.filter(item => item.id !== currentNodeId);
+};
+
 // Helper function to get stored output data from connected nodes
 const getConnectedNodesData = async (connectedNodes) => {
   try {
@@ -77,22 +131,114 @@ const getConnectedNodesData = async (connectedNodes) => {
   }
 };
 
+// NEW: Function to get data from entire workflow chain
+const getWorkflowChainData = async (workflowChain) => {
+  try {
+    const chainData = {};
+    let hasAnyData = false;
+    
+    // Process nodes in workflow order (from beginning to current position)
+    for (let i = 0; i < workflowChain.length; i++) {
+      const chainNode = workflowChain[i];
+      const storageKey = `temp-node-execution-${chainNode.id}`;
+      const storedData = sessionStorage.getItem(storageKey);
+      
+      if (storedData) {
+        try {
+          const parsedData = JSON.parse(storedData);
+          
+          // Get both input and output data if available
+          const nodeData = {};
+          
+          if (parsedData.inputData) {
+            nodeData.input = parsedData.inputData;
+          }
+          
+          if (parsedData.outputData) {
+            nodeData.output = parsedData.outputData;
+            hasAnyData = true;
+          }
+          
+          // Create a readable node name
+          const nodeDisplayName = chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`;
+          
+          // Store with step number and readable name
+          chainData[`step_${i + 1}_${nodeDisplayName}`] = {
+            nodeType: chainNode.type,
+            nodeId: chainNode.id,
+            position: chainNode.position,
+            stepNumber: i + 1,
+            ...nodeData,
+            timestamp: parsedData.timestamp
+          };
+          
+        } catch (parseError) {
+          console.warn(`Failed to parse stored data for chain node ${chainNode.id}:`, parseError);
+        }
+      } else {
+        // Node has no stored data, but include it in the chain for visibility
+        const nodeDisplayName = chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`;
+        chainData[`step_${i + 1}_${nodeDisplayName}`] = {
+          nodeType: chainNode.type,
+          nodeId: chainNode.id,
+          position: chainNode.position,
+          stepNumber: i + 1,
+          status: 'no_data',
+          message: 'No execution data available for this node'
+        };
+      }
+    }
+    
+    if (hasAnyData || Object.keys(chainData).length > 0) {
+      return {
+        _workflowChain: chainData,
+        _chainMetadata: {
+          totalSteps: workflowChain.length,
+          chainLength: workflowChain.length,
+          startNodeType: workflowChain[0]?.type || 'unknown',
+          endNodeType: workflowChain[workflowChain.length - 1]?.type || 'unknown',
+          timestamp: new Date().toISOString(),
+          description: `Complete workflow chain data from ${workflowChain.length} nodes`
+        }
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting workflow chain data:', error);
+    return null;
+  }
+};
+
 // Input Panel Component
 export const InputPanel = ({ inputData, setInputData, node, formData, onClose, edges, nodes }) => {
   const handleGetData = async () => {
     try {
-      // First, check if this node has connected previous nodes
-      const connectedPreviousNodes = findConnectedPreviousNodes(node.id, edges, nodes);
+      // NEW: Trace the entire workflow chain from beginning to current node
+      const workflowChain = traceWorkflowChain(node.id, edges, nodes);
       
-      if (connectedPreviousNodes.length > 0) {
-        // If we have connected previous nodes, get data from them
+      if (workflowChain.length > 0) {
+        console.log(`🔗 Found workflow chain with ${workflowChain.length} nodes:`, workflowChain.map(n => n.type));
         
-        // Try to get stored output data from connected nodes
-        const connectedData = await getConnectedNodesData(connectedPreviousNodes);
+        // Get data from the entire workflow chain (from beginning to current)
+        const chainData = await getWorkflowChainData(workflowChain);
         
-        if (connectedData) {
-          setInputData(JSON.stringify(connectedData, null, 2));
+        if (chainData) {
+          setInputData(JSON.stringify(chainData, null, 2));
           return;
+        }
+        
+        // Fallback: If no chain data, try immediate previous nodes
+        const connectedPreviousNodes = findConnectedPreviousNodes(node.id, edges, nodes);
+        if (connectedPreviousNodes.length > 0) {
+          const connectedData = await getConnectedNodesData(connectedPreviousNodes);
+          if (connectedData) {
+            setInputData(JSON.stringify({
+              _immediateConnections: connectedData,
+              _note: "Showing immediate connections only - workflow chain data not available"
+            }, null, 2));
+            return;
+          }
         }
       }
 
