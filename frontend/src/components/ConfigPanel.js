@@ -297,7 +297,7 @@ const NodeOrganizedJSONViewer = ({ data, onFieldDrag }) => {
         </div>
         <span className="text-xs text-gray-400 font-mono">
           {Array.isArray(value) ? `[${value.length} items]` : 
-           typeof value === 'string' ? `"${value.substring(0, 30)}${value.length > 30 ? '...' : '}"` : 
+           typeof value === 'string' ? `"${value.substring(0, 30)}${value.length > 30 ? '...' : ''}"` : 
            String(value)}
         </span>
       </div>
