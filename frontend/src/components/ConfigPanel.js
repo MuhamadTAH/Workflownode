@@ -72,7 +72,7 @@ const ConfigPanel = ({ node, onClose }) => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ botToken: formData.botToken }),
+          body: JSON.stringify({ token: formData.botToken }),
         });
 
         if (response.ok) {
