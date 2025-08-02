@@ -19,13 +19,15 @@ const verifyClaudeKey = async (req, res) => {
         
         if (verification.valid) {
             res.status(200).json({ 
+                valid: true,
                 ok: true, 
-                message: 'Claude API Key is valid.',
-                model: verification.model,
-                usage: verification.usage 
+                message: verification.message || 'Claude API Key is valid.',
+                availableModels: verification.availableModels || [],
+                status: verification.status 
             });
         } else {
             res.status(200).json({ 
+                valid: false,
                 ok: false, 
                 message: verification.error || 'Invalid Claude API Key.',
                 status: verification.status 
@@ -35,6 +37,7 @@ const verifyClaudeKey = async (req, res) => {
     } catch (error) {
         console.error('❌ Claude API key verification failed:', error.message);
         res.status(200).json({ 
+            valid: false,
             ok: false, 
             message: `Failed to verify key: ${error.message}` 
         });
