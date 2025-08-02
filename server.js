@@ -48,6 +48,8 @@ app.use(cors({
     'https://workflownode.onrender.com',
     'https://workflownode-1.onrender.com' // Add frontend URL
   ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 
@@ -97,6 +99,9 @@ passport.use(new GoogleStrategy({
 }));
 
 app.use(express.json());
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 app.get('/', (req, res) => {
     res.send('Workflow Automation Backend is running!');
