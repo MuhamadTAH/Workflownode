@@ -85,16 +85,31 @@ const FlowEditor = () => {
           alert('No trigger node found in the workflow.');
           return;
       }
-      if (!triggerNode.data.token) {
+      if (!triggerNode.data.botToken && !triggerNode.data.token) {
           alert('Please configure the Telegram Trigger node with your Bot API Token first.');
           return;
       }
       
       try {
+          // Ensure the trigger node has the token in the format the backend expects
+          const triggerNodeForBackend = {
+            ...triggerNode,
+            data: {
+              ...triggerNode.data,
+              token: triggerNode.data.botToken || triggerNode.data.token
+            }
+          };
+          
           const response = await fetch('http://localhost:3010/api/workflows/123/activate', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ triggerNode })
+              body: JSON.stringify({ 
+                triggerNode: triggerNodeForBackend,
+                workflow: {
+                  nodes: nodes,
+                  edges: edges
+                }
+              })
           });
           
           const result = await response.json();
@@ -178,7 +193,7 @@ const FlowEditor = () => {
           <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
         </ReactFlow>
       </div>
-      {selectedNode && <ConfigPanel node={selectedNode} onClose={onPanelClose} />}
+      {selectedNode && <ConfigPanel node={selectedNode} edges={edges} nodes={nodes} onClose={onPanelClose} />}
     </div>
   );
 };

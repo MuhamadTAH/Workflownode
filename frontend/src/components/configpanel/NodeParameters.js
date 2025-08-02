@@ -45,7 +45,7 @@ const NodeDescription = ({ nodeType }) => {
   );
 };
 
-export const renderNodeParameters = (node, formData, handleFormFieldChange, handleInputChange, handleFormChange, addCondition, removeCondition, inputData, handleTelegramTokenCheck) => {
+export const renderNodeParameters = (node, formData, handleFormFieldChange, handleInputChange, handleFormChange, addCondition, removeCondition, inputData, handleTelegramTokenCheck, activeTab, handleClaudeApiCheck, claudeApiStatus, availableModels) => {
   // Existing simple node types (preserved)
   if (node.data.type === 'if' || node.data.type === 'filter') {
     return (
@@ -116,62 +116,180 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
     );
   }
 
-  // Advanced node types added back
-  if (node.data.type === 'aiAgentNode') {
+  // Advanced AI Agent Node with Tab Support
+  if (node.data.type === 'aiAgent') {
     return (
       <>
         <NodeDescription nodeType="ai_agent" />
-        <div className="form-group">
-          <label>Model</label>
-          <select name="model" value={formData.model} onChange={handleFormFieldChange} className="condition-input">
-            <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Official SDK)</option>
-            <option value="gpt-4">GPT-4 (Coming Soon)</option>
-          </select>
-        </div>
         
-        <div className="form-group">
-          <label>Claude API Key</label>
-          <input 
-            type="password" 
-            name="apiKey" 
-            value={formData.apiKey} 
-            onChange={handleFormFieldChange} 
-            className="condition-input" 
-            placeholder="sk-ant-..."
-          />
-        </div>
+        {/* Parameters Tab */}
+        {activeTab === 'parameters' && (
+          <>
+            {/* System Prompt */}
+            <DroppableTextInput 
+              label="System Prompt" 
+              name="systemPrompt" 
+              value={formData.systemPrompt || 'You are a helpful AI assistant.'} 
+              onChange={handleFormFieldChange}
+              rows={4}
+              placeholder="You are a helpful AI assistant. Tell the AI how it should behave and work."
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mb-4">
+              💡 This tells Claude how to behave and what role it should take.
+            </div>
+            
+            {/* User Prompt */}
+            <DroppableTextInput 
+              label="User Prompt" 
+              name="userPrompt" 
+              value={formData.userPrompt || ''} 
+              onChange={handleFormFieldChange}
+              rows={3}
+              placeholder="{{message.text}} - Tell the AI what specific task to perform"
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mb-4">
+              💡 This is the specific task or question you want the AI to work on. Use template variables like {'{{message.text}}'}.
+            </div>
+
+            {/* Claude API Key */}
+            <div className="form-group">
+              <label>Claude API Key</label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input 
+                  type="password" 
+                  name="claudeApiKey" 
+                  value={formData.claudeApiKey || ''} 
+                  onChange={handleFormFieldChange} 
+                  className="condition-input" 
+                  placeholder="sk-ant-..."
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleClaudeApiCheck && handleClaudeApiCheck(formData.claudeApiKey)}
+                  className="action-button"
+                  disabled={!formData.claudeApiKey || claudeApiStatus?.status === 'checking'}
+                  style={{ 
+                    minWidth: '60px',
+                    fontSize: '12px',
+                    padding: '8px 12px'
+                  }}
+                >
+                  {claudeApiStatus?.status === 'checking' ? '...' : 'Check'}
+                </button>
+              </div>
+              
+              {/* API Key Status */}
+              {claudeApiStatus && (
+                <div className={`mt-2 p-2 rounded text-xs ${
+                  claudeApiStatus.status === 'valid' ? 'bg-green-50 text-green-700 border border-green-200' :
+                  claudeApiStatus.status === 'invalid' || claudeApiStatus.status === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                  'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                }`}>
+                  <strong>
+                    {claudeApiStatus.status === 'valid' ? '✅ Valid' :
+                     claudeApiStatus.status === 'invalid' ? '❌ Invalid' :
+                     claudeApiStatus.status === 'error' ? '⚠️ Error' :
+                     '🔄 Checking...'}
+                  </strong>: {claudeApiStatus.message}
+                </div>
+              )}
+            </div>
+
+            {/* Claude Model Selection */}
+            <div className="form-group">
+              <label>Claude Model</label>
+              <select 
+                name="claudeModel" 
+                value={formData.claudeModel || 'claude-3-5-sonnet-20241022'} 
+                onChange={handleFormFieldChange} 
+                className="condition-input"
+                disabled={claudeApiStatus?.status !== 'valid'}
+              >
+                {availableModels && availableModels.length > 0 ? (
+                  availableModels.map(model => (
+                    <option key={model} value={model}>
+                      {model === 'claude-3-5-sonnet-20241022' ? 'Claude 3.5 Sonnet (Latest)' :
+                       model === 'claude-3-opus-20240229' ? 'Claude 3 Opus (Most Capable)' :
+                       model === 'claude-3-sonnet-20240229' ? 'Claude 3 Sonnet (Balanced)' :
+                       model === 'claude-3-haiku-20240307' ? 'Claude 3 Haiku (Fastest)' :
+                       model}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Latest)</option>
+                    <option value="claude-3-opus-20240229">Claude 3 Opus (Most Capable)</option>
+                    <option value="claude-3-sonnet-20240229">Claude 3 Sonnet (Balanced)</option>
+                    <option value="claude-3-haiku-20240307">Claude 3 Haiku (Fastest)</option>
+                  </>
+                )}
+              </select>
+              {claudeApiStatus?.status !== 'valid' && (
+                <div className="text-xs text-gray-500 mt-1">
+                  💡 Verify your API key first to see available models
+                </div>
+              )}
+            </div>
+          </>
+        )}
         
-        <DroppableTextInput 
-          label="System Prompt" 
-          name="systemPrompt" 
-          value={formData.systemPrompt} 
-          onChange={handleFormFieldChange}
-          rows={4}
-          placeholder="You are a helpful AI assistant."
-          inputData={inputData}
-        />
-        
-        <DroppableTextInput 
-          label="User Prompt" 
-          name="userPrompt" 
-          value={formData.userPrompt} 
-          onChange={handleFormFieldChange}
-          rows={3}
-          placeholder="{{message}}"
-          inputData={inputData}
-        />
-        
-        <div className="form-group">
-          <label>User ID</label>
-          <input 
-            type="text" 
-            name="userId" 
-            value={formData.userId} 
-            onChange={handleFormFieldChange} 
-            className="condition-input" 
-            placeholder="default"
-          />
-        </div>
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <>
+            <div className="form-group">
+              <label>User ID (for conversation memory)</label>
+              <input 
+                type="text" 
+                name="userId" 
+                value={formData.userId || 'default'} 
+                onChange={handleFormFieldChange} 
+                className="condition-input" 
+                placeholder="default"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                💡 Used to separate conversations. Each User ID gets its own memory.
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Max Tokens</label>
+              <input 
+                type="number" 
+                name="maxTokens" 
+                value={formData.maxTokens || 1000} 
+                onChange={handleFormFieldChange} 
+                className="condition-input" 
+                min="1"
+                max="4000"
+                placeholder="1000"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                💡 Maximum number of tokens for the AI response (1-4000)
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Temperature</label>
+              <input 
+                type="number" 
+                name="temperature" 
+                value={formData.temperature || 0.7} 
+                onChange={handleFormFieldChange} 
+                className="condition-input" 
+                min="0"
+                max="1"
+                step="0.1"
+                placeholder="0.7"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                💡 Controls randomness: 0 = focused, 1 = creative (0.0-1.0)
+              </div>
+            </div>
+          </>
+        )}
       </>
     );
   }

@@ -1,3 +1,4 @@
+
 /*
 =================================================================
 FILE: frontend/src/components/configpanel/DragDropSystem.js
@@ -7,6 +8,7 @@ Drag & Drop System Components for ConfigPanel
 - DroppableTextInput: Text inputs that accept dropped template variables
 - Template processing utilities
 */
+
 import React, { useState } from 'react';
 
 // Add CSS styles for drag and drop
@@ -95,7 +97,7 @@ export const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '', da
     return (
       <div className="flex items-center hover:bg-blue-50 rounded px-1">
         <span className="text-gray-600">{indent}</span>
-        <span 
+        <span
           className={`${getFieldStyling()} font-mono text-sm cursor-grab px-1 rounded drag-field select-none border transition-colors`}
           draggable={true}
           onDragStart={handleDragStart}
@@ -114,16 +116,16 @@ export const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '', da
 };
 
 // Droppable Text Input Component
-export const DroppableTextInput = ({ 
-  label, 
-  name, 
-  value, 
-  onChange, 
-  placeholder, 
-  rows, 
-  inputData, 
+export const DroppableTextInput = ({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+  rows,
+  inputData,
   nodeMapping,
-  ...props 
+  ...props
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -198,7 +200,7 @@ export const DroppableTextInput = ({
 // Template processing helper
 export const processTemplate = (template, data) => {
   if (!template || !data) return template;
-  
+
   return template.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
     const keys = path.split('.');
     let value = data;
@@ -218,26 +220,27 @@ export const processTemplate = (template, data) => {
 // Utility function for data type detection
 export const detectDataType = (data) => {
   if (!data || typeof data !== 'object') return 'unknown';
-  
+
   // Telegram data detection
   if (data.message && data.update_id) {
     return 'telegram';
   }
-  
+
   // AI response detection
   if (data.reply || data.response || data.content) {
     return 'ai_response';
   }
-  
+
   // Google Docs detection
   if (data.documentId || data.title) {
     return 'google_docs';
   }
-  
+
   // Data storage detection
   if (data.dataStorage || data.storage) {
     return 'data_storage';
   }
-  
+
   return 'generic';
 };
+    

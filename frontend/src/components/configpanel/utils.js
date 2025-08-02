@@ -145,6 +145,10 @@ export const initializeFormData = (node) => {
     description: node.data.description || '',
     model: node.data.model || 'claude-3-5-sonnet-20241022',
     apiKey: node.data.apiKey || '',
+    claudeApiKey: node.data.claudeApiKey || '', // Fix: Add claudeApiKey field for AI Agent nodes
+    claudeModel: node.data.claudeModel || 'claude-3-5-sonnet-20241022', // Fix: Add claudeModel field
+    maxTokens: node.data.maxTokens || 1000, // Fix: Add maxTokens field for AI Agent settings
+    temperature: node.data.temperature || 0.7, // Fix: Add temperature field for AI Agent settings
     systemPrompt: node.data.systemPrompt || 'You are a helpful AI assistant.',
     userPrompt: node.data.userPrompt || '{{message}}',
     displayFormat: node.data.displayFormat || 'chat',

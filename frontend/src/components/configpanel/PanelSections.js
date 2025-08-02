@@ -1,3 +1,4 @@
+
 /*
 =================================================================
 FILE: frontend/src/components/configpanel/PanelSections.js
@@ -7,24 +8,120 @@ Panel Section Components for ConfigPanel
 - OutputPanel: Right panel showing output data and execution results
 - EmptyState: Components for when no data is available
 */
+
 import React from 'react';
 import { NodeOrganizedJSONViewer } from './JSONViewer';
 import { getNodeMetadata } from '../../config/nodeMetadata';
 
+// Helper function to find nodes connected to the current node as inputs
+const findConnectedPreviousNodes = (currentNodeId, edges, nodes) => {
+  if (!edges || !nodes) return [];
+ 
+  // Find edges where the current node is the target
+  const incomingEdges = edges.filter(edge => edge.target === currentNodeId);
+ 
+  // Get the source nodes for these edges
+  const sourceNodeIds = incomingEdges.map(edge => edge.source);
+ 
+  // Find the actual node objects
+  const connectedNodes = nodes.filter(node => sourceNodeIds.includes(node.id));
+ 
+  return connectedNodes;
+};
+
+// Helper function to get stored output data from connected nodes
+const getConnectedNodesData = async (connectedNodes) => {
+  try {
+    // Look for stored execution data in sessionStorage (temporary, clears on refresh)
+    const nodeExecutionData = {};
+    let hasAnyData = false;
+    
+    for (const connectedNode of connectedNodes) {
+      const storageKey = `temp-node-execution-${connectedNode.id}`;
+      const storedData = sessionStorage.getItem(storageKey);
+      
+      if (storedData) {
+        try {
+          const parsedData = JSON.parse(storedData);
+          nodeExecutionData[connectedNode.data.type || connectedNode.id] = parsedData.outputData || parsedData;
+          hasAnyData = true;
+        } catch (e) {
+          console.warn(`Failed to parse stored data for node ${connectedNode.id}:`, e);
+        }
+      }
+    }
+    
+    if (hasAnyData) {
+      // Return combined data from all connected nodes
+      if (connectedNodes.length === 1) {
+        // Single connected node - return its data directly
+        const singleNodeData = Object.values(nodeExecutionData)[0];
+        return singleNodeData;
+      } else {
+        // Multiple connected nodes - return organized data
+        return {
+          _connectedNodesData: nodeExecutionData,
+          _metadata: {
+            connectedNodes: connectedNodes.length,
+            nodeTypes: connectedNodes.map(n => n.data.type),
+            timestamp: new Date().toISOString()
+          }
+        };
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting connected nodes data:', error);
+    return null;
+  }
+};
+
 // Input Panel Component
-export const InputPanel = ({ inputData, setInputData, node, formData, onClose }) => {
+export const InputPanel = ({ inputData, setInputData, node, formData, onClose, edges, nodes }) => {
   const handleGetData = async () => {
     try {
-      if (node.data.type === 'trigger' && formData.botToken) {
-        // Fetch from Telegram API for Telegram Trigger
+      // First, check if this node has connected previous nodes
+      const connectedPreviousNodes = findConnectedPreviousNodes(node.id, edges, nodes);
+      
+      if (connectedPreviousNodes.length > 0) {
+        // If we have connected previous nodes, get data from them
+        
+        // Try to get stored output data from connected nodes
+        const connectedData = await getConnectedNodesData(connectedPreviousNodes);
+        
+        if (connectedData) {
+          setInputData(JSON.stringify(connectedData, null, 2));
+          return;
+        }
+      }
+
+      // Fallback to original logic if no connected nodes or no stored data
+      const botToken = formData.botToken || node.data.botToken || formData.token || node.data.token;
+      
+      if (node.data.type === 'trigger' && botToken) {
+        // First, try to delete any existing webhook to avoid conflicts
+        try {
+          await fetch('https://workflownode.onrender.com/api/telegram/delete-webhook', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token: botToken }),
+          });
+        } catch (webhookError) {
+          console.warn('Webhook deletion failed, continuing anyway:', webhookError);
+        }
+        
+        // Now fetch from Telegram API for Telegram Trigger
         const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ token: formData.botToken }),
+          body: JSON.stringify({ token: botToken }),
         });
-
+        
         if (response.ok) {
           const result = await response.json();
           if (result.updates && result.updates.length > 0) {
@@ -36,18 +133,24 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose })
             setInputData(JSON.stringify({ message: "No new messages found" }, null, 2));
           }
         } else {
-          throw new Error('Failed to fetch Telegram updates');
+          const errorResult = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('Telegram API error response:', errorResult);
+          throw new Error(errorResult.message || 'Failed to fetch Telegram updates');
         }
       } else {
         // Default mock data for other node types or when no bot token
-        const mockData = {
-          message: {
-            text: "Hello from Telegram",
-            chat: { id: 12345 },
-            from: { username: "testuser" }
-          }
-        };
-        setInputData(JSON.stringify(mockData, null, 2));
+        if (node.data.type === 'trigger') {
+          setInputData(JSON.stringify({ error: "Bot token not found. Please configure the Telegram Trigger node first." }, null, 2));
+        } else {
+          const mockData = {
+            message: {
+              text: "Hello from Telegram",
+              chat: { id: 12345 },
+              from: { username: "testuser" }
+            }
+          };
+          setInputData(JSON.stringify(mockData, null, 2));
+        }
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -66,8 +169,8 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose })
       <div className="panel-content">
         {inputData ? (
           <>
-            <NodeOrganizedJSONViewer 
-              data={JSON.parse(inputData)} 
+            <NodeOrganizedJSONViewer
+              data={JSON.parse(inputData)}
               onFieldDrag={(path, value) => console.log('Drag:', path, value)}
             />
             <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
@@ -172,12 +275,13 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
           throw new Error(result.message || 'Failed to send message');
         }
         
-        setOutputData({
+        const telegramOutput = {
           ...result,
           originalMessage: formData.message,
           processedMessage: processedMessage,
           inputData: parsedInput
-        });
+        };
+        setOutputData(telegramOutput);
         return;
       }
 
@@ -212,7 +316,7 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
     <div className="side-panel output-panel" onClick={(e) => e.stopPropagation()}>
       <div className="panel-header">
         <h3>OUTPUT</h3>
-        <button 
+        <button
           onClick={handlePostData}
           disabled={isLoading}
           className="action-button"
@@ -228,8 +332,8 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
                 <strong>Error:</strong> {outputData.error}
               </div>
             ) : (
-              <NodeOrganizedJSONViewer 
-                data={outputData} 
+              <NodeOrganizedJSONViewer
+                data={outputData}
                 onFieldDrag={(path, value) => console.log('Output drag:', path, value)}
               />
             )}
@@ -239,8 +343,8 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
               <div className="flex justify-between items-center">
                 <span>Configuration auto-saved</span>
                 <span className={`font-mono ${
-                  autoSaveStatus === 'saved' ? 'text-green-600' : 
-                  autoSaveStatus === 'saving' ? 'text-yellow-600' : 
+                  autoSaveStatus === 'saved' ? 'text-green-600' :
+                  autoSaveStatus === 'saving' ? 'text-yellow-600' :
                   'text-red-600'
                 }`}>
                   {autoSaveStatus}
@@ -280,7 +384,7 @@ export const EmptyOutputState = ({ onMockData }) => (
 // Main Panel Header Component
 export const MainPanelHeader = ({ node, autoSaveStatus, isLoading, handleTestNode, handleClose }) => {
   const metadata = getNodeMetadata(node.data.type);
-  
+ 
   return (
     <div className="panel-header">
       <h3 style={{ color: metadata.color }}>
@@ -304,8 +408,9 @@ export const MainPanelHeader = ({ node, autoSaveStatus, isLoading, handleTestNod
           <i className="fa-solid fa-play mr-2"></i>
           {isLoading ? 'Executing...' : 'Execute Step'}
         </button>
-        <button onClick={handleClose} className="close-button">&times;</button>
+        <button onClick={handleClose} className="close-button">×</button>
       </div>
     </div>
   );
 };
+    

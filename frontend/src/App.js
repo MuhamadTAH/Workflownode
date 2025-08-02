@@ -91,17 +91,26 @@ const FlowEditorComponent = () => {
           alert('No trigger node found in the workflow.');
           return;
       }
-      if (!triggerNode.data.token) {
+      if (!triggerNode.data.botToken && !triggerNode.data.token) {
           alert('Please configure the Telegram Trigger node with your Bot API Token first.');
           return;
       }
       
       try {
+          // Ensure the trigger node has the token in the format the backend expects
+          const triggerNodeForBackend = {
+            ...triggerNode,
+            data: {
+              ...triggerNode.data,
+              token: triggerNode.data.botToken || triggerNode.data.token
+            }
+          };
+          
           const response = await fetch('https://workflownode.onrender.com/api/workflows/123/activate', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
-                triggerNode,
+                triggerNode: triggerNodeForBackend,
                 workflow: {
                   nodes: nodes,
                   edges: edges

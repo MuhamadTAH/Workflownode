@@ -23,18 +23,68 @@ import {
   initializeFormData
 } from './configpanel/utils';
 
-const ConfigPanel = ({ node, onClose }) => {
+const ConfigPanel = ({ node, onClose, edges, nodes }) => {
   // Enhanced state management - keeping existing simple state + adding advanced features
   const [formData, setFormData] = useState(() => initializeFormData(node));
   
-  // Existing simple state (preserved)
+  // Existing simple state (preserved) - temporary data that clears on refresh
   const [inputData, setInputData] = useState('');
   const [outputData, setOutputData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Enhanced setters that store data temporarily for connected nodes (but clear on refresh)
+  const setInputDataWithTempStorage = (data) => {
+    setInputData(data);
+    // Store temporarily for connected nodes to access during this session only
+    try {
+      const storageKey = `temp-node-execution-${node.id}`;
+      let parsedInputData = data;
+      
+      if (typeof data === 'string' && data.trim()) {
+        try {
+          parsedInputData = JSON.parse(data);
+        } catch (e) {
+          parsedInputData = data;
+        }
+      }
+      
+      const tempData = {
+        nodeId: node.id,
+        nodeType: node.data.type,
+        inputData: parsedInputData,
+        timestamp: new Date().toISOString()
+      };
+      sessionStorage.setItem(storageKey, JSON.stringify(tempData));
+    } catch (error) {
+      console.warn('Failed to store temp input data:', error);
+    }
+  };
+
+  const setOutputDataWithTempStorage = (data) => {
+    setOutputData(data);
+    // Store temporarily for connected nodes to access during this session only
+    try {
+      const storageKey = `temp-node-execution-${node.id}`;
+      const existingData = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+      const tempData = {
+        ...existingData,
+        nodeId: node.id,
+        nodeType: node.data.type,
+        outputData: data,
+        timestamp: new Date().toISOString()
+      };
+      sessionStorage.setItem(storageKey, JSON.stringify(tempData));
+    } catch (error) {
+      console.warn('Failed to store temp output data:', error);
+    }
+  };
+
   // Advanced state management added back
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [apiKeyVerificationStatus, setApiKeyVerificationStatus] = useState(null);
+  const [activeTab, setActiveTab] = useState('parameters');
+  const [claudeApiStatus, setClaudeApiStatus] = useState(null);
+  const [availableModels, setAvailableModels] = useState([]);
   const [googleAuthStatus, setGoogleAuthStatus] = useState(null);
   const [memoryActionResult, setMemoryActionResult] = useState(null);
   const [memoryQuickStats, setMemoryQuickStats] = useState(null);
@@ -65,14 +115,29 @@ const ConfigPanel = ({ node, onClose }) => {
       // Step 1: GET - Fetch input data
       let fetchedInputData = null;
       
-      if (node.data.type === 'trigger' && formData.botToken) {
+      const botToken = formData.botToken || node.data.botToken || formData.token || node.data.token;
+      
+      if (node.data.type === 'trigger' && botToken) {
+        // First, try to delete any existing webhook to avoid conflicts
+        try {
+          await fetch('https://workflownode.onrender.com/api/telegram/delete-webhook', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token: botToken }),
+          });
+        } catch (webhookError) {
+          console.warn('Webhook deletion failed in Execute, continuing anyway:', webhookError);
+        }
+        
         // Fetch from Telegram API for Telegram Trigger
         const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ token: formData.botToken }),
+          body: JSON.stringify({ token: botToken }),
         });
 
         if (response.ok) {
@@ -98,7 +163,7 @@ const ConfigPanel = ({ node, onClose }) => {
       }
 
       // Update input data display
-      setInputData(JSON.stringify(fetchedInputData, null, 2));
+      setInputDataWithTempStorage(JSON.stringify(fetchedInputData, null, 2));
 
       // Step 2: POST - Process the data
       if (node.data.type === 'trigger') {
@@ -112,7 +177,7 @@ const ConfigPanel = ({ node, onClose }) => {
           nodeId: node.id,
           nodeType: node.data.type
         };
-        setOutputData(triggerOutput);
+        setOutputDataWithTempStorage(triggerOutput);
       } else if (node.data.type === 'telegramSendMessage') {
         // Handle Telegram Send Message nodes
         if (!formData.botToken) {
@@ -165,12 +230,13 @@ const ConfigPanel = ({ node, onClose }) => {
           throw new Error(sendResult.message || 'Failed to send message');
         }
         
-        setOutputData({
+        const telegramOutput = {
           ...sendResult,
           originalMessage: formData.message,
           processedMessage: processedMessage,
           inputData: fetchedInputData
-        });
+        };
+        setOutputDataWithTempStorage(telegramOutput);
       } else {
         // For other node types, call backend to execute the node
         const executeResponse = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
@@ -192,13 +258,67 @@ const ConfigPanel = ({ node, onClose }) => {
           throw new Error(executeResult.message || 'Failed to execute node');
         }
         
-        setOutputData(executeResult);
+        setOutputDataWithTempStorage(executeResult);
       }
     } catch (error) {
       console.error('Error in execute step:', error);
-      setOutputData({ error: error.message });
+      setOutputDataWithTempStorage({ error: error.message });
     }
     setIsLoading(false);
+  };
+
+  // Claude API key validation handler
+  const handleClaudeApiCheck = async (apiKey) => {
+    if (!apiKey || apiKey.length < 10) {
+      setClaudeApiStatus({ status: 'invalid', message: 'API key is too short' });
+      return;
+    }
+
+    setClaudeApiStatus({ status: 'checking', message: 'Verifying API key...' });
+
+    try {
+      const response = await fetch('https://workflownode.onrender.com/api/ai/verify-claude', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ apiKey: apiKey }),
+      });
+
+      const result = await response.json();
+      console.log('Claude API verification response:', result);
+
+      if (response.ok && result.valid) {
+        console.log('✅ Setting status to VALID');
+        const statusData = { 
+          status: 'valid', 
+          message: result.message || 'API key is valid and working',
+          models: result.availableModels || []
+        };
+        console.log('Status data being set:', statusData);
+        setClaudeApiStatus(statusData);
+        setAvailableModels(result.availableModels || [
+          'claude-3-5-sonnet-20241022',
+          'claude-3-opus-20240229',
+          'claude-3-sonnet-20240229',
+          'claude-3-haiku-20240307'
+        ]);
+      } else {
+        console.log('❌ Setting status to INVALID - response.ok:', response.ok, 'result.valid:', result.valid);
+        setClaudeApiStatus({ 
+          status: 'invalid', 
+          message: result.message || 'Invalid API key' 
+        });
+        setAvailableModels([]);
+      }
+    } catch (error) {
+      console.error('Error verifying Claude API key:', error);
+      setClaudeApiStatus({ 
+        status: 'error', 
+        message: 'Failed to verify API key' 
+      });
+      setAvailableModels([]);
+    }
   };
 
   // Telegram token validation handler
@@ -264,10 +384,12 @@ const ConfigPanel = ({ node, onClose }) => {
       {/* Enhanced INPUT Panel */}
       <InputPanel 
         inputData={inputData}
-        setInputData={setInputData}
+        setInputData={setInputDataWithTempStorage}
         node={node}
         formData={formData}
         onClose={handleClose}
+        edges={edges}
+        nodes={nodes}
       />
 
       {/* Enhanced MAIN Panel */}
@@ -281,8 +403,18 @@ const ConfigPanel = ({ node, onClose }) => {
         />
         <div className="panel-content">
           <div className="tabs">
-            <button className="tab active">Parameters</button>
-            <button className="tab">Settings</button>
+            <button 
+              className={`tab ${activeTab === 'parameters' ? 'active' : ''}`}
+              onClick={() => setActiveTab('parameters')}
+            >
+              Parameters
+            </button>
+            <button 
+              className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('settings')}
+            >
+              Settings
+            </button>
           </div>
           <div className="parameters-content">
             {renderNodeParameters(
@@ -294,7 +426,11 @@ const ConfigPanel = ({ node, onClose }) => {
               addCondition,
               removeCondition,
               inputData,
-              handleTelegramTokenCheck
+              handleTelegramTokenCheck,
+              activeTab,
+              handleClaudeApiCheck,
+              claudeApiStatus,
+              availableModels
             )}
           </div>
         </div>
@@ -303,7 +439,7 @@ const ConfigPanel = ({ node, onClose }) => {
       {/* Enhanced OUTPUT Panel */}
       <OutputPanel 
         outputData={outputData}
-        setOutputData={setOutputData}
+        setOutputData={setOutputDataWithTempStorage}
         isLoading={isLoading}
         node={node}
         formData={formData}

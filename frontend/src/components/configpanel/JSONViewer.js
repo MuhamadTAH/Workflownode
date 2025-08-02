@@ -7,12 +7,15 @@ JSON Tree Viewer Component for ConfigPanel
 - Node type detection and visual indicators
 - Collapsible tree structure with drag-and-drop support
 */
+
 import React, { useState } from 'react';
 import { DraggableJSONField, detectDataType } from './DragDropSystem';
 
 // JSON Tree Viewer Component
 export const NodeOrganizedJSONViewer = ({ data, onFieldDrag }) => {
   const [expandedNodes, setExpandedNodes] = useState({});
+  // FIX: Added state to control the main section's visibility
+  const [isSectionExpanded, setIsSectionExpanded] = useState(true);
 
   if (!data || typeof data !== 'object') {
     return (
@@ -21,6 +24,11 @@ export const NodeOrganizedJSONViewer = ({ data, onFieldDrag }) => {
       </div>
     );
   }
+
+  // FIX: Function to toggle the main section's visibility
+  const toggleSection = () => {
+    setIsSectionExpanded(prev => !prev);
+  };
 
   const toggleNode = (nodeName) => {
     setExpandedNodes(prev => ({
@@ -36,7 +44,7 @@ export const NodeOrganizedJSONViewer = ({ data, onFieldDrag }) => {
       return (
         <div key={fullPath} className="json-node">
           <details open={expandedNodes[fullPath] !== false}>
-            <summary 
+            <summary
               className="json-key cursor-pointer hover:bg-gray-50 p-1 rounded"
               onClick={(e) => {
                 e.preventDefault();
@@ -47,7 +55,7 @@ export const NodeOrganizedJSONViewer = ({ data, onFieldDrag }) => {
               <span className="text-xs text-gray-400 ml-2">({Object.keys(value).length} fields)</span>
             </summary>
             <div className="json-value ml-4 border-l-2 border-gray-200 pl-3 mt-1">
-              {Object.entries(value).map(([subKey, subValue]) => 
+              {Object.entries(value).map(([subKey, subValue]) =>
                 renderJSONField(subKey, subValue, fullPath, nodePrefix, dataType)
               )}
             </div>
@@ -59,7 +67,7 @@ export const NodeOrganizedJSONViewer = ({ data, onFieldDrag }) => {
     return (
       <div key={fullPath} className="flex items-center justify-between py-1 hover:bg-gray-50 rounded px-1">
         <div className="flex items-center">
-          <DraggableJSONField 
+          <DraggableJSONField
             path={fullPath}
             value={value}
             nodePrefix={nodePrefix}
@@ -67,9 +75,9 @@ export const NodeOrganizedJSONViewer = ({ data, onFieldDrag }) => {
           />
         </div>
         <span className="text-xs text-gray-400 font-mono">
-          {Array.isArray(value) ? `[${value.length} items]` : 
-           typeof value === 'string' ? `"${value.substring(0, 30)}${value.length > 30 ? '...' : ''}"` : 
-           String(value)}
+          {Array.isArray(value) ? `[${value.length} items]` :
+            typeof value === 'string' ? `"${value.substring(0, 30)}${value.length > 30 ? '...' : ''}"` :
+            String(value)}
         </span>
       </div>
     );
@@ -100,18 +108,35 @@ export const NodeOrganizedJSONViewer = ({ data, onFieldDrag }) => {
   return (
     <div className="json-tree-container p-3">
       <div className="json-node-section">
-        <div className={`json-node-header ${dataType}`}>
+        {/* FIX: Made the entire header clickable to toggle the section */}
+        <div 
+          className={`json-node-header ${dataType}`} 
+          onClick={toggleSection}
+          style={{ cursor: 'pointer' }}
+        >
           <span className="node-type-icon">{getNodeIcon(dataType)}</span>
           <span className="json-node-title">
             {getNodeTitle(dataType)}
           </span>
-          <span className="json-node-toggle">▶</span>
+          {/* FIX: The arrow now rotates based on the section's state */}
+          <span 
+            className="json-node-toggle"
+            style={{ 
+              transform: isSectionExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease-in-out'
+            }}
+          >
+            ▶
+          </span>
         </div>
-        <div className="json-node-content">
-          {Object.entries(data).map(([key, value]) => 
-            renderJSONField(key, value, '', '', dataType)
-          )}
-        </div>
+        {/* FIX: The content is now shown or hidden based on the section's state */}
+        {isSectionExpanded && (
+          <div className="json-node-content">
+            {Object.entries(data).map(([key, value]) =>
+              renderJSONField(key, value, '', '', dataType)
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
