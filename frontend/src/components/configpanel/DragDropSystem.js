@@ -237,22 +237,58 @@ export const processTemplate = (template, data) => {
       console.log('Processing $json template:', match, 'path:', path);
       console.log('Parsed data structure:', parsedData);
       
-      const keys = path.split('.');
-      let value = parsedData;
-      
-      for (const key of keys) {
-        if (value && typeof value === 'object' && key in value) {
-          value = value[key];
-          console.log(`After key '${key}':`, value);
-        } else {
-          console.log(`Key '${key}' not found in:`, value);
-          return match; // Keep original if path not found
+      // For workflow chain data, look inside the steps
+      if (Object.keys(parsedData).some(key => key.startsWith('step_'))) {
+        console.log('Detected workflow chain data, searching in steps...');
+        
+        // Try to find the path in any step
+        for (const [stepKey, stepValue] of Object.entries(parsedData)) {
+          if (stepKey.startsWith('step_') && typeof stepValue === 'object') {
+            console.log(`Checking step: ${stepKey}`, stepValue);
+            
+            const keys = path.split('.');
+            let value = stepValue;
+            let found = true;
+            
+            for (const key of keys) {
+              if (value && typeof value === 'object' && key in value) {
+                value = value[key];
+                console.log(`Found key '${key}' in step ${stepKey}:`, value);
+              } else {
+                found = false;
+                break;
+              }
+            }
+            
+            if (found) {
+              const result = typeof value === 'string' ? value : JSON.stringify(value);
+              console.log('Found value in workflow chain:', result);
+              return result;
+            }
+          }
         }
+        
+        console.log('Path not found in any workflow step');
+        return match;
+      } else {
+        // Regular data processing
+        const keys = path.split('.');
+        let value = parsedData;
+        
+        for (const key of keys) {
+          if (value && typeof value === 'object' && key in value) {
+            value = value[key];
+            console.log(`After key '${key}':`, value);
+          } else {
+            console.log(`Key '${key}' not found in:`, value);
+            return match;
+          }
+        }
+        
+        const result = typeof value === 'string' ? value : JSON.stringify(value);
+        console.log('$json result:', result);
+        return result;
       }
-      
-      const result = typeof value === 'string' ? value : JSON.stringify(value);
-      console.log('$json result:', result);
-      return result;
     } catch (error) {
       console.error('Error in $json processing:', error);
       return match;
