@@ -42,7 +42,11 @@
       "WebFetch(domain:workflownode.onrender.com)",
       "Bash(git clone:*)",
       "Bash(git checkout:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(claude doctor)",
+      "Bash(npm i:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(timeout 8s npm start)"
     ],
     "deny": []
   }
