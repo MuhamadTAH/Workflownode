@@ -152,47 +152,22 @@ const getWorkflowChainData = async (workflowChain) => {
           const parsedData = JSON.parse(storedData);
           
           // Get only output data from previous nodes
-          const nodeData = {};
-          
           if (parsedData.outputData) {
-            nodeData.output = parsedData.outputData;
+            // Create a readable node name
+            const nodeDisplayName = chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`;
+            
+            // Store only the pure output data, no metadata
+            chainData[`step_${i + 1}_${nodeDisplayName}`] = parsedData.outputData;
             hasAnyData = true;
           }
-          
-          // Create a readable node name with proximity indicator
-          const nodeDisplayName = chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`;
-          const proximityLabel = i === 0 ? 'immediate_previous' : 'further_back';
-          
-          // Store with step number and readable name (step 1 = closest to current)
-          chainData[`step_${i + 1}_${nodeDisplayName}`] = {
-            nodeType: chainNode.type,
-            nodeId: chainNode.id,
-            position: chainNode.position,
-            stepNumber: i + 1,
-            proximity: proximityLabel,
-            distanceFromCurrent: i + 1,
-            ...nodeData,
-            timestamp: parsedData.timestamp
-          };
           
         } catch (parseError) {
           console.warn(`Failed to parse stored data for chain node ${chainNode.id}:`, parseError);
         }
       } else {
-        // Node has no stored data, but include it in the chain for visibility
+        // Node has no stored data, show simple message
         const nodeDisplayName = chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`;
-        const proximityLabel = i === 0 ? 'immediate_previous' : 'further_back';
-        
-        chainData[`step_${i + 1}_${nodeDisplayName}`] = {
-          nodeType: chainNode.type,
-          nodeId: chainNode.id,
-          position: chainNode.position,
-          stepNumber: i + 1,
-          proximity: proximityLabel,
-          distanceFromCurrent: i + 1,
-          status: 'no_data',
-          message: 'No execution data available for this node'
-        };
+        chainData[`step_${i + 1}_${nodeDisplayName}`] = 'No execution data available for this node';
       }
     }
     
