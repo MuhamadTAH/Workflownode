@@ -155,6 +155,8 @@ export const initializeFormData = (node) => {
     tokenChecking: false,
     tokenError: node.data.tokenError || null,
     botInfo: node.data.botInfo || null,
+    chatId: node.data.chatId || '',
+    message: node.data.message || '',
     clientId: node.data.clientId || '',
     clientSecret: node.data.clientSecret || '',
     action: node.data.action || 'getDocument',

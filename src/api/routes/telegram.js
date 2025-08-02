@@ -11,4 +11,7 @@ router.post('/get-updates', telegramController.getUpdates);
 // Route to delete webhook (needed before using getUpdates)
 router.post('/delete-webhook', telegramController.deleteWebhook);
 
+// Route to send telegram message
+router.post('/send-message', telegramController.sendMessage);
+
 module.exports = router;

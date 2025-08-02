@@ -128,8 +128,77 @@ const deleteWebhook = async (req, res) => {
     }
 };
 
+const sendMessage = async (req, res) => {
+    const { token, chatId, message } = req.body;
+
+    if (!token) {
+        return res.status(400).send({ message: 'Bot token is required.' });
+    }
+
+    if (!chatId) {
+        return res.status(400).send({ message: 'Chat ID is required.' });
+    }
+
+    if (!message) {
+        return res.status(400).send({ message: 'Message is required.' });
+    }
+
+    try {
+        const telegramApiUrl = `https://api.telegram.org/bot${token}/sendMessage`;
+        const response = await axios.post(telegramApiUrl, {
+            chat_id: chatId,
+            text: message,
+            parse_mode: 'HTML' // Allow basic HTML formatting
+        });
+
+        if (response.data.ok) {
+            res.status(200).send({
+                ok: true,
+                message: 'Message sent successfully',
+                result: response.data.result,
+                sentTo: chatId,
+                messageText: message
+            });
+        } else {
+            throw new Error(response.data.description || 'Failed to send message.');
+        }
+    } catch (error) {
+        console.error('Failed to send Telegram message:', error.response ? error.response.data : error.message);
+        
+        let errorMessage = 'Failed to send message.';
+        let statusCode = 400;
+        
+        if (error.response) {
+            if (error.response.status === 401) {
+                errorMessage = 'Invalid bot token.';
+                statusCode = 401;
+            } else if (error.response.status === 400) {
+                if (error.response.data && error.response.data.description) {
+                    if (error.response.data.description.includes('chat not found')) {
+                        errorMessage = 'Chat ID not found. Make sure the chat ID is correct and the bot has access to that chat.';
+                    } else if (error.response.data.description.includes('bot was blocked')) {
+                        errorMessage = 'Bot was blocked by the user.';
+                    } else {
+                        errorMessage = `Telegram API Error: ${error.response.data.description}`;
+                    }
+                }
+            }
+        } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+            errorMessage = 'Network error. Could not connect to Telegram API.';
+            statusCode = 503;
+        }
+        
+        res.status(statusCode).send({
+            ok: false,
+            message: errorMessage,
+            error: error.response ? error.response.data : error.message
+        });
+    }
+};
+
 module.exports = {
     verifyToken,
     getUpdates,
     deleteWebhook,
+    sendMessage,
 };

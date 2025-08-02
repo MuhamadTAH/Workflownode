@@ -19,6 +19,15 @@ export const nodeMetadata = {
     bgColor: "#e3f2fd"
   },
 
+  telegram_send_message: {
+    title: "Telegram Send Message",
+    description: "Send messages to Telegram chats using your bot. Configure bot token, chat ID, and message content with template variable support.",
+    icon: "📤",
+    category: "action",
+    color: "#0088cc",
+    bgColor: "#e3f2fd"
+  },
+
   webhook_trigger: {
     title: "Webhook Trigger", 
     description: "Triggers workflow when HTTP requests are received at the webhook URL. Perfect for integrating with external services.",

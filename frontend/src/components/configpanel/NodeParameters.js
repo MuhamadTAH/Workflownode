@@ -459,6 +459,137 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
     );
   }
 
+  if (node.data.type === 'telegramSendMessage') {
+    return (
+      <>
+        <NodeDescription nodeType="telegram_send_message" />
+        
+        <div className="form-group">
+          <label>Bot Token</label>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input 
+              type="password" 
+              name="botToken" 
+              value={formData.botToken} 
+              onChange={handleFormFieldChange} 
+              className="condition-input" 
+              placeholder="Enter your Telegram bot token"
+              style={{ flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={() => handleTelegramTokenCheck(formData.botToken)}
+              disabled={!formData.botToken || formData.botToken.length < 10}
+              className="action-button"
+              style={{
+                padding: '8px 16px',
+                fontSize: '12px',
+                minWidth: '80px',
+                backgroundColor: formData.tokenStatus === 'valid' ? '#10b981' : 
+                                formData.tokenStatus === 'invalid' ? '#ef4444' : '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: formData.botToken ? 'pointer' : 'not-allowed',
+                opacity: formData.botToken ? 1 : 0.5
+              }}
+            >
+              {formData.tokenChecking ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '4px' }}></i>
+                  Checking...
+                </>
+              ) : formData.tokenStatus === 'valid' ? (
+                <>
+                  <i className="fa-solid fa-check" style={{ marginRight: '4px' }}></i>
+                  Valid
+                </>
+              ) : formData.tokenStatus === 'invalid' ? (
+                <>
+                  <i className="fa-solid fa-times" style={{ marginRight: '4px' }}></i>
+                  Invalid
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-shield-halved" style={{ marginRight: '4px' }}></i>
+                  Check
+                </>
+              )}
+            </button>
+          </div>
+          
+          {/* Token validation status message */}
+          {formData.tokenStatus === 'valid' && formData.botInfo && (
+            <div style={{ 
+              marginTop: '8px', 
+              padding: '8px', 
+              backgroundColor: '#ecfdf5', 
+              border: '1px solid #10b981', 
+              borderRadius: '4px',
+              fontSize: '12px',
+              color: '#065f46'
+            }}>
+              <i className="fa-solid fa-check-circle" style={{ marginRight: '6px', color: '#10b981' }}></i>
+              <strong>Bot Connected:</strong> @{formData.botInfo.username} ({formData.botInfo.first_name})
+            </div>
+          )}
+          
+          {formData.tokenStatus === 'invalid' && formData.tokenError && (
+            <div style={{ 
+              marginTop: '8px', 
+              padding: '8px', 
+              backgroundColor: '#fef2f2', 
+              border: '1px solid #ef4444', 
+              borderRadius: '4px',
+              fontSize: '12px',
+              color: '#991b1b'
+            }}>
+              <i className="fa-solid fa-exclamation-triangle" style={{ marginRight: '6px', color: '#ef4444' }}></i>
+              <strong>Error:</strong> {formData.tokenError}
+            </div>
+          )}
+        </div>
+
+        <div className="form-group">
+          <label>Chat ID</label>
+          <DroppableTextInput
+            type="text"
+            name="chatId"
+            value={formData.chatId || ''}
+            onChange={handleFormFieldChange}
+            className="condition-input"
+            placeholder="Enter chat ID (e.g., -1001234567890 for groups, 123456789 for users)"
+            inputData={inputData}
+          />
+          <div className="text-xs text-gray-500 mt-1">
+            💡 Use negative numbers for group chats (e.g., -1001234567890) or positive for direct messages
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label>Message</label>
+          <DroppableTextInput
+            type="textarea"
+            name="message"
+            value={formData.message || ''}
+            onChange={handleFormFieldChange}
+            className="condition-input"
+            placeholder="Enter your message here... You can use template variables like {{message.text}} or {{telegram.message.from.username}}"
+            inputData={inputData}
+            rows={4}
+          />
+          <div className="text-xs text-gray-500 mt-1">
+            💡 Drag fields from Input panel to create dynamic messages with template variables
+          </div>
+        </div>
+
+        <div className="text-xs text-gray-500 mb-2">
+          📤 This node will send the message to the specified chat using your bot
+        </div>
+      </>
+    );
+  }
+
   // Fallback for unknown node types
   return (
     <>

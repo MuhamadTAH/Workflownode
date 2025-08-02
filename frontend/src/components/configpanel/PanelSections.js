@@ -120,6 +120,67 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
         return;
       }
 
+      // Handle Telegram Send Message nodes
+      if (node.data.type === 'telegramSendMessage') {
+        if (!formData.botToken) {
+          throw new Error('Bot token is required');
+        }
+        if (!formData.chatId) {
+          throw new Error('Chat ID is required');
+        }
+        if (!formData.message) {
+          throw new Error('Message is required');
+        }
+
+        // Process template variables in the message
+        let processedMessage = formData.message;
+        
+        // Simple template variable replacement
+        if (parsedInput) {
+          // Replace common template patterns
+          processedMessage = processedMessage.replace(/\{\{message\.text\}\}/g, parsedInput.message?.text || '');
+          processedMessage = processedMessage.replace(/\{\{message\.from\.username\}\}/g, parsedInput.message?.from?.username || '');
+          processedMessage = processedMessage.replace(/\{\{message\.from\.first_name\}\}/g, parsedInput.message?.from?.first_name || '');
+          processedMessage = processedMessage.replace(/\{\{message\.chat\.id\}\}/g, parsedInput.message?.chat?.id || '');
+          
+          // Replace any JSON path patterns
+          processedMessage = processedMessage.replace(/\{\{([^}]+)\}\}/g, (match, path) => {
+            try {
+              const value = path.split('.').reduce((obj, key) => obj?.[key], parsedInput);
+              return value !== undefined ? String(value) : match;
+            } catch (e) {
+              return match;
+            }
+          });
+        }
+
+        // Call backend to send the message
+        const response = await fetch('https://workflownode.onrender.com/api/telegram/send-message', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: formData.botToken,
+            chatId: formData.chatId,
+            message: processedMessage,
+          }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to send message');
+        }
+        
+        setOutputData({
+          ...result,
+          originalMessage: formData.message,
+          processedMessage: processedMessage,
+          inputData: parsedInput
+        });
+        return;
+      }
+
       // For other node types, call backend to execute the node
       const response = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
         method: 'POST',
