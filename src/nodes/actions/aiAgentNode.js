@@ -277,35 +277,7 @@ const aiAgentNode = {
                 modelNode.addToMemory(userId, conversationEntry);
                 
                 return { 
-                    reply: responseText,
-                    model: modelUsed,
-                    systemPrompt: enhancedSystemPrompt,
-                    processedUserPrompt: processedUserPrompt,
-                    availableData: availableData,
-                    dataStorageConnected: Object.keys(availableData).length > 0,
-                    userId: userId,
-                    userMessage: processedUserPrompt,
-                    processingTime: processingTime,
-                    usage: usage,
-                    messageId: messageId,
-                    // Enhanced SDK metadata
-                    sdkMetadata: {
-                        officialSDK: true,
-                        features: [
-                            'Universal Template Parser',
-                            'Enhanced Error Handling',
-                            'Usage Tracking',
-                            'Memory Integration',
-                            'Data Storage Integration'
-                        ],
-                        templateFormatsSupported: [
-                            '{{$json.field}}',
-                            '{{nodePrefix.field}}',
-                            '{{variable}}'
-                        ],
-                        connectedNodes: connectedNodes.length,
-                        dataStorageNodes: connectedNodes.filter(n => n.type === 'dataStorage').length
-                    }
+                    reply: responseText
                 };
                 
             } catch (error) {
@@ -319,12 +291,7 @@ const aiAgentNode = {
             // Placeholder for other models - will be enhanced with future SDK support
             console.log('⚠️ AI Agent: Non-Claude models not yet supported with SDK');
             return { 
-                reply: `${actualModel} support is coming soon. Currently only Claude models are supported with the official SDK.`,
-                model: actualModel,
-                systemPrompt: enhancedSystemPrompt,
-                processedUserPrompt: processedUserPrompt,
-                sdkSupported: false,
-                availableModels: ['claude-3-5-sonnet-20241022']
+                reply: `${actualModel} support is coming soon. Currently only Claude models are supported with the official SDK.`
             };
         }
     },
