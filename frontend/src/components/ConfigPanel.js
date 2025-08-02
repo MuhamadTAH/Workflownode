@@ -101,26 +101,41 @@ const ConfigPanel = ({ node, onClose }) => {
       setInputData(JSON.stringify(fetchedInputData, null, 2));
 
       // Step 2: POST - Process the data
-      const executeResponse = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          node: {
-            type: node.data.type,
-            config: formData,
+      if (node.data.type === 'trigger') {
+        // For trigger nodes, just format the input data as output
+        const triggerOutput = {
+          success: true,
+          trigger: "telegram",
+          message: "Trigger node activated - data passed through",
+          data: fetchedInputData,
+          timestamp: new Date().toISOString(),
+          nodeId: node.id,
+          nodeType: node.data.type
+        };
+        setOutputData(triggerOutput);
+      } else {
+        // For other node types, call backend to execute the node
+        const executeResponse = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-          inputData: fetchedInputData,
-        }),
-      });
+          body: JSON.stringify({
+            node: {
+              type: node.data.type,
+              config: formData,
+            },
+            inputData: fetchedInputData,
+          }),
+        });
 
-      const executeResult = await executeResponse.json();
-      if (!executeResponse.ok) {
-        throw new Error(executeResult.message || 'Failed to execute node');
+        const executeResult = await executeResponse.json();
+        if (!executeResponse.ok) {
+          throw new Error(executeResult.message || 'Failed to execute node');
+        }
+        
+        setOutputData(executeResult);
       }
-      
-      setOutputData(executeResult);
     } catch (error) {
       console.error('Error in execute step:', error);
       setOutputData({ error: error.message });

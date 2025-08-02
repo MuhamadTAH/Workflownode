@@ -104,7 +104,23 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
         throw new Error("Invalid JSON in Input data");
       }
 
-      // Call backend to execute the node
+      // Handle trigger nodes differently - they don't execute, they just pass through data
+      if (node.data.type === 'trigger') {
+        // For trigger nodes, POST just formats the input data as output
+        const triggerOutput = {
+          success: true,
+          trigger: "telegram",
+          message: "Trigger node activated - data passed through",
+          data: parsedInput,
+          timestamp: new Date().toISOString(),
+          nodeId: node.id,
+          nodeType: node.data.type
+        };
+        setOutputData(triggerOutput);
+        return;
+      }
+
+      // For other node types, call backend to execute the node
       const response = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
         method: 'POST',
         headers: {
