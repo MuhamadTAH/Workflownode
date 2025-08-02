@@ -21,21 +21,85 @@ const getClaudeClient = (apiKey) => {
     return clientCache.get(apiKey);
 };
 
-// Disabled Claude API call - SDK functionality turned off
-const callClaudeApi = async (apiKey, userMessage, systemPrompt = 'You are a helpful AI assistant.', conversationHistory = []) => {
-    console.log('⚠️ Claude SDK API calls are currently disabled');
+// ENABLED: Real Claude API call for task execution
+const callClaudeApi = async (apiKey, userMessage, systemPrompt = 'You are a helpful AI assistant.', conversationHistory = [], options = {}) => {
+    console.log('🚀 Claude SDK API call ENABLED - Making real API request');
     console.log('📝 System Prompt:', systemPrompt);
     console.log('💬 User Message:', userMessage);
     console.log('🧠 Conversation History:', conversationHistory ? conversationHistory.length : 0, 'messages');
     
-    // Return mock response to maintain compatibility
-    return {
-        text: `Claude API is currently disabled. This is a mock response for: "${userMessage}"`,
-        processingTime: 100,
-        usage: { input_tokens: 0, output_tokens: 0 },
-        model: 'claude-3-5-sonnet-20241022',
-        id: 'mock-message-id'
-    };
+    if (!apiKey || typeof apiKey !== 'string') {
+        throw new Error('Valid Claude API key is required');
+    }
+
+    try {
+        const startTime = Date.now();
+        
+        // Get Claude client
+        const client = getClaudeClient(apiKey);
+        
+        // Prepare messages array with conversation history
+        const messages = [];
+        
+        // Add conversation history if provided
+        if (conversationHistory && conversationHistory.length > 0) {
+            conversationHistory.forEach(msg => {
+                messages.push({
+                    role: msg.role || 'user',
+                    content: msg.content || msg.message || String(msg)
+                });
+            });
+        }
+        
+        // Add current user message
+        messages.push({
+            role: 'user',
+            content: userMessage
+        });
+
+        // Make real Claude API call
+        const response = await client.messages.create({
+            model: options.model || 'claude-3-5-sonnet-20241022',
+            max_tokens: options.maxTokens || 1000,
+            temperature: options.temperature || 0.7,
+            system: systemPrompt,
+            messages: messages
+        });
+
+        const processingTime = Date.now() - startTime;
+        
+        console.log('✅ Claude API call successful');
+        console.log('⏱️ Processing time:', processingTime + 'ms');
+        console.log('📊 Usage:', response.usage);
+        
+        return {
+            text: response.content[0].text,
+            processingTime: processingTime,
+            usage: {
+                input_tokens: response.usage.input_tokens,
+                output_tokens: response.usage.output_tokens
+            },
+            model: response.model,
+            id: response.id,
+            stopReason: response.stop_reason
+        };
+
+    } catch (error) {
+        console.error('❌ Claude API call failed:', error.message);
+        
+        let errorMessage = 'Claude API call failed';
+        if (error.status === 401) {
+            errorMessage = 'Invalid Claude API key';
+        } else if (error.status === 429) {
+            errorMessage = 'Claude API rate limit exceeded - try again later';
+        } else if (error.status === 400) {
+            errorMessage = 'Bad request to Claude API - check your configuration';
+        } else if (error.status === 500) {
+            errorMessage = 'Claude API server error - try again later';
+        }
+        
+        throw new Error(errorMessage);
+    }
 };
 
 // Disabled: Streaming Claude API call - SDK functionality turned off
