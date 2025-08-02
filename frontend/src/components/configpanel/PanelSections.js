@@ -12,17 +12,47 @@ import { NodeOrganizedJSONViewer } from './JSONViewer';
 import { getNodeMetadata } from '../../config/nodeMetadata';
 
 // Input Panel Component
-export const InputPanel = ({ inputData, setInputData, onClose }) => {
-  const handleGetData = () => {
-    // Mock data for testing
-    const mockData = {
-      message: {
-        text: "Hello from Telegram",
-        chat: { id: 12345 },
-        from: { username: "testuser" }
+export const InputPanel = ({ inputData, setInputData, node, formData, onClose }) => {
+  const handleGetData = async () => {
+    try {
+      if (node.data.type === 'trigger' && formData.botToken) {
+        // Fetch from Telegram API for Telegram Trigger
+        const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ botToken: formData.botToken }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.updates && result.updates.length > 0) {
+            // Get the most recent message
+            const latestMessage = result.updates[result.updates.length - 1];
+            setInputData(JSON.stringify(latestMessage, null, 2));
+          } else {
+            // No new messages
+            setInputData(JSON.stringify({ message: "No new messages found" }, null, 2));
+          }
+        } else {
+          throw new Error('Failed to fetch Telegram updates');
+        }
+      } else {
+        // Default mock data for other node types or when no bot token
+        const mockData = {
+          message: {
+            text: "Hello from Telegram",
+            chat: { id: 12345 },
+            from: { username: "testuser" }
+          }
+        };
+        setInputData(JSON.stringify(mockData, null, 2));
       }
-    };
-    setInputData(JSON.stringify(mockData, null, 2));
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setInputData(JSON.stringify({ error: error.message }, null, 2));
+    }
   };
 
   return (
@@ -53,14 +83,42 @@ export const InputPanel = ({ inputData, setInputData, onClose }) => {
 };
 
 // Output Panel Component
-export const OutputPanel = ({ outputData, setOutputData, isLoading, handleTestNode, autoSaveStatus }) => {
-  const handleMockOutput = () => {
-    // Set mock output data
-    setOutputData({
-      success: true,
-      processed: "Sample output data",
-      timestamp: new Date().toISOString()
-    });
+export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formData, inputData, autoSaveStatus }) => {
+  const handlePostData = async () => {
+    try {
+      // Parse input data
+      let parsedInput;
+      try {
+        parsedInput = inputData ? JSON.parse(inputData) : {};
+      } catch (e) {
+        throw new Error("Invalid JSON in Input data");
+      }
+
+      // Call backend to execute the node
+      const response = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          node: {
+            type: node.data.type,
+            config: formData,
+          },
+          inputData: parsedInput,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to execute node');
+      }
+      
+      setOutputData(result);
+    } catch (error) {
+      console.error('Error processing data:', error);
+      setOutputData({ error: error.message });
+    }
   };
 
   return (
@@ -68,7 +126,7 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, handleTestNo
       <div className="panel-header">
         <h3>OUTPUT</h3>
         <button 
-          onClick={handleTestNode}
+          onClick={handlePostData}
           disabled={isLoading}
           className="action-button"
         >

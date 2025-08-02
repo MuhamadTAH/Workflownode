@@ -58,6 +58,76 @@ const ConfigPanel = ({ node, onClose }) => {
     onClose({ ...node.data, ...formData });
   };
 
+  // Enhanced Execute button - runs GET then POST automatically
+  const handleExecuteStep = async () => {
+    setIsLoading(true);
+    try {
+      // Step 1: GET - Fetch input data
+      let fetchedInputData = null;
+      
+      if (node.data.type === 'trigger' && formData.botToken) {
+        // Fetch from Telegram API for Telegram Trigger
+        const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ botToken: formData.botToken }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.updates && result.updates.length > 0) {
+            const latestMessage = result.updates[result.updates.length - 1];
+            fetchedInputData = latestMessage;
+          } else {
+            fetchedInputData = { message: "No new messages found" };
+          }
+        } else {
+          throw new Error('Failed to fetch Telegram updates');
+        }
+      } else {
+        // Default mock data for other node types
+        fetchedInputData = {
+          message: {
+            text: "Hello from Telegram",
+            chat: { id: 12345 },
+            from: { username: "testuser" }
+          }
+        };
+      }
+
+      // Update input data display
+      setInputData(JSON.stringify(fetchedInputData, null, 2));
+
+      // Step 2: POST - Process the data
+      const executeResponse = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          node: {
+            type: node.data.type,
+            config: formData,
+          },
+          inputData: fetchedInputData,
+        }),
+      });
+
+      const executeResult = await executeResponse.json();
+      if (!executeResponse.ok) {
+        throw new Error(executeResult.message || 'Failed to execute node');
+      }
+      
+      setOutputData(executeResult);
+    } catch (error) {
+      console.error('Error in execute step:', error);
+      setOutputData({ error: error.message });
+    }
+    setIsLoading(false);
+  };
+
   // Telegram token validation handler
   const handleTelegramTokenCheck = async (token) => {
     if (!token || token.length < 10) {
@@ -122,6 +192,8 @@ const ConfigPanel = ({ node, onClose }) => {
       <InputPanel 
         inputData={inputData}
         setInputData={setInputData}
+        node={node}
+        formData={formData}
         onClose={handleClose}
       />
 
@@ -131,7 +203,7 @@ const ConfigPanel = ({ node, onClose }) => {
           node={node}
           autoSaveStatus={autoSaveStatus}
           isLoading={isLoading}
-          handleTestNode={handleTestNode}
+          handleTestNode={handleExecuteStep}
           handleClose={handleClose}
         />
         <div className="panel-content">
@@ -160,7 +232,9 @@ const ConfigPanel = ({ node, onClose }) => {
         outputData={outputData}
         setOutputData={setOutputData}
         isLoading={isLoading}
-        handleTestNode={handleTestNode}
+        node={node}
+        formData={formData}
+        inputData={inputData}
         autoSaveStatus={autoSaveStatus}
       />
     </div>
