@@ -48,17 +48,65 @@ const callClaudeApiStream = async (apiKey, userMessage, systemPrompt = 'You are 
     throw new Error('Claude SDK streaming is currently disabled');
 };
 
-// Disabled: Verify Claude API key validity - SDK functionality turned off
+// ENABLED: Verify Claude API key validity - Real API verification for ConfigPanel only
 const verifyClaudeApiKey = async (apiKey) => {
-    console.log('⚠️ Claude SDK API key verification is currently disabled');
-    console.log('🔑 API Key provided:', apiKey ? 'Yes' : 'No');
+    console.log('🔑 Claude SDK API key verification is ENABLED for ConfigPanel');
+    console.log('🔑 API Key provided:', apiKey ? 'Yes (length: ' + apiKey.length + ')' : 'No');
     
-    // Return mock verification response
-    return { 
-        valid: false, 
-        error: 'Claude SDK is currently disabled',
-        status: 'disabled'
-    };
+    if (!apiKey || typeof apiKey !== 'string' || apiKey.length < 10) {
+        return { 
+            valid: false, 
+            error: 'Invalid API key format',
+            status: 'invalid'
+        };
+    }
+
+    try {
+        // Create Claude client for verification
+        const client = new Anthropic({
+            apiKey: apiKey,
+        });
+
+        // Make a minimal API call to verify the key works
+        const response = await client.messages.create({
+            model: 'claude-3-haiku-20240307', // Use cheapest model for verification
+            max_tokens: 5, // Minimal tokens to reduce cost
+            messages: [{ role: 'user', content: 'Hi' }]
+        });
+
+        console.log('✅ Claude API key verification successful');
+        
+        // Return success with available models
+        return { 
+            valid: true, 
+            message: 'API key is valid and working',
+            availableModels: [
+                'claude-3-5-sonnet-20241022',
+                'claude-3-opus-20240229', 
+                'claude-3-sonnet-20240229',
+                'claude-3-haiku-20240307'
+            ],
+            status: 'valid'
+        };
+
+    } catch (error) {
+        console.error('❌ Claude API key verification failed:', error.message);
+        
+        let errorMessage = 'Invalid API key';
+        if (error.status === 401) {
+            errorMessage = 'Invalid API key - Check your Claude API key';
+        } else if (error.status === 429) {
+            errorMessage = 'Rate limited - Try again later';
+        } else if (error.status === 400) {
+            errorMessage = 'Bad request - Check API key format';
+        }
+        
+        return { 
+            valid: false, 
+            error: errorMessage,
+            status: 'invalid'
+        };
+    }
 };
 
 // Disabled: Get Claude API usage statistics - SDK functionality turned off
