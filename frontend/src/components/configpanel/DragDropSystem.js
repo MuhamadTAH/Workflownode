@@ -47,17 +47,33 @@ if (typeof document !== 'undefined') {
 }
 
 // Draggable JSON Field Component
-export const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '', dataType = 'generic', nodeName = '' }) => {
+export const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '', dataType = 'generic', nodeName = '', stepName = '' }) => {
   const handleDragStart = (e) => {
-    // Generate n8n-style template if nodeName is provided
+    // Generate template variable based on available context
     let templateVariable;
-    if (nodeName) {
+    
+    if (stepName) {
+      // Use step-based template for workflow chain data
+      templateVariable = `{{${stepName}.${path}}}`;
+    } else if (nodeName) {
+      // Use n8n-style template if nodeName is provided
       templateVariable = `{{ $('${nodeName}').item.json.${path} }}`;
     } else {
+      // Default to $json format
       templateVariable = `{{$json.${path}}}`;
     }
+    
     e.dataTransfer.setData('text/plain', templateVariable);
     e.dataTransfer.effectAllowed = 'copy';
+    
+    // Store additional data for debugging
+    e.dataTransfer.setData('application/json', JSON.stringify({
+      path,
+      value,
+      templateVariable,
+      stepName,
+      nodeName
+    }));
   };
 
   // Get styling based on data type and field importance
@@ -101,7 +117,7 @@ export const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '', da
           className={`${getFieldStyling()} font-mono text-sm cursor-grab px-1 rounded drag-field select-none border transition-colors`}
           draggable={true}
           onDragStart={handleDragStart}
-          title={`Drag to insert {{$json.${path}}}`}
+          title={`Drag to insert template variable for: ${path}`}
         >
           {path.split('.').pop()}
         </span>
@@ -197,24 +213,104 @@ export const DroppableTextInput = ({
   );
 };
 
-// Template processing helper
+// Enhanced template processing helper - supports multiple formats
 export const processTemplate = (template, data) => {
   if (!template || !data) return template;
 
-  return template.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
-    const keys = path.split('.');
-    let value = data;
-    
-    for (const key of keys) {
-      if (value && typeof value === 'object' && key in value) {
-        value = value[key];
-      } else {
-        return match;
+  let result = template;
+
+  // 1. Handle {{$json.path}} format (traditional backend format)
+  result = result.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
+    try {
+      const keys = path.split('.');
+      let value = data;
+      
+      for (const key of keys) {
+        if (value && typeof value === 'object' && key in value) {
+          value = value[key];
+        } else {
+          return match; // Keep original if path not found
+        }
       }
+      
+      return typeof value === 'string' ? value : JSON.stringify(value);
+    } catch (error) {
+      return match;
     }
-    
-    return typeof value === 'string' ? value : JSON.stringify(value);
   });
+
+  // 2. Handle {{ $('NodeName').item.json.field }} format (n8n style)
+  result = result.replace(/\{\{\s*\$\(['"]([^'"]+)['"]\)\.item\.json\.(.*?)\s*\}\}/g, (match, nodeName, path) => {
+    try {
+      // Look for data from the specific step
+      const stepKey = Object.keys(data).find(key => key.includes(nodeName) || key.toLowerCase().includes(nodeName.toLowerCase()));
+      
+      if (stepKey && data[stepKey]) {
+        const keys = path.split('.');
+        let value = data[stepKey];
+        
+        for (const key of keys) {
+          if (value && typeof value === 'object' && key in value) {
+            value = value[key];
+          } else {
+            return match;
+          }
+        }
+        
+        return typeof value === 'string' ? value : JSON.stringify(value);
+      }
+      
+      return match;
+    } catch (error) {
+      return match;
+    }
+  });
+
+  // 3. Handle {{stepName.field}} format (workflow chain format)
+  result = result.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\.(.*?)\s*\}\}/g, (match, stepName, path) => {
+    try {
+      // Look for data with step prefix
+      const stepKey = Object.keys(data).find(key => 
+        key.includes(stepName) || 
+        key.toLowerCase().includes(stepName.toLowerCase()) ||
+        key.startsWith(`step_`) && key.includes(stepName)
+      );
+      
+      if (stepKey && data[stepKey]) {
+        const keys = path.split('.');
+        let value = data[stepKey];
+        
+        for (const key of keys) {
+          if (value && typeof value === 'object' && key in value) {
+            value = value[key];
+          } else {
+            return match;
+          }
+        }
+        
+        return typeof value === 'string' ? value : JSON.stringify(value);
+      }
+      
+      return match;
+    } catch (error) {
+      return match;
+    }
+  });
+
+  // 4. Handle simple {{variable}} format
+  result = result.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (match, variable) => {
+    try {
+      if (data && data[variable] !== undefined) {
+        const value = data[variable];
+        return typeof value === 'string' ? value : JSON.stringify(value);
+      }
+      return match;
+    } catch (error) {
+      return match;
+    }
+  });
+
+  return result;
 };
 
 // Utility function for data type detection
