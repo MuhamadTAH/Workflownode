@@ -217,16 +217,28 @@ export const DroppableTextInput = ({
 export const processTemplate = (template, data) => {
   if (!template || !data) return template;
 
+  // Parse data if it's a string
+  let parsedData = data;
+  if (typeof data === 'string') {
+    try {
+      parsedData = JSON.parse(data);
+      console.log('Parsed string data:', parsedData);
+    } catch (error) {
+      console.error('Failed to parse data string:', error);
+      return template;
+    }
+  }
+
   let result = template;
 
   // 1. Handle {{$json.path}} format (traditional backend format)
   result = result.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
     try {
       console.log('Processing $json template:', match, 'path:', path);
-      console.log('Data structure:', data);
+      console.log('Parsed data structure:', parsedData);
       
       const keys = path.split('.');
-      let value = data;
+      let value = parsedData;
       
       for (const key of keys) {
         if (value && typeof value === 'object' && key in value) {
@@ -251,11 +263,11 @@ export const processTemplate = (template, data) => {
   result = result.replace(/\{\{\s*\$\(['"]([^'"]+)['"]\)\.item\.json\.(.*?)\s*\}\}/g, (match, nodeName, path) => {
     try {
       // Look for data from the specific step
-      const stepKey = Object.keys(data).find(key => key.includes(nodeName) || key.toLowerCase().includes(nodeName.toLowerCase()));
+      const stepKey = Object.keys(parsedData).find(key => key.includes(nodeName) || key.toLowerCase().includes(nodeName.toLowerCase()));
       
-      if (stepKey && data[stepKey]) {
+      if (stepKey && parsedData[stepKey]) {
         const keys = path.split('.');
-        let value = data[stepKey];
+        let value = parsedData[stepKey];
         
         for (const key of keys) {
           if (value && typeof value === 'object' && key in value) {
@@ -278,10 +290,10 @@ export const processTemplate = (template, data) => {
   result = result.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\.(.*?)\s*\}\}/g, (match, stepName, path) => {
     try {
       console.log('Processing template:', match, 'stepName:', stepName, 'path:', path);
-      console.log('Available data keys:', Object.keys(data));
+      console.log('Available data keys:', Object.keys(parsedData));
       
       // Look for data with step prefix
-      const stepKey = Object.keys(data).find(key => 
+      const stepKey = Object.keys(parsedData).find(key => 
         key.includes(stepName) || 
         key.toLowerCase().includes(stepName.toLowerCase()) ||
         key.startsWith(`step_`) && key.includes(stepName)
@@ -289,9 +301,9 @@ export const processTemplate = (template, data) => {
       
       console.log('Found stepKey:', stepKey);
       
-      if (stepKey && data[stepKey]) {
+      if (stepKey && parsedData[stepKey]) {
         const keys = path.split('.');
-        let value = data[stepKey];
+        let value = parsedData[stepKey];
         
         console.log('Initial value:', value);
         
@@ -321,8 +333,8 @@ export const processTemplate = (template, data) => {
   // 4. Handle simple {{variable}} format
   result = result.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (match, variable) => {
     try {
-      if (data && data[variable] !== undefined) {
-        const value = data[variable];
+      if (parsedData && parsedData[variable] !== undefined) {
+        const value = parsedData[variable];
         return typeof value === 'string' ? value : JSON.stringify(value);
       }
       return match;
