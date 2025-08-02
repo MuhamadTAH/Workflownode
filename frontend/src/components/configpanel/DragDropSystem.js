@@ -205,7 +205,16 @@ export const DroppableTextInput = ({
         <div className="mt-2 p-2 bg-gray-50 border rounded text-xs">
           <strong>Preview:</strong>
           <div className="font-mono text-green-600">
-            {processTemplate(value, inputData)}
+            {(() => {
+              console.log('=== LIVE PREVIEW PROCESSING ===');
+              console.log('Template value:', value);
+              console.log('Input data type:', typeof inputData);
+              console.log('Input data:', inputData);
+              const result = processTemplate(value, inputData);
+              console.log('Processed result:', result);
+              console.log('=== END PREVIEW PROCESSING ===');
+              return result;
+            })()}
           </div>
         </div>
       )}
@@ -215,18 +224,25 @@ export const DroppableTextInput = ({
 
 // Enhanced template processing helper - supports multiple formats
 export const processTemplate = (template, data) => {
-  if (!template || !data) return template;
+  console.log('🔧 processTemplate called with:', { template, dataType: typeof data, data });
+  
+  if (!template || !data) {
+    console.log('❌ Missing template or data, returning:', template);
+    return template;
+  }
 
   // Parse data if it's a string
   let parsedData = data;
   if (typeof data === 'string') {
     try {
       parsedData = JSON.parse(data);
-      console.log('Parsed string data:', parsedData);
+      console.log('✅ Parsed string data:', parsedData);
     } catch (error) {
-      console.error('Failed to parse data string:', error);
+      console.error('❌ Failed to parse data string:', error);
       return template;
     }
+  } else {
+    console.log('ℹ️ Data is already an object:', parsedData);
   }
 
   let result = template;
