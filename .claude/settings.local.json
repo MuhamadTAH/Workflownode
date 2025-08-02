@@ -46,7 +46,8 @@
       "Bash(claude doctor)",
       "Bash(npm i:*)",
       "Bash(npm uninstall:*)",
-      "Bash(timeout 8s npm start)"
+      "Bash(timeout 8s npm start)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

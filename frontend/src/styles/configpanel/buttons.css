@@ -1,0 +1,125 @@
+/*
+=================================================================
+FILE: frontend/src/styles/configpanel/buttons.css
+=================================================================
+Button Styles for ConfigPanel
+- Execute button variations
+- Action buttons
+- Close and utility buttons
+- Button states and interactions
+*/
+
+/* Execute step button */
+.execute-step-btn {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 16px;
+  transition: background-color 0.2s ease;
+}
+
+.execute-step-btn:hover {
+  background-color: #dc2626;
+}
+
+.execute-step-btn:disabled {
+  background-color: #f87171;
+  cursor: not-allowed;
+}
+
+/* Action buttons (GET/POST) */
+.action-button {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.action-button:hover {
+  background-color: #2563eb;
+}
+
+.action-button:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+/* Close button */
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: color 0.2s ease;
+}
+
+.close-button:hover {
+  color: #6b7280;
+}
+
+/* Mock data button */
+.mock-data-btn {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: all 0.2s ease;
+}
+
+.mock-data-btn:hover {
+  background-color: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+/* Add condition button */
+.add-condition-btn {
+  background-color: #f9fafb;
+  color: #374151;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-condition-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.add-condition-btn.full-width {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* Remove condition button */
+.remove-condition-btn-subtle {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.remove-condition-btn-subtle:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
+}

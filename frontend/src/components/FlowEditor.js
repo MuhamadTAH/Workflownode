@@ -15,7 +15,7 @@ import Sidebar from './Sidebar';
 import CustomNode from './CustomNode';
 import ConfigPanel from './ConfigPanel';
 import './CustomNode.css';
-import './ConfigPanel.css';
+import '../styles/configpanel/index.css';
 
 const nodeTypes = { custom: CustomNode };
 const initialNodes = [];

@@ -1,0 +1,63 @@
+/*
+=================================================================
+FILE: frontend/src/styles/configpanel/layout.css
+=================================================================
+Layout & Structure Styles for ConfigPanel
+- Main overlay and positioning
+- Panel layouts and containers
+- Content areas and spacing
+- Overall grid structure
+*/
+
+/* Main overlay container */
+.config-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+  padding: 40px;
+}
+
+/* Panel base styles */
+.main-panel, .side-panel {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Main panel specific layout */
+.main-panel {
+  width: 500px;
+  margin: 0 10px;
+}
+
+/* Side panel layout */
+.side-panel {
+  flex: 1;
+}
+
+/* Panel content areas */
+.panel-content {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.main-panel .panel-content {
+  padding: 0;
+}
+
+/* Parameters content section */
+.parameters-content {
+  padding: 20px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}

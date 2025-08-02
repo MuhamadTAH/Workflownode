@@ -21,7 +21,7 @@ import CustomNode from './components/CustomNode';
 import ConfigPanel from './components/ConfigPanel';
 // REMOVED: ChatbotPanel is no longer needed here
 import './styles/CustomNode.css';
-import './styles/ConfigPanel.css';
+import './styles/configpanel/index.css';
 import './styles/ChatbotPanel.css';
 
 const nodeTypes = { custom: CustomNode };
