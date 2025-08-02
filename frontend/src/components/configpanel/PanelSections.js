@@ -84,6 +84,16 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose })
 
 // Output Panel Component
 export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formData, inputData, autoSaveStatus }) => {
+  const handleMockOutput = () => {
+    // Set mock output data
+    setOutputData({
+      success: true,
+      processed: "Sample output data for testing",
+      timestamp: new Date().toISOString(),
+      nodeType: node.data.type
+    });
+  };
+
   const handlePostData = async () => {
     try {
       // Parse input data
