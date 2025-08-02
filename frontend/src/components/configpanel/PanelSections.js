@@ -197,18 +197,7 @@ const getWorkflowChainData = async (workflowChain) => {
     }
     
     if (hasAnyData || Object.keys(chainData).length > 0) {
-      return {
-        _workflowChain: chainData,
-        _chainMetadata: {
-          totalSteps: workflowChain.length,
-          chainLength: workflowChain.length,
-          immediateNode: workflowChain[0]?.type || 'unknown',
-          oldestNode: workflowChain[workflowChain.length - 1]?.type || 'unknown',
-          timestamp: new Date().toISOString(),
-          description: `Workflow chain data from ${workflowChain.length} nodes (ordered by proximity to current node)`,
-          ordering: 'immediate_previous_first'
-        }
-      };
+      return chainData;  // Return only the clean node data, no metadata
     }
     
     return null;
