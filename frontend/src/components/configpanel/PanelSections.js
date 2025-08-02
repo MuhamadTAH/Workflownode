@@ -151,12 +151,8 @@ const getWorkflowChainData = async (workflowChain) => {
         try {
           const parsedData = JSON.parse(storedData);
           
-          // Get both input and output data if available
+          // Get only output data from previous nodes
           const nodeData = {};
-          
-          if (parsedData.inputData) {
-            nodeData.input = parsedData.inputData;
-          }
           
           if (parsedData.outputData) {
             nodeData.output = parsedData.outputData;
