@@ -80,10 +80,14 @@ const aiAgentNode = {
 
     // Execute the AI Agent with real API calls
     async execute(nodeConfig, inputData, connectedNodes = []) {
-        const { apiKey, model, systemPrompt = 'You are a helpful AI assistant.', userPrompt = '{{message}}' } = nodeConfig;
+        const { apiKey, claudeApiKey, model, claudeModel, systemPrompt = 'You are a helpful AI assistant.', userPrompt = '{{message}}' } = nodeConfig;
         
-        if (!apiKey) {
-            throw new Error('API Key is required for AI Agent node.');
+        // Use claudeApiKey if available (from ConfigPanel), fallback to apiKey
+        const actualApiKey = claudeApiKey || apiKey;
+        const actualModel = claudeModel || model || 'claude-3-5-sonnet-20241022';
+        
+        if (!actualApiKey) {
+            throw new Error('Claude API Key is required for AI Agent node.');
         }
 
         if (!inputData) {
@@ -228,17 +232,21 @@ const aiAgentNode = {
         const conversationHistory = modelNode.getConversationHistory(userId);
 
         // Enhanced Claude API integration with official SDK
-        if (model.startsWith('claude')) {
+        if (actualModel.startsWith('claude')) {
             console.log('🚀 AI Agent: Using official Claude SDK');
             
             try {
-                const response = await callClaudeApi(apiKey, processedUserPrompt, enhancedSystemPrompt, conversationHistory);
+                const response = await callClaudeApi(actualApiKey, processedUserPrompt, enhancedSystemPrompt, conversationHistory, {
+                    model: actualModel,
+                    maxTokens: nodeConfig.maxTokens || 1000,
+                    temperature: nodeConfig.temperature || 0.7
+                });
                 
                 // Extract enhanced response data from SDK
                 const responseText = response.text || response;
                 const processingTime = response.processingTime || null;
                 const usage = response.usage || null;
-                const modelUsed = response.model || model;
+                const modelUsed = response.model || actualModel;
                 const messageId = response.id || null;
                 
                 // Store conversation in memory with enhanced SDK analytics
@@ -311,8 +319,8 @@ const aiAgentNode = {
             // Placeholder for other models - will be enhanced with future SDK support
             console.log('⚠️ AI Agent: Non-Claude models not yet supported with SDK');
             return { 
-                reply: `${model} support is coming soon. Currently only Claude models are supported with the official SDK.`,
-                model: model,
+                reply: `${actualModel} support is coming soon. Currently only Claude models are supported with the official SDK.`,
+                model: actualModel,
                 systemPrompt: enhancedSystemPrompt,
                 processedUserPrompt: processedUserPrompt,
                 sdkSupported: false,
