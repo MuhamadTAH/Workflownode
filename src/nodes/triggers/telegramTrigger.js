@@ -117,6 +117,17 @@ const telegramTriggerNode = {
                         console.log('⚠️ Could not get voice file URL:', error.message);
                         voiceData.file_url_error = error.message;
                     }
+                } else {
+                    // Fallback: Generate manual file URL template that can be used with template variables
+                    console.log('🔧 Generating fallback file URL template...');
+                    voiceData.file_url_template = `https://api.telegram.org/bot{{bot_token}}/getFile?file_id=${message.voice.file_id}`;
+                    voiceData.download_url_template = `https://api.telegram.org/file/bot{{bot_token}}/voice_${message.voice.file_unique_id}`;
+                    voiceData.manual_url_info = {
+                        message: "Use bot token to complete URLs",
+                        getFile_url: `https://api.telegram.org/bot{YOUR_BOT_TOKEN}/getFile?file_id=${message.voice.file_id}`,
+                        note: "Call getFile API first to get file_path, then use: https://api.telegram.org/file/bot{YOUR_BOT_TOKEN}/{file_path}"
+                    };
+                    console.log('🔧 Fallback URLs generated with templates');
                 }
 
                 // Enhanced message with voice data
