@@ -335,64 +335,33 @@ const ConfigPanel = ({ node, onClose, edges, nodes }) => {
         };
         setOutputDataWithTempStorage(triggerOutput);
       } else if (node.data.type === 'telegramSendMessage') {
-        // Handle Telegram Send Message nodes
-        if (!formData.botToken) {
-          throw new Error('Bot token is required');
-        }
-        if (!formData.chatId) {
-          throw new Error('Chat ID is required');
-        }
-        if (!formData.messageText) {
-          throw new Error('Message is required');
-        }
-
-        // Process template variables in the message
-        let processedMessage = formData.messageText;
+        // Handle Telegram Send Message nodes - use backend node executor for proper template processing
+        console.log('🚀 Execute Step: Processing Telegram Send Message node');
+        console.log('🚀 Execute Step: FormData:', formData);
+        console.log('🚀 Execute Step: FetchedInputData:', fetchedInputData);
         
-        // Simple template variable replacement
-        if (fetchedInputData) {
-          // Replace common template patterns
-          processedMessage = processedMessage.replace(/\{\{message\.text\}\}/g, fetchedInputData.message?.text || '');
-          processedMessage = processedMessage.replace(/\{\{message\.from\.username\}\}/g, fetchedInputData.message?.from?.username || '');
-          processedMessage = processedMessage.replace(/\{\{message\.from\.first_name\}\}/g, fetchedInputData.message?.from?.first_name || '');
-          processedMessage = processedMessage.replace(/\{\{message\.chat\.id\}\}/g, fetchedInputData.message?.chat?.id || '');
-          
-          // Replace any JSON path patterns
-          processedMessage = processedMessage.replace(/\{\{([^}]+)\}\}/g, (match, path) => {
-            try {
-              const value = path.split('.').reduce((obj, key) => obj?.[key], fetchedInputData);
-              return value !== undefined ? String(value) : match;
-            } catch (e) {
-              return match;
-            }
-          });
-        }
-
-        // Call backend to send the message
-        const sendResponse = await fetch('https://workflownode.onrender.com/api/telegram/send-message', {
+        const executeResponse = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            token: formData.botToken,
-            chatId: formData.chatId,
-            message: processedMessage,
+            node: {
+              type: node.data.type,
+              config: formData,
+            },
+            inputData: fetchedInputData,
           }),
         });
 
-        const sendResult = await sendResponse.json();
-        if (!sendResponse.ok) {
-          throw new Error(sendResult.message || 'Failed to send message');
+        const executeResult = await executeResponse.json();
+        console.log('🚀 Execute Step: Backend response:', executeResult);
+        
+        if (!executeResponse.ok) {
+          throw new Error(executeResult.message || 'Failed to send Telegram message');
         }
         
-        const telegramOutput = {
-          ...sendResult,
-          originalMessage: formData.messageText,
-          processedMessage: processedMessage,
-          inputData: fetchedInputData
-        };
-        setOutputDataWithTempStorage(telegramOutput);
+        setOutputDataWithTempStorage(executeResult);
       } else {
         // For other node types, call backend to execute the node
         const executeResponse = await fetch('https://workflownode.onrender.com/api/nodes/run-node', {
