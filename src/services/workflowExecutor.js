@@ -90,6 +90,7 @@ class WorkflowExecutor {
 
             let currentData = triggerData;
             let originalTriggerData = triggerData;
+            let stepData = {}; // Track all step outputs for template processing
 
             // Execute each node in order
             for (let i = 0; i < executionOrder.length; i++) {
@@ -120,28 +121,25 @@ class WorkflowExecutor {
                             originalTriggerData = currentData;
                             console.log('Extracted trigger message data:', JSON.stringify(currentData, null, 2));
                         }
+                        
+                        // Add trigger data to step tracking with proper naming
+                        const triggerStepName = (node.data.label || 'Telegram_Trigger').replace(/ /g, '_');
+                        stepData[`step_${i + 1}_${triggerStepName}`] = currentData;
+                        console.log(`Added trigger step: step_${i + 1}_${triggerStepName}`);
                     } else {
-                        // Create enhanced input data that includes original trigger data and previous node outputs
-                        const enhancedInputData = {
-                            ...currentData,
-                            _originalTrigger: originalTriggerData,
-                            _telegram: originalTriggerData // Alias for templates
-                        };
+                        // Create step-based input data that matches frontend expectations
+                        const stepBasedInputData = { ...stepData }; // Include all previous step data
                         
-                        // Add node-prefixed data for template access
-                        if (i > 1) { // Skip trigger node (index 0) and first action node (index 1)
-                            const previousNode = executionOrder[i - 1].node;
-                            const nodeTypePrefix = this.getNodePrefix(previousNode.data.type);
-                            if (nodeTypePrefix) {
-                                enhancedInputData[nodeTypePrefix] = currentData;
-                            }
-                        }
-                        
-                        console.log('Enhanced input data for node:', JSON.stringify(enhancedInputData, null, 2));
+                        console.log('Step-based input data for node:', JSON.stringify(stepBasedInputData, null, 2));
                         
                         // Execute the node
-                        const result = await this.executeNode(node, enhancedInputData, workflow);
+                        const result = await this.executeNode(node, stepBasedInputData, workflow);
                         currentData = result; // Use output as input for next node
+                        
+                        // Add this node's output to step tracking
+                        const nodeStepName = (node.data.label || `${node.data.type}_${node.id.slice(-4)}`).replace(/ /g, '_');
+                        stepData[`step_${i + 1}_${nodeStepName}`] = result;
+                        console.log(`Added node step: step_${i + 1}_${nodeStepName}`);
                         
                         stepLog.outputData = result;
                         stepLog.status = 'success';
