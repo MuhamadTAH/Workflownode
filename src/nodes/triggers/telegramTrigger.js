@@ -140,11 +140,46 @@ const telegramTriggerNode = {
                 };
 
                 console.log('🎤 Enhanced voice message data:', JSON.stringify(voiceData, null, 2));
+            } else if (message.location) {
+                // Handle location messages
+                console.log('📍 Location message detected!');
+                console.log('📍 Location data:', JSON.stringify(message.location, null, 2));
+                
+                const locationData = await this.processLocationMessage(message.location);
+                
+                processedUpdate.message = {
+                    ...message,
+                    location: locationData,
+                    has_location: true,
+                    has_voice: false,
+                    message_type: 'location',
+                };
+                
+                console.log('📍 Enhanced location message data:', JSON.stringify(locationData, null, 2));
+            } else if (message.contact) {
+                // Handle contact messages
+                console.log('👤 Contact message detected!');
+                console.log('👤 Contact data:', JSON.stringify(message.contact, null, 2));
+                
+                const contactData = this.processContactMessage(message.contact);
+                
+                processedUpdate.message = {
+                    ...message,
+                    contact: contactData,
+                    has_contact: true,
+                    has_voice: false,
+                    has_location: false,
+                    message_type: 'contact',
+                };
+                
+                console.log('👤 Enhanced contact message data:', JSON.stringify(contactData, null, 2));
             } else {
-                // Add convenience flag for non-voice messages
+                // Handle text and other message types
                 processedUpdate.message = {
                     ...message,
                     has_voice: false,
+                    has_location: false,
+                    has_contact: false,
                     message_type: message.text ? 'text' : 'other',
                 };
             }
@@ -220,6 +255,149 @@ const telegramTriggerNode = {
             return `${(bytes / 1024).toFixed(1)} KB`;
         } else {
             return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        }
+    },
+
+    // Process location message and generate map URLs
+    async processLocationMessage(location) {
+        try {
+            const lat = location.latitude;
+            const lng = location.longitude;
+            
+            console.log(`📍 Processing location: ${lat}, ${lng}`);
+            
+            const locationData = {
+                ...location,
+                // Add convenience fields
+                coordinates: `${lat}, ${lng}`,
+                coordinates_formatted: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+                
+                // Generate URLs for multiple map services
+                google_maps_url: `https://maps.google.com/maps?q=${lat},${lng}`,
+                apple_maps_url: `https://maps.apple.com/?q=${lat},${lng}`,
+                waze_url: `https://waze.com/ul?ll=${lat},${lng}`,
+                openstreetmap_url: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15`,
+                
+                // Additional map service URLs
+                bing_maps_url: `https://www.bing.com/maps?q=${lat},${lng}`,
+                here_maps_url: `https://wego.here.com/?map=${lat},${lng},15`,
+                
+                // Generate sharing URLs
+                google_maps_share: `https://maps.google.com/?q=${lat},${lng}&t=m`,
+                
+                // Add metadata
+                message_type: 'location',
+                is_live_location: !!location.live_period,
+                live_period_formatted: location.live_period ? this.formatDuration(location.live_period) : null,
+                accuracy_formatted: location.horizontal_accuracy ? `${location.horizontal_accuracy}m` : null,
+            };
+            
+            // Add additional processing for live locations
+            if (location.live_period) {
+                locationData.live_location_info = {
+                    duration: location.live_period,
+                    duration_formatted: this.formatDuration(location.live_period),
+                    expires_at: new Date(Date.now() + (location.live_period * 1000)).toISOString(),
+                };
+            }
+            
+            return locationData;
+        } catch (error) {
+            console.error('❌ Error processing location message:', error);
+            return {
+                ...location,
+                processing_error: error.message
+            };
+        }
+    },
+
+    // Process contact message and format data
+    processContactMessage(contact) {
+        try {
+            console.log('👤 Processing contact message');
+            
+            const contactData = {
+                ...contact,
+                // Add convenience fields
+                full_name: [contact.first_name, contact.last_name].filter(Boolean).join(' '),
+                display_name: contact.first_name || 'Unknown Contact',
+                
+                // Format phone number
+                phone_formatted: this.formatPhoneNumber(contact.phone_number),
+                
+                // Check if this is a Telegram user
+                is_telegram_user: !!contact.user_id,
+                
+                // Parse vCard if available
+                vcard_info: contact.vcard ? this.parseVCard(contact.vcard) : null,
+                
+                // Add metadata
+                message_type: 'contact',
+                contact_type: contact.user_id ? 'telegram_user' : 'external_contact',
+            };
+            
+            return contactData;
+        } catch (error) {
+            console.error('❌ Error processing contact message:', error);
+            return {
+                ...contact,
+                processing_error: error.message
+            };
+        }
+    },
+
+    // Format phone number (basic formatting)
+    formatPhoneNumber(phoneNumber) {
+        if (!phoneNumber) return '';
+        
+        // Remove all non-digit characters except +
+        const cleaned = phoneNumber.replace(/[^\d+]/g, '');
+        
+        // Basic international format
+        if (cleaned.startsWith('+')) {
+            return cleaned;
+        } else if (cleaned.length >= 10) {
+            return `+${cleaned}`;
+        }
+        
+        return phoneNumber; // Return original if can't format
+    },
+
+    // Basic vCard parsing (can be enhanced)
+    parseVCard(vcard) {
+        try {
+            const lines = vcard.split('\n');
+            const parsed = {};
+            
+            lines.forEach(line => {
+                const [key, ...valueParts] = line.split(':');
+                if (key && valueParts.length > 0) {
+                    const value = valueParts.join(':').trim();
+                    
+                    switch (key.toUpperCase()) {
+                        case 'FN':
+                            parsed.formatted_name = value;
+                            break;
+                        case 'TEL':
+                            parsed.telephone = value;
+                            break;
+                        case 'EMAIL':
+                            parsed.email = value;
+                            break;
+                        case 'ORG':
+                            parsed.organization = value;
+                            break;
+                        case 'TITLE':
+                            parsed.title = value;
+                            break;
+                    }
+                }
+            });
+            
+            return Object.keys(parsed).length > 0 ? parsed : null;
+        } catch (error) {
+            console.log('⚠️ vCard parsing error:', error.message);
+            return null;
         }
     },
 };
