@@ -44,9 +44,9 @@ const activateWorkflow = async (req, res) => {
         await telegramTrigger.description.webhookMethods.create(credentials, webhookUrl);
         console.log(`✅ Webhook created: ${webhookUrl}`);
 
-        // 2. Register workflow for automatic execution
+        // 2. Register workflow for automatic execution with credentials
         try {
-            workflowExecutor.registerWorkflow(workflowId, workflow);
+            workflowExecutor.registerWorkflow(workflowId, workflow, credentials);
             console.log(`✅ Workflow ${workflowId} registered for auto-execution`);
         } catch (registrationError) {
             console.error('Error registering workflow:', registrationError.message);

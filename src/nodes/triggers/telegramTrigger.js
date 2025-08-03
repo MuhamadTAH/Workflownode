@@ -62,13 +62,155 @@ const telegramTriggerNode = {
         },
     },
     async trigger(request) {
+        console.log('🎤 Telegram Trigger: Processing webhook update...');
         const update = request.body;
+        
+        // Process the update to enhance voice message data
+        const processedUpdate = await this.processUpdate(update);
+        
         const returnData = [{
-            json: update,
+            json: processedUpdate,
         }];
         return {
             workflowData: returnData,
         };
+    },
+
+    // Process Telegram update to enhance voice message data
+    async processUpdate(update) {
+        try {
+            console.log('📝 Processing Telegram update:', JSON.stringify(update, null, 2));
+            
+            // Check if this update contains a message
+            if (!update.message) {
+                console.log('📝 No message in update, returning as-is');
+                return update;
+            }
+
+            const message = update.message;
+            const processedUpdate = { ...update };
+
+            // Check if the message contains a voice message
+            if (message.voice) {
+                console.log('🎤 Voice message detected!');
+                console.log('🎤 Voice data:', JSON.stringify(message.voice, null, 2));
+                
+                // Get bot token from the message (we need to extract it from webhook URL or pass it differently)
+                // For now, we'll enhance the voice data with what we have and add file URL later
+                const voiceData = {
+                    ...message.voice,
+                    // Add enhanced voice metadata
+                    message_type: 'voice',
+                    duration_formatted: this.formatDuration(message.voice.duration || 0),
+                    file_size_formatted: this.formatFileSize(message.voice.file_size || 0),
+                };
+
+                // Try to get the file URL if we can determine the bot token
+                const botToken = this.extractBotTokenFromContext(update);
+                if (botToken) {
+                    try {
+                        const fileUrl = await this.getVoiceFileUrl(botToken, message.voice.file_id);
+                        voiceData.file_url = fileUrl;
+                        voiceData.download_url = fileUrl;
+                        console.log('🎤 Voice file URL retrieved:', fileUrl);
+                    } catch (error) {
+                        console.log('⚠️ Could not get voice file URL:', error.message);
+                        voiceData.file_url_error = error.message;
+                    }
+                }
+
+                // Enhanced message with voice data
+                processedUpdate.message = {
+                    ...message,
+                    voice: voiceData,
+                    // Add convenience flags
+                    has_voice: true,
+                    message_type: 'voice',
+                };
+
+                console.log('🎤 Enhanced voice message data:', JSON.stringify(voiceData, null, 2));
+            } else {
+                // Add convenience flag for non-voice messages
+                processedUpdate.message = {
+                    ...message,
+                    has_voice: false,
+                    message_type: message.text ? 'text' : 'other',
+                };
+            }
+
+            return processedUpdate;
+        } catch (error) {
+            console.error('❌ Error processing Telegram update:', error);
+            // Return original update if processing fails
+            return update;
+        }
+    },
+
+    // Get voice file URL from Telegram API
+    async getVoiceFileUrl(botToken, fileId) {
+        try {
+            console.log('🎤 Getting voice file URL for file_id:', fileId);
+            
+            const getFileUrl = `https://api.telegram.org/bot${botToken}/getFile`;
+            const response = await axios.post(getFileUrl, {
+                file_id: fileId
+            });
+
+            if (response.data.ok) {
+                const filePath = response.data.result.file_path;
+                const fileUrl = `https://api.telegram.org/file/bot${botToken}/${filePath}`;
+                console.log('🎤 Voice file URL generated:', fileUrl);
+                return fileUrl;
+            } else {
+                throw new Error(`Telegram API error: ${response.data.description}`);
+            }
+        } catch (error) {
+            console.error('❌ Failed to get voice file URL:', error.message);
+            throw error;
+        }
+    },
+
+    // Extract bot token from webhook context (this might need adjustment based on how webhooks are configured)
+    extractBotTokenFromContext(update) {
+        // Try to extract bot token from webhook URL or other context
+        // This is a placeholder - the actual implementation depends on how the webhook is set up
+        
+        // For now, we'll look for it in common places or return null
+        // The bot token might be available in the request context or we might need to pass it differently
+        
+        console.log('🔍 Attempting to extract bot token from context...');
+        
+        // Check if token is stored in update metadata (if we add it)
+        if (update._botToken) {
+            return update._botToken;
+        }
+        
+        // Could also be extracted from the webhook URL pattern if available
+        // For now, return null and handle gracefully
+        console.log('⚠️ Bot token not available in current context');
+        return null;
+    },
+
+    // Format duration in human-readable format
+    formatDuration(seconds) {
+        if (seconds < 60) {
+            return `${seconds}s`;
+        } else {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}m ${remainingSeconds}s`;
+        }
+    },
+
+    // Format file size in human-readable format
+    formatFileSize(bytes) {
+        if (bytes < 1024) {
+            return `${bytes} bytes`;
+        } else if (bytes < 1024 * 1024) {
+            return `${(bytes / 1024).toFixed(1)} KB`;
+        } else {
+            return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        }
     },
 };
 

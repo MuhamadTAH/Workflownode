@@ -9,6 +9,14 @@ const handleTelegramWebhook = async (req, res) => {
         const workflowId = req.params.workflowId;
         console.log(`\n🔔 Webhook received for workflowId: ${workflowId}`);
 
+        // Get workflow credentials (including bot token) for trigger processing
+        const credentials = workflowExecutor.getWorkflowCredentials(workflowId);
+        if (credentials && credentials.botToken) {
+            // Add bot token to request body for trigger processing
+            req.body._botToken = credentials.botToken;
+            console.log('🔑 Bot token added to trigger context');
+        }
+
         // Process the trigger data
         const result = await telegramTrigger.trigger(req);
         const triggerData = result.workflowData;

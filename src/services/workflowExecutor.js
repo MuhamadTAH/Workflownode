@@ -18,7 +18,7 @@ class WorkflowExecutor {
     }
 
     // Register a workflow for automatic execution
-    registerWorkflow(workflowId, workflowConfig) {
+    registerWorkflow(workflowId, workflowConfig, credentials) {
         console.log(`Registering workflow ${workflowId} for automatic execution`);
         console.log('Workflow config received:', {
             nodes: workflowConfig.nodes?.length || 0,
@@ -40,16 +40,23 @@ class WorkflowExecutor {
 
         console.log(`Found trigger node: ${triggerNode.data.label || triggerNode.data.type} (${triggerNode.id})`);
 
-        // Store workflow configuration
+        // Store workflow configuration with credentials
         this.activeWorkflows.set(workflowId, {
             ...workflowConfig,
             triggerNodeId: triggerNode.id,
+            credentials: credentials, // Store credentials for trigger access
             isActive: true,
             registeredAt: new Date().toISOString()
         });
 
         console.log(`Workflow ${workflowId} registered successfully with ${workflowConfig.nodes.length} nodes and ${workflowConfig.edges.length} edges`);
         return true;
+    }
+
+    // Get workflow credentials (for webhook processing)
+    getWorkflowCredentials(workflowId) {
+        const workflow = this.activeWorkflows.get(workflowId);
+        return workflow ? workflow.credentials : null;
     }
 
     // Deactivate a workflow
