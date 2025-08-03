@@ -211,7 +211,8 @@ const telegramSendMessageNode = {
                     let value = dataSource;
                     
                     // Handle legacy templates with 'data' prefix (e.g., {{Telegram_Trigger.data.message.from.id}})
-                    if (keys[0] === 'data' && keys.length > 1) {
+                    // Only if the first key is 'data' and it doesn't exist in the data source
+                    if (keys[0] === 'data' && keys.length > 1 && !(keys[0] in value)) {
                         console.log('🔧 Telegram: Detected legacy "data" prefix in template, removing it');
                         keys.shift(); // Remove the 'data' prefix
                     }
@@ -220,7 +221,8 @@ const telegramSendMessageNode = {
                         if (value && typeof value === 'object' && key in value) {
                             value = value[key];
                         } else {
-                            console.log(`❌ Telegram: Key '${key}' not found in path '${path}' (after data prefix handling)`);
+                            console.log(`❌ Telegram: Key '${key}' not found in path '${path}'`);
+                            console.log(`Available keys in current level:`, value && typeof value === 'object' ? Object.keys(value) : 'not an object');
                             return match;
                         }
                     }
