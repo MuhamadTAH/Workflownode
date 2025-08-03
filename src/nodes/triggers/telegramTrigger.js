@@ -172,22 +172,21 @@ const telegramTriggerNode = {
 
     // Extract bot token from webhook context (this might need adjustment based on how webhooks are configured)
     extractBotTokenFromContext(update) {
-        // Try to extract bot token from webhook URL or other context
-        // This is a placeholder - the actual implementation depends on how the webhook is set up
-        
-        // For now, we'll look for it in common places or return null
-        // The bot token might be available in the request context or we might need to pass it differently
-        
         console.log('🔍 Attempting to extract bot token from context...');
+        console.log('🔍 DEBUG: Update keys:', Object.keys(update));
+        console.log('🔍 DEBUG: Looking for _botToken in update...');
         
         // Check if token is stored in update metadata (if we add it)
         if (update._botToken) {
+            console.log('✅ Bot token found in update context!');
+            console.log('✅ Bot token (first 10 chars):', update._botToken.substring(0, 10) + '...');
             return update._botToken;
         }
         
         // Could also be extracted from the webhook URL pattern if available
         // For now, return null and handle gracefully
-        console.log('⚠️ Bot token not available in current context');
+        console.log('❌ Bot token not available in current context');
+        console.log('❌ Available update fields:', Object.keys(update));
         return null;
     },
 

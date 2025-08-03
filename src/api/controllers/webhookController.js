@@ -11,10 +11,18 @@ const handleTelegramWebhook = async (req, res) => {
 
         // Get workflow credentials (including bot token) for trigger processing
         const credentials = workflowExecutor.getWorkflowCredentials(workflowId);
+        console.log('🔍 DEBUG: Retrieved credentials for workflowId:', workflowId);
+        console.log('🔍 DEBUG: Credentials object:', credentials ? 'exists' : 'null');
+        console.log('🔍 DEBUG: Bot token exists:', credentials && credentials.botToken ? 'YES' : 'NO');
+        
         if (credentials && credentials.botToken) {
             // Add bot token to request body for trigger processing
             req.body._botToken = credentials.botToken;
             console.log('🔑 Bot token added to trigger context');
+            console.log('🔑 Bot token (first 10 chars):', credentials.botToken.substring(0, 10) + '...');
+        } else {
+            console.log('❌ No bot token available in credentials');
+            console.log('❌ Available credential keys:', credentials ? Object.keys(credentials) : 'none');
         }
 
         // Process the trigger data
