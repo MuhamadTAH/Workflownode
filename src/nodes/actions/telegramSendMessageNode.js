@@ -403,6 +403,11 @@ const telegramSendMessageNode = {
                 }
             }
         } else if (messageType === 'video') {
+            console.log('🎥 Processing video request...');
+            console.log('Video URL length:', processedContent.video.length);
+            console.log('Video URL type:', typeof processedContent.video);
+            console.log('Video URL starts with:', processedContent.video.substring(0, 50));
+            
             telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendVideo`;
             requestData = {
                 chat_id: numericChatId,
@@ -416,6 +421,8 @@ const telegramSendMessageNode = {
                     requestData.parse_mode = parseMode;
                 }
             }
+            
+            console.log('🎥 Video request data prepared:', JSON.stringify(requestData, null, 2));
         }
 
         try {
