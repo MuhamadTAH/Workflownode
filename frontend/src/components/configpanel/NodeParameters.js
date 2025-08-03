@@ -1386,6 +1386,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
             onChange={handleFormFieldChange} 
             className="condition-input"
           >
+            <option value="telegram_file_id">🤖 Telegram file_id</option>
             <option value="google_drive">📁 Google Drive URL</option>
             <option value="base64">🔢 Base64 Data</option>
             <option value="direct_url">🌐 Direct URL (needs proxy)</option>
@@ -1397,6 +1398,43 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
             💡 Choose your file source type
           </div>
         </div>
+
+        {/* Telegram file_id Fields */}
+        {(formData.inputType || 'google_drive') === 'telegram_file_id' && (
+          <>
+            <div className="form-group">
+              <label>Telegram Bot Token</label>
+              <DroppableTextInput
+                type="password"
+                name="telegramBotToken"
+                value={formData.telegramBotToken || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🤖 Bot token for accessing Telegram files
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Telegram file_id</label>
+              <DroppableTextInput
+                type="text"
+                name="telegramFileId"
+                value={formData.telegramFileId || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="BAADBAADBgADBREAAR4BAAFXvv0lAg"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                📁 file_id from received Telegram media (photos, videos, documents, etc.)
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Google Drive Fields */}
         {(formData.inputType || 'google_drive') === 'google_drive' && (

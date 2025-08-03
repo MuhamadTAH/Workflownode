@@ -28,6 +28,7 @@ const fileConverterNode = {
                 name: 'inputType',
                 type: 'options',
                 options: [
+                    { name: 'Telegram file_id', value: 'telegram_file_id' },
                     { name: 'Google Drive URL', value: 'google_drive' },
                     { name: 'Base64 Data', value: 'base64' },
                     { name: 'Direct URL (needs proxy)', value: 'direct_url' },
@@ -38,6 +39,39 @@ const fileConverterNode = {
                 default: 'google_drive',
                 required: true,
                 description: 'Type of file source to convert.',
+            },
+            
+            // Telegram file_id fields
+            {
+                displayName: 'Telegram Bot Token',
+                name: 'telegramBotToken',
+                type: 'string',
+                typeOptions: {
+                    password: true,
+                },
+                default: '',
+                required: true,
+                description: 'Bot token for accessing Telegram files. Supports template variables.',
+                placeholder: '1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ',
+                displayOptions: {
+                    show: {
+                        inputType: ['telegram_file_id']
+                    }
+                }
+            },
+            {
+                displayName: 'Telegram file_id',
+                name: 'telegramFileId',
+                type: 'string',
+                default: '',
+                required: true,
+                description: 'Telegram file_id from received media. Supports template variables.',
+                placeholder: 'BAADBAADBgADBREAAR4BAAFXvv0lAg',
+                displayOptions: {
+                    show: {
+                        inputType: ['telegram_file_id']
+                    }
+                }
             },
             
             // Google Drive fields
@@ -332,6 +366,8 @@ const fileConverterNode = {
 
         const { 
             inputType,
+            telegramBotToken,
+            telegramFileId,
             googleDriveUrl,
             base64Data,
             fileExtension,
@@ -351,6 +387,15 @@ const fileConverterNode = {
             
             // Step 1: Get file from source
             switch (inputType) {
+                case 'telegram_file_id':
+                    const processedBotToken = parseUniversalTemplate(telegramBotToken, inputData);
+                    const processedFileId = parseUniversalTemplate(telegramFileId, inputData);
+                    const telegramResult = await this.getTelegramFile(processedBotToken, processedFileId);
+                    fileBuffer = telegramResult.buffer;
+                    fileName = telegramResult.fileName;
+                    mimeType = telegramResult.mimeType;
+                    break;
+                    
                 case 'google_drive':
                     const processedGoogleUrl = parseUniversalTemplate(googleDriveUrl, inputData);
                     const result = await this.getGoogleDriveFile(processedGoogleUrl);
@@ -421,7 +466,8 @@ const fileConverterNode = {
             
             return {
                 success: true,
-                originalUrl: inputType === 'google_drive' ? googleDriveUrl : 
+                originalUrl: inputType === 'telegram_file_id' ? telegramFileId :
+                           inputType === 'google_drive' ? googleDriveUrl : 
                            inputType === 'base64' ? 'base64_data' : 
                            inputType === 'local_file' ? localFilePath : fileUrl,
                 convertedUrl: uploadResult.url,
@@ -443,6 +489,72 @@ const fileConverterNode = {
             console.error('Error:', error.message);
             
             throw new Error(`File conversion failed: ${error.message}`);
+        }
+    },
+
+    // Get file from Telegram file_id
+    async getTelegramFile(botToken, fileId) {
+        console.log('Getting Telegram file:', fileId);
+        
+        try {
+            // Step 1: Get file info from Telegram API
+            const getFileUrl = `https://api.telegram.org/bot${botToken}/getFile`;
+            const fileInfoResponse = await axios.post(getFileUrl, {
+                file_id: fileId
+            });
+
+            if (!fileInfoResponse.data.ok) {
+                throw new Error(`Telegram API error: ${fileInfoResponse.data.description}`);
+            }
+
+            const filePath = fileInfoResponse.data.result.file_path;
+            const fileSize = fileInfoResponse.data.result.file_size;
+            
+            console.log(`File info retrieved: ${filePath} (${fileSize} bytes)`);
+            
+            // Step 2: Download file from Telegram servers
+            const downloadUrl = `https://api.telegram.org/file/bot${botToken}/${filePath}`;
+            
+            const downloadResponse = await axios.get(downloadUrl, {
+                responseType: 'arraybuffer',
+                timeout: 30000,
+                maxContentLength: 52428800, // 50MB
+            });
+            
+            const buffer = Buffer.from(downloadResponse.data);
+            const contentType = downloadResponse.headers['content-type'] || 'application/octet-stream';
+            
+            // Extract filename from file path
+            let fileName = 'telegram_file';
+            if (filePath) {
+                const pathParts = filePath.split('/');
+                fileName = pathParts[pathParts.length - 1];
+            }
+            
+            // Add extension based on content type if not present
+            if (!fileName.includes('.')) {
+                const extension = this.getExtensionFromMimeType(contentType);
+                fileName += `.${extension}`;
+            }
+            
+            return {
+                buffer: buffer,
+                fileName: fileName,
+                mimeType: contentType
+            };
+            
+        } catch (error) {
+            if (error.response) {
+                const status = error.response.status;
+                if (status === 400) {
+                    throw new Error('Invalid file_id or file not found');
+                } else if (status === 401) {
+                    throw new Error('Invalid bot token');
+                } else if (status === 403) {
+                    throw new Error('Bot doesn\'t have access to this file');
+                }
+            }
+            throw new Error(`Failed to get Telegram file: ${error.message}`);
         }
     },
 
