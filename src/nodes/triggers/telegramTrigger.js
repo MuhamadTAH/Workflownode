@@ -80,6 +80,14 @@ const telegramTriggerNode = {
     async processUpdate(update) {
         try {
             console.log('📝 Processing Telegram update:', JSON.stringify(update, null, 2));
+            console.log('🔍 DEBUG: Update has message?', !!update.message);
+            if (update.message) {
+                console.log('🔍 DEBUG: Message has location?', !!update.message.location);
+                console.log('🔍 DEBUG: Message has contact?', !!update.message.contact);
+                console.log('🔍 DEBUG: Message has voice?', !!update.message.voice);
+                console.log('🔍 DEBUG: Message has text?', !!update.message.text);
+                console.log('🔍 DEBUG: Message keys:', Object.keys(update.message));
+            }
             
             // Check if this update contains a message
             if (!update.message) {
@@ -143,9 +151,10 @@ const telegramTriggerNode = {
             } else if (message.location) {
                 // Handle location messages
                 console.log('📍 Location message detected!');
-                console.log('📍 Location data:', JSON.stringify(message.location, null, 2));
+                console.log('📍 Raw location data:', JSON.stringify(message.location, null, 2));
                 
                 const locationData = await this.processLocationMessage(message.location);
+                console.log('📍 Processed location data:', JSON.stringify(locationData, null, 2));
                 
                 processedUpdate.message = {
                     ...message,
@@ -155,7 +164,7 @@ const telegramTriggerNode = {
                     message_type: 'location',
                 };
                 
-                console.log('📍 Enhanced location message data:', JSON.stringify(locationData, null, 2));
+                console.log('📍 Final enhanced message:', JSON.stringify(processedUpdate.message, null, 2));
             } else if (message.contact) {
                 // Handle contact messages
                 console.log('👤 Contact message detected!');
@@ -261,10 +270,12 @@ const telegramTriggerNode = {
     // Process location message and generate map URLs
     async processLocationMessage(location) {
         try {
+            console.log('🔧 processLocationMessage called with:', JSON.stringify(location, null, 2));
             const lat = location.latitude;
             const lng = location.longitude;
             
             console.log(`📍 Processing location: ${lat}, ${lng}`);
+            console.log('📍 Latitude type:', typeof lat, 'Longitude type:', typeof lng);
             
             const locationData = {
                 ...location,
@@ -291,6 +302,11 @@ const telegramTriggerNode = {
                 live_period_formatted: location.live_period ? this.formatDuration(location.live_period) : null,
                 accuracy_formatted: location.horizontal_accuracy ? `${location.horizontal_accuracy}m` : null,
             };
+            
+            console.log('🔗 Generated URLs:');
+            console.log('🔗 Google Maps:', locationData.google_maps_url);
+            console.log('🔗 Apple Maps:', locationData.apple_maps_url);
+            console.log('🔗 Waze:', locationData.waze_url);
             
             // Add additional processing for live locations
             if (location.live_period) {
