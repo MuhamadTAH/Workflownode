@@ -209,11 +209,18 @@ const telegramSendMessageNode = {
                     // Navigate the path in data source
                     const keys = path.split('.');
                     let value = dataSource;
+                    
+                    // Handle legacy templates with 'data' prefix (e.g., {{Telegram_Trigger.data.message.from.id}})
+                    if (keys[0] === 'data' && keys.length > 1) {
+                        console.log('🔧 Telegram: Detected legacy "data" prefix in template, removing it');
+                        keys.shift(); // Remove the 'data' prefix
+                    }
+                    
                     for (const key of keys) {
                         if (value && typeof value === 'object' && key in value) {
                             value = value[key];
                         } else {
-                            console.log(`❌ Telegram: Key '${key}' not found in path '${path}'`);
+                            console.log(`❌ Telegram: Key '${key}' not found in path '${path}' (after data prefix handling)`);
                             return match;
                         }
                     }
