@@ -471,7 +471,16 @@ const telegramSendMessageNode = {
             }
             
         } catch (error) {
-            console.error('Failed to send Telegram message:', error.response ? error.response.data : error.message);
+            console.error('=== TELEGRAM ERROR DEBUG ===');
+            console.error('Error type:', error.name);
+            console.error('Error message:', error.message);
+            console.error('Full error:', error);
+            console.error('Error response:', error.response ? error.response.data : 'No response data');
+            console.error('Request URL:', telegramApiUrl);
+            console.error('Request data:', JSON.stringify(requestData, null, 2));
+            console.error('Message type:', messageType);
+            console.error('Processed content:', JSON.stringify(processedContent, null, 2));
+            console.error('=== END DEBUG ===');
             
             // Provide helpful error messages
             let errorMessage = 'Failed to send Telegram message';
