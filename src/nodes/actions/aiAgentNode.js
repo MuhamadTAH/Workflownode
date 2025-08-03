@@ -130,7 +130,7 @@ const aiAgentNode = {
             }
         };
 
-        // Enhanced Universal Template Parser - supports multiple template formats
+        // Enhanced Universal Template Parser - supports multiple template formats including workflow chains
         const parseUniversalTemplate = (inputStr, json) => {
             if (!inputStr) return inputStr || '';
             
@@ -141,45 +141,108 @@ const aiAgentNode = {
                 try {
                     if (!json) return match;
                     
-                    const keys = path.split('.');
-                    let value = json;
-                    
-                    for (const key of keys) {
-                        if (value && typeof value === 'object' && key in value) {
-                            value = value[key];
-                        } else {
-                            return match; // Keep original if path not found
+                    // For workflow chain data, look inside the steps
+                    if (Object.keys(json).some(key => key.startsWith('step_'))) {
+                        console.log('🔗 Backend: Detected workflow chain data, searching in steps...');
+                        
+                        // Try to find the path in any step
+                        for (const [stepKey, stepValue] of Object.entries(json)) {
+                            if (stepKey.startsWith('step_') && typeof stepValue === 'object') {
+                                console.log(`🔍 Backend: Checking step: ${stepKey}`);
+                                
+                                const keys = path.split('.');
+                                let value = stepValue;
+                                let found = true;
+                                
+                                for (const key of keys) {
+                                    if (value && typeof value === 'object' && key in value) {
+                                        value = value[key];
+                                    } else {
+                                        found = false;
+                                        break;
+                                    }
+                                }
+                                
+                                if (found) {
+                                    const result = convertValueToString(value);
+                                    console.log('✅ Backend: Found value in workflow chain:', result);
+                                    return result;
+                                }
+                            }
                         }
+                        
+                        console.log('❌ Backend: Path not found in any workflow step');
+                        return match;
+                    } else {
+                        // Regular data processing for non-workflow data
+                        const keys = path.split('.');
+                        let value = json;
+                        
+                        for (const key of keys) {
+                            if (value && typeof value === 'object' && key in value) {
+                                value = value[key];
+                            } else {
+                                return match; // Keep original if path not found
+                            }
+                        }
+                        
+                        return convertValueToString(value);
                     }
-                    
-                    return convertValueToString(value);
                 } catch (error) {
                     console.error('Error parsing $json template:', error);
                     return match;
                 }
             });
             
-            // 2. Handle {{nodePrefix.path.to.value}} format (frontend system)
-            result = result.replace(/\{\{\s*([a-zA-Z]+)\.(.*?)\s*\}\}/g, (match, nodePrefix, path) => {
+            // 2. Handle {{nodePrefix.path.to.value}} format (frontend system) with step support
+            result = result.replace(/\{\{\s*([a-zA-Z_]+)\.(.+?)\s*\}\}/g, (match, nodePrefix, path) => {
                 try {
                     let dataSource = null;
                     
-                    // Map node prefixes to data locations
-                    if (nodePrefix === 'telegram' && json._telegram) {
-                        dataSource = json._telegram;
-                    } else if (nodePrefix === 'telegram' && json._originalTrigger) {
-                        dataSource = json._originalTrigger;
-                    } else if (nodePrefix === 'aiAgent' && json.reply) {
-                        if (path === 'reply' || path === 'response') return json.reply;
-                    } else if (nodePrefix === 'model' && json.reply) {
-                        if (path === 'reply' || path === 'response') return json.reply;
-                    } else if (json[nodePrefix]) {
-                        dataSource = json[nodePrefix];
+                    // For workflow chain data, look for step keys that contain the node prefix
+                    if (Object.keys(json).some(key => key.startsWith('step_'))) {
+                        console.log(`🔗 Backend: Looking for nodePrefix '${nodePrefix}' in workflow chain...`);
+                        
+                        // Look for steps that match the node prefix
+                        for (const [stepKey, stepValue] of Object.entries(json)) {
+                            if (stepKey.startsWith('step_') && typeof stepValue === 'object') {
+                                // Check if this step matches the node prefix (case insensitive, handle underscores)
+                                const stepName = stepKey.replace(/^step_\d+_/, '').toLowerCase().replace(/_/g, '');
+                                const prefixName = nodePrefix.toLowerCase().replace(/_/g, '');
+                                
+                                if (stepName.includes(prefixName) || prefixName.includes(stepName)) {
+                                    console.log(`🎯 Backend: Found matching step '${stepKey}' for prefix '${nodePrefix}'`);
+                                    dataSource = stepValue;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!dataSource) {
+                            console.log(`❌ Backend: No step found for nodePrefix '${nodePrefix}'`);
+                            return match;
+                        }
                     } else {
-                        dataSource = json;
+                        // Fallback to regular node prefix mapping for non-workflow data
+                        if (nodePrefix === 'telegram' && json._telegram) {
+                            dataSource = json._telegram;
+                        } else if (nodePrefix === 'telegram' && json._originalTrigger) {
+                            dataSource = json._originalTrigger;
+                        } else if (nodePrefix === 'aiAgent' && json.reply) {
+                            if (path === 'reply' || path === 'response') return json.reply;
+                        } else if (nodePrefix === 'model' && json.reply) {
+                            if (path === 'reply' || path === 'response') return json.reply;
+                        } else if (json[nodePrefix]) {
+                            dataSource = json[nodePrefix];
+                        } else {
+                            dataSource = json;
+                        }
                     }
                     
-                    if (!dataSource) return match;
+                    if (!dataSource) {
+                        console.log(`❌ Backend: No data source found for nodePrefix '${nodePrefix}'`);
+                        return match;
+                    }
                     
                     // Navigate the path in data source
                     const keys = path.split('.');
@@ -188,11 +251,14 @@ const aiAgentNode = {
                         if (value && typeof value === 'object' && key in value) {
                             value = value[key];
                         } else {
+                            console.log(`❌ Backend: Key '${key}' not found in path '${path}'`);
                             return match;
                         }
                     }
                     
-                    return convertValueToString(value);
+                    const result = convertValueToString(value);
+                    console.log(`✅ Backend: Successfully processed ${match} → ${result}`);
+                    return result;
                 } catch (error) {
                     console.error('Error parsing node prefix template:', error);
                     return match;

@@ -22,9 +22,9 @@ export const useAutoSave = (formData, nodeId, setAutoSaveStatus) => {
     setAutoSaveStatus('saving');
     debounceTimerRef.current = setTimeout(() => {
       try {
-        // Save to localStorage for persistence
+        // Save to sessionStorage for session persistence
         const saveKey = `node-config-${nodeId}`;
-        localStorage.setItem(saveKey, JSON.stringify(formData));
+        sessionStorage.setItem(saveKey, JSON.stringify(formData));
         setAutoSaveStatus('saved');
       } catch (error) {
         console.error('Auto-save failed:', error);
@@ -149,7 +149,7 @@ export const initializeFormData = (node) => {
     claudeModel: node.data.claudeModel || 'claude-3-5-sonnet-20241022', // Fix: Add claudeModel field
     maxTokens: node.data.maxTokens || 1000, // Fix: Add maxTokens field for AI Agent settings
     temperature: node.data.temperature || 0.7, // Fix: Add temperature field for AI Agent settings
-    systemPrompt: node.data.systemPrompt || 'You are a helpful AI assistant.',
+    systemPrompt: node.data.systemPrompt || '',
     userPrompt: node.data.userPrompt || '{{message}}',
     displayFormat: node.data.displayFormat || 'chat',
     promptTemplate: node.data.promptTemplate || 'You are a helpful assistant. User message: {{message.text}}',

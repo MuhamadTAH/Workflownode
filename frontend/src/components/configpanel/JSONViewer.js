@@ -141,13 +141,16 @@ export const NodeOrganizedJSONViewer = ({ data, onFieldDrag }) => {
             {isWorkflowChain ? (
               // Render workflow chain data with step names
               Object.entries(data).map(([stepKey, stepValue]) => {
-                // Extract step name from stepKey (e.g., "step_1_AI_Agent" -> "AI_Agent")
+                // Extract step name from stepKey (e.g., "step_1_Telegram_Trigger" -> "Telegram_Trigger")
                 const stepName = stepKey.replace(/^step_\d+_/, '');
+                // Create display name by converting underscores back to spaces for readability
+                const displayName = stepName.replace(/_/g, ' ');
                 
                 return (
                   <div key={stepKey} className="workflow-step mb-4 p-3 bg-gray-50 rounded border">
                     <div className="step-header mb-2">
-                      <span className="font-semibold text-blue-700">{stepKey}</span>
+                      <span className="font-semibold text-blue-700">{displayName}</span>
+                      <span className="text-xs text-gray-400 ml-2">({stepKey})</span>
                     </div>
                     <div className="step-content">
                       {typeof stepValue === 'object' && stepValue !== null ? (

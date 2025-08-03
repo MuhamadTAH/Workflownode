@@ -153,8 +153,8 @@ const getWorkflowChainData = async (workflowChain) => {
           
           // Get only output data from previous nodes
           if (parsedData.outputData) {
-            // Create a readable node name
-            const nodeDisplayName = chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`;
+            // Create a readable node name (replace spaces with underscores for consistent key format)
+            const nodeDisplayName = (chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`).replace(/ /g, '_');
             
             // Store only the pure output data, no metadata
             chainData[`step_${i + 1}_${nodeDisplayName}`] = parsedData.outputData;
@@ -165,8 +165,8 @@ const getWorkflowChainData = async (workflowChain) => {
           console.warn(`Failed to parse stored data for chain node ${chainNode.id}:`, parseError);
         }
       } else {
-        // Node has no stored data, show simple message
-        const nodeDisplayName = chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`;
+        // Node has no stored data, show simple message (replace spaces with underscores for consistent key format)
+        const nodeDisplayName = (chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`).replace(/ /g, '_');
         chainData[`step_${i + 1}_${nodeDisplayName}`] = 'No execution data available for this node';
       }
     }
@@ -196,7 +196,14 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose, e
         const chainData = await getWorkflowChainData(workflowChain);
         
         if (chainData) {
-          setInputData(JSON.stringify(chainData, null, 2));
+          const jsonData = JSON.stringify(chainData, null, 2);
+          setInputData(jsonData);
+          // Also save to sessionStorage for session persistence
+          try {
+            sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
+          } catch (error) {
+            console.warn('Failed to save input data to sessionStorage:', error);
+          }
           return;
         }
         
@@ -205,10 +212,17 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose, e
         if (connectedPreviousNodes.length > 0) {
           const connectedData = await getConnectedNodesData(connectedPreviousNodes);
           if (connectedData) {
-            setInputData(JSON.stringify({
+            const jsonData = JSON.stringify({
               _immediateConnections: connectedData,
               _note: "Showing immediate connections only - workflow chain data not available"
-            }, null, 2));
+            }, null, 2);
+            setInputData(jsonData);
+            // Also save to sessionStorage for session persistence
+            try {
+              sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
+            } catch (error) {
+              console.warn('Failed to save input data to sessionStorage:', error);
+            }
             return;
           }
         }
@@ -245,10 +259,24 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose, e
           if (result.updates && result.updates.length > 0) {
             // Get the most recent message
             const latestMessage = result.updates[result.updates.length - 1];
-            setInputData(JSON.stringify(latestMessage, null, 2));
+            const jsonData = JSON.stringify(latestMessage, null, 2);
+            setInputData(jsonData);
+            // Also save to sessionStorage for session persistence
+            try {
+              sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
+            } catch (error) {
+              console.warn('Failed to save input data to sessionStorage:', error);
+            }
           } else {
             // No new messages
-            setInputData(JSON.stringify({ message: "No new messages found" }, null, 2));
+            const jsonData = JSON.stringify({ message: "No new messages found" }, null, 2);
+            setInputData(jsonData);
+            // Also save to sessionStorage for session persistence
+            try {
+              sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
+            } catch (error) {
+              console.warn('Failed to save input data to sessionStorage:', error);
+            }
           }
         } else {
           const errorResult = await response.json().catch(() => ({ message: 'Unknown error' }));
@@ -258,7 +286,14 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose, e
       } else {
         // Default mock data for other node types or when no bot token
         if (node.data.type === 'trigger') {
-          setInputData(JSON.stringify({ error: "Bot token not found. Please configure the Telegram Trigger node first." }, null, 2));
+          const jsonData = JSON.stringify({ error: "Bot token not found. Please configure the Telegram Trigger node first." }, null, 2);
+          setInputData(jsonData);
+          // Also save to sessionStorage for session persistence
+          try {
+            sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
+          } catch (error) {
+            console.warn('Failed to save input data to sessionStorage:', error);
+          }
         } else {
           const mockData = {
             message: {
@@ -267,12 +302,26 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose, e
               from: { username: "testuser" }
             }
           };
-          setInputData(JSON.stringify(mockData, null, 2));
+          const jsonData = JSON.stringify(mockData, null, 2);
+          setInputData(jsonData);
+          // Also save to sessionStorage for session persistence
+          try {
+            sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
+          } catch (error) {
+            console.warn('Failed to save input data to sessionStorage:', error);
+          }
         }
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      setInputData(JSON.stringify({ error: error.message }, null, 2));
+      const jsonData = JSON.stringify({ error: error.message }, null, 2);
+      setInputData(jsonData);
+      // Also save to sessionStorage for session persistence
+      try {
+        sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
+      } catch (storageError) {
+        console.warn('Failed to save input data to sessionStorage:', storageError);
+      }
     }
   };
 
@@ -307,12 +356,19 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose, e
 export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formData, inputData, autoSaveStatus }) => {
   const handleMockOutput = () => {
     // Set mock output data
-    setOutputData({
+    const mockOutput = {
       success: true,
       processed: "Sample output data for testing",
       timestamp: new Date().toISOString(),
       nodeType: node.data.type
-    });
+    };
+    setOutputData(mockOutput);
+    // Also save to sessionStorage for session persistence
+    try {
+      sessionStorage.setItem(`panel-output-${node.id}`, JSON.stringify(mockOutput));
+    } catch (error) {
+      console.warn('Failed to save output data to sessionStorage:', error);
+    }
   };
 
   const handlePostData = async () => {
@@ -338,6 +394,12 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
           nodeType: node.data.type
         };
         setOutputData(triggerOutput);
+        // Also save to sessionStorage for session persistence
+        try {
+          sessionStorage.setItem(`panel-output-${node.id}`, JSON.stringify(triggerOutput));
+        } catch (error) {
+          console.warn('Failed to save output data to sessionStorage:', error);
+        }
         return;
       }
 
@@ -400,6 +462,12 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
           inputData: parsedInput
         };
         setOutputData(telegramOutput);
+        // Also save to sessionStorage for session persistence
+        try {
+          sessionStorage.setItem(`panel-output-${node.id}`, JSON.stringify(telegramOutput));
+        } catch (error) {
+          console.warn('Failed to save output data to sessionStorage:', error);
+        }
         return;
       }
 
@@ -424,9 +492,22 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
       }
       
       setOutputData(result);
+      // Also save to sessionStorage for session persistence
+      try {
+        sessionStorage.setItem(`panel-output-${node.id}`, JSON.stringify(result));
+      } catch (error) {
+        console.warn('Failed to save output data to sessionStorage:', error);
+      }
     } catch (error) {
       console.error('Error processing data:', error);
-      setOutputData({ error: error.message });
+      const errorOutput = { error: error.message };
+      setOutputData(errorOutput);
+      // Also save to sessionStorage for session persistence
+      try {
+        sessionStorage.setItem(`panel-output-${node.id}`, JSON.stringify(errorOutput));
+      } catch (storageError) {
+        console.warn('Failed to save output data to sessionStorage:', storageError);
+      }
     }
   };
 

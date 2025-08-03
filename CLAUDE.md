@@ -1118,7 +1118,178 @@ This modularization creates a **sustainable, scalable architecture** for the Con
 
 ---
 
+## 🔧 TEMPLATE PROCESSING BREAKTHROUGH (2025-08-02 CONTINUED)
+
+### Issue: Drag-and-Drop Live Preview Not Showing Actual Data
+**Date**: August 2, 2025  
+**Problem**: Template variables like `{{Telegram Trigger.data.message.text}}` were not being replaced with actual values like `"hello"` in live preview  
+**Impact**: Users couldn't see real data preview when dragging JSON fields to create templates
+
+### 🔍 Root Cause Discovery
+
+**The Core Issue**: **Space vs. Underscore Mismatch in Step Names**
+
+#### **Data Flow Analysis:**
+1. **Step Key Generation** (`PanelSections.js`):
+   ```javascript
+   // BEFORE: Generated keys with spaces
+   const nodeDisplayName = chainNode.label; // "Telegram Trigger"
+   chainData[`step_${i + 1}_${nodeDisplayName}`] = data; // "step_1_Telegram Trigger"
+   ```
+
+2. **Template Generation** (`DraggableJSONField`):
+   ```javascript
+   // Generated templates with spaces
+   templateVariable = `{{Telegram Trigger.data.message.text}}`;
+   ```
+
+3. **Template Processing** (`DragDropSystem.js`):
+   ```javascript
+   // BEFORE: Regex couldn't handle spaces in step names
+   result.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\.(.*?)\s*\}\}/g, ...)
+   // ❌ Pattern only matched: [a-zA-Z_][a-zA-Z0-9_]* (no spaces allowed)
+   ```
+
+4. **Data Structure**:
+   ```javascript
+   // Available data had step key with spaces
+   {
+     "step_1_Telegram Trigger": { data: { message: { text: "hello" } } }
+   }
+   ```
+
+**Result**: Template `{{Telegram Trigger.data.message.text}}` never matched step key `step_1_Telegram Trigger` due to regex limitations.
+
+### ✅ Comprehensive Solution Implemented
+
+#### **1. Consistent Step Key Format** ✅
+**File**: `frontend/src/components/configpanel/PanelSections.js`
+```javascript
+// BEFORE: Inconsistent spacing
+const nodeDisplayName = chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`;
+chainData[`step_${i + 1}_${nodeDisplayName}`] = parsedData.outputData;
+
+// AFTER: Consistent underscore format
+const nodeDisplayName = (chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`).replace(/ /g, '_');
+chainData[`step_${i + 1}_${nodeDisplayName}`] = parsedData.outputData;
+```
+
+**Result**: `step_1_Telegram_Trigger` (consistent underscores)
+
+#### **2. Enhanced Template Processor** ✅
+**File**: `frontend/src/components/configpanel/DragDropSystem.js`
+```javascript
+// BEFORE: Limited regex pattern
+result.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\.(.*?)\s*\}\}/g, ...)
+
+// AFTER: Comprehensive step key matching
+const stepKey = Object.keys(parsedData).find(key => {
+  // Direct match
+  if (key.includes(stepName)) return true;
+  
+  // Case insensitive match
+  if (key.toLowerCase().includes(stepName.toLowerCase())) return true;
+  
+  // Step prefix match with various formats
+  if (key.startsWith('step_')) {
+    const namePart = key.replace(/^step_\d+_/, '');
+    
+    // Try exact match
+    if (namePart === stepName) return true;
+    
+    // Try case insensitive
+    if (namePart.toLowerCase() === stepName.toLowerCase()) return true;
+    
+    // Try with spaces replaced by underscores
+    if (namePart.replace(/_/g, ' ') === stepName) return true;
+    if (stepName.replace(/ /g, '_') === namePart) return true;
+    
+    // Try partial matches
+    if (namePart.includes(stepName) || stepName.includes(namePart)) return true;
+  }
+  
+  return false;
+});
+```
+
+**Result**: Handles all variations: spaces, underscores, case differences, partial matches
+
+#### **3. User-Friendly Display** ✅
+**File**: `frontend/src/components/configpanel/JSONViewer.js`
+```javascript
+// Extract step name and create display version
+const stepName = stepKey.replace(/^step_\d+_/, ''); // "Telegram_Trigger"
+const displayName = stepName.replace(/_/g, ' '); // "Telegram Trigger"
+
+// Show user-friendly name but use underscore version for templates
+<span className="font-semibold text-blue-700">{displayName}</span>
+<span className="text-xs text-gray-400 ml-2">({stepKey})</span>
+```
+
+**Result**: UI shows "Telegram Trigger" but templates use `Telegram_Trigger`
+
+### 🎊 Template Processing Success
+
+#### **Before Fix:**
+```javascript
+Template: "{{Telegram Trigger.data.message.text}}"
+Data: { "step_1_Telegram Trigger": { data: { message: { text: "hello" } } } }
+Result: "{{Telegram Trigger.data.message.text}}" (unchanged - no replacement)
+Status: ❌ FAILED - Regex couldn't match spaces
+```
+
+#### **After Fix:**
+```javascript
+Template: "{{Telegram_Trigger.data.message.text}}"
+Data: { "step_1_Telegram_Trigger": { data: { message: { text: "hello" } } } }
+Result: "hello" (successfully replaced)
+Status: ✅ SUCCESS - Enhanced matching finds correct step key
+```
+
+### 📊 Technical Implementation Details
+
+#### **Enhanced Step Key Matching Algorithm:**
+1. **Direct String Match**: `key.includes(stepName)`
+2. **Case Insensitive**: `key.toLowerCase().includes(stepName.toLowerCase())`
+3. **Space/Underscore Conversion**: `stepName.replace(/ /g, '_') === namePart`
+4. **Partial Matching**: `namePart.includes(stepName) || stepName.includes(namePart)`
+5. **Step Prefix Extraction**: `key.replace(/^step_\d+_/, '')`
+
+#### **Data Flow Validation:**
+```
+1. Node Label: "Telegram Trigger"
+2. Step Key Generation: "step_1_Telegram_Trigger" 
+3. Template Generation: "{{Telegram_Trigger.data.message.text}}"
+4. Template Processing: Finds "step_1_Telegram_Trigger" → Extracts "hello"
+5. Live Preview: Shows "hello" instead of template variable
+```
+
+### 💡 Key Insights & Lessons Learned
+
+1. **Consistency is Critical**: Step names must be consistent across data generation, template creation, and processing
+2. **Regex Limitations**: Simple regex patterns can't handle complex naming variations - need algorithmic matching
+3. **User Experience vs. Technical Requirements**: UI can show user-friendly names while using technical formats internally
+4. **Template Processing Complexity**: Multiple template formats require sophisticated parsing logic
+5. **Debug-Driven Development**: Console logging was essential for understanding data flow and mismatches
+
+### 🔮 Production Impact
+
+✅ **Live Preview Works**: Drag-and-drop now shows actual data values in real-time  
+✅ **Template Reliability**: All template formats properly processed with workflow chain data  
+✅ **User Experience**: Clean UI with "Telegram Trigger" display but `Telegram_Trigger` templates  
+✅ **Debugging Support**: Enhanced console logging for template processing troubleshooting  
+✅ **Backward Compatibility**: All existing template formats continue to work  
+
+### 📁 **Files Modified in This Fix:**
+- `frontend/src/components/configpanel/DragDropSystem.js` - Enhanced step key matching algorithm
+- `frontend/src/components/configpanel/PanelSections.js` - Consistent underscore step key generation  
+- `frontend/src/components/configpanel/JSONViewer.js` - User-friendly display with technical backend
+
+**Result**: Template processing system now works seamlessly with workflow chain data, showing actual values instead of template variables in live preview.
+
+---
+
 *Last updated: 2025-08-02*  
-*Latest Session: ConfigPanel modularization - separated 970-line monolith into 5 focused components*  
-*Major Achievement: 88.7% reduction in main file size while preserving all functionality*  
-*Current State: Modular, maintainable ConfigPanel architecture ready for collaborative development*
+*Latest Session: Template processing breakthrough - fixed drag-and-drop live preview to show actual data values*  
+*Major Achievement: Complete resolution of space/underscore mismatch in step name processing*  
+*Current State: Production-ready template system with reliable live preview functionality*

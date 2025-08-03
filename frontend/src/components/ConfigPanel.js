@@ -27,14 +27,40 @@ const ConfigPanel = ({ node, onClose, edges, nodes }) => {
   // Enhanced state management - keeping existing simple state + adding advanced features
   const [formData, setFormData] = useState(() => initializeFormData(node));
   
-  // Existing simple state (preserved) - temporary data that clears on refresh
-  const [inputData, setInputData] = useState('');
-  const [outputData, setOutputData] = useState(null);
+  // Enhanced state with sessionStorage persistence for INPUT/OUTPUT panel data (clears on refresh)
+  const [inputData, setInputData] = useState(() => {
+    try {
+      const savedInputData = sessionStorage.getItem(`panel-input-${node.id}`);
+      return savedInputData || '';
+    } catch (error) {
+      console.warn('Failed to load saved input data:', error);
+      return '';
+    }
+  });
+  
+  const [outputData, setOutputData] = useState(() => {
+    try {
+      const savedOutputData = sessionStorage.getItem(`panel-output-${node.id}`);
+      return savedOutputData ? JSON.parse(savedOutputData) : null;
+    } catch (error) {
+      console.warn('Failed to load saved output data:', error);
+      return null;
+    }
+  });
+  
   const [isLoading, setIsLoading] = useState(false);
 
-  // Enhanced setters that store data temporarily for connected nodes (but clear on refresh)
+  // Enhanced setters that store data in sessionStorage (persists during session, clears on refresh)
   const setInputDataWithTempStorage = (data) => {
     setInputData(data);
+    
+    // Store in sessionStorage for panel persistence during session only
+    try {
+      sessionStorage.setItem(`panel-input-${node.id}`, data);
+    } catch (error) {
+      console.warn('Failed to save input data to sessionStorage:', error);
+    }
+    
     // Store temporarily for connected nodes to access during this session only
     try {
       const storageKey = `temp-node-execution-${node.id}`;
@@ -62,6 +88,14 @@ const ConfigPanel = ({ node, onClose, edges, nodes }) => {
 
   const setOutputDataWithTempStorage = (data) => {
     setOutputData(data);
+    
+    // Store in sessionStorage for panel persistence during session only
+    try {
+      sessionStorage.setItem(`panel-output-${node.id}`, JSON.stringify(data));
+    } catch (error) {
+      console.warn('Failed to save output data to sessionStorage:', error);
+    }
+    
     // Store temporarily for connected nodes to access during this session only
     try {
       const storageKey = `temp-node-execution-${node.id}`;

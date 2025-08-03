@@ -53,7 +53,7 @@ export const DraggableJSONField = ({ path, value, level = 0, nodePrefix = '', da
     let templateVariable;
     
     if (stepName) {
-      // Use step-based template for workflow chain data
+      // Use step-based template for workflow chain data (stepName already has underscores)
       templateVariable = `{{${stepName}.${path}}}`;
     } else if (nodeName) {
       // Use n8n-style template if nodeName is provided
@@ -200,21 +200,12 @@ export const DroppableTextInput = ({
         {...props}
       />
       
-      {/* Live Template Preview */}
-      {isFocused && value && inputData && (
+      {/* Live Template Preview - Only show if there are template variables */}
+      {isFocused && value && inputData && value.includes('{{') && value.includes('}}') && (
         <div className="mt-2 p-2 bg-gray-50 border rounded text-xs">
           <strong>Preview:</strong>
           <div className="font-mono text-green-600">
-            {(() => {
-              console.log('=== LIVE PREVIEW PROCESSING ===');
-              console.log('Template value:', value);
-              console.log('Input data type:', typeof inputData);
-              console.log('Input data:', inputData);
-              const result = processTemplate(value, inputData);
-              console.log('Processed result:', result);
-              console.log('=== END PREVIEW PROCESSING ===');
-              return result;
-            })()}
+            {processTemplate(value, inputData)}
           </div>
         </div>
       )}
@@ -224,10 +215,12 @@ export const DroppableTextInput = ({
 
 // Enhanced template processing helper - supports multiple formats
 export const processTemplate = (template, data) => {
-  console.log('🔧 processTemplate called with:', { template, dataType: typeof data, data });
-  
   if (!template || !data) {
-    console.log('❌ Missing template or data, returning:', template);
+    return template;
+  }
+
+  // Only process if template contains variables
+  if (!template.includes('{{') || !template.includes('}}')) {
     return template;
   }
 
@@ -236,13 +229,10 @@ export const processTemplate = (template, data) => {
   if (typeof data === 'string') {
     try {
       parsedData = JSON.parse(data);
-      console.log('✅ Parsed string data:', parsedData);
     } catch (error) {
-      console.error('❌ Failed to parse data string:', error);
+      console.warn('Failed to parse data string for template processing:', error);
       return template;
     }
-  } else {
-    console.log('ℹ️ Data is already an object:', parsedData);
   }
 
   let result = template;
@@ -338,18 +328,41 @@ export const processTemplate = (template, data) => {
     }
   });
 
-  // 3. Handle {{stepName.field}} format (workflow chain format)
-  result = result.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\.(.*?)\s*\}\}/g, (match, stepName, path) => {
+  // 3. Handle {{stepName.field}} format (workflow chain format) - with spaces
+  result = result.replace(/\{\{\s*([^}]+?)\.(.*?)\s*\}\}/g, (match, stepName, path) => {
     try {
       console.log('Processing template:', match, 'stepName:', stepName, 'path:', path);
       console.log('Available data keys:', Object.keys(parsedData));
       
-      // Look for data with step prefix
-      const stepKey = Object.keys(parsedData).find(key => 
-        key.includes(stepName) || 
-        key.toLowerCase().includes(stepName.toLowerCase()) ||
-        key.startsWith(`step_`) && key.includes(stepName)
-      );
+      // Enhanced step key finding with better space handling
+      const stepKey = Object.keys(parsedData).find(key => {
+        // Direct match
+        if (key.includes(stepName)) return true;
+        
+        // Case insensitive match
+        if (key.toLowerCase().includes(stepName.toLowerCase())) return true;
+        
+        // Step prefix match with various formats
+        if (key.startsWith('step_')) {
+          // Extract the name part after step_N_
+          const namePart = key.replace(/^step_\d+_/, '');
+          
+          // Try exact match
+          if (namePart === stepName) return true;
+          
+          // Try case insensitive
+          if (namePart.toLowerCase() === stepName.toLowerCase()) return true;
+          
+          // Try with spaces replaced by underscores
+          if (namePart.replace(/_/g, ' ') === stepName) return true;
+          if (stepName.replace(/ /g, '_') === namePart) return true;
+          
+          // Try partial matches
+          if (namePart.includes(stepName) || stepName.includes(namePart)) return true;
+        }
+        
+        return false;
+      });
       
       console.log('Found stepKey:', stepKey);
       

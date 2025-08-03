@@ -129,7 +129,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
             <DroppableTextInput 
               label="System Prompt" 
               name="systemPrompt" 
-              value={formData.systemPrompt || 'You are a helpful AI assistant.'} 
+              value={formData.systemPrompt || ''} 
               onChange={handleFormFieldChange}
               rows={4}
               placeholder="You are a helpful AI assistant. Tell the AI how it should behave and work."
