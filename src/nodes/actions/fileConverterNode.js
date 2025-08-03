@@ -647,13 +647,23 @@ const fileConverterNode = {
         
         try {
             const buffer = Buffer.from(base64String, 'base64');
-            const mimeType = this.getMimeTypeFromExtension(extension);
-            const fileName = `file.${extension}`;
+            
+            // Detect actual file type from buffer content (magic bytes)
+            const actualMimeType = this.detectFileTypeFromBuffer(buffer) || this.getMimeTypeFromExtension(extension);
+            const actualExtension = this.getExtensionFromMimeType(actualMimeType);
+            
+            // Correct filename if extension doesn't match actual content
+            let fileName = `file.${extension}`;
+            if (extension !== actualExtension) {
+                console.log(`🔧 Base64 file type mismatch detected: .${extension} is actually ${actualMimeType}`);
+                console.log(`🔧 Correcting extension from .${extension} to .${actualExtension}`);
+                fileName = `file.${actualExtension}`;
+            }
             
             return {
                 buffer: buffer,
                 fileName: fileName,
-                mimeType: mimeType
+                mimeType: actualMimeType
             };
             
         } catch (error) {
