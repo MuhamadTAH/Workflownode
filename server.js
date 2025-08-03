@@ -10,6 +10,9 @@ const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { google } = require('googleapis');
+const fs = require('fs').promises;
+const path = require('path');
+const crypto = require('crypto');
 
 dotenv.config();
 
@@ -112,6 +115,34 @@ app.use('/api/workflows', workflowRoutes);
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/nodes', nodeRoutes);
 app.use('/api/ai', aiRoutes); // <-- Register new routes
+
+// Create temp-files directory if it doesn't exist
+const tempFilesDir = path.join(__dirname, 'temp-files');
+fs.mkdir(tempFilesDir, { recursive: true }).catch(() => {});
+
+// Serve temporary files
+app.use('/temp-files', express.static(tempFilesDir, {
+  maxAge: '24h', // Cache for 24 hours
+  etag: true,
+  lastModified: true
+}));
+
+// API endpoint to delete temp files
+app.delete('/temp-files/delete/:fileId', async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const fileDir = path.join(tempFilesDir, fileId);
+    
+    // Remove the entire directory for this file
+    await fs.rmdir(fileDir, { recursive: true });
+    
+    console.log(`Temp file deleted: ${fileId}`);
+    res.json({ success: true, message: 'File deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting temp file:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // Google OAuth2 Authentication Routes
 // Google OAuth routes using Passport

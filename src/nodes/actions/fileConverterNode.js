@@ -804,20 +804,38 @@ const fileConverterNode = {
         }
     },
 
-    // Upload to temporary server (placeholder implementation)
+    // Upload to temporary server (real implementation)
     async uploadToTempServer(buffer, fileName, mimeType, hours) {
-        // This would need a temporary file hosting service
-        // For now, return a placeholder URL
         const fileId = crypto.randomBytes(16).toString('hex');
         const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
         
-        // In a real implementation, you'd save the file and return a URL to your server
-        return {
-            url: `https://temp-files.workflownode.com/${fileId}/${fileName}`,
-            deleteUrl: `https://temp-files.workflownode.com/delete/${fileId}`,
-            expiresAt: expiresAt,
-            metadata: { fileId, originalName: fileName }
-        };
+        try {
+            // Create directory structure: temp-files/fileId/fileName
+            const tempFilesDir = path.join(process.cwd(), 'temp-files');
+            const fileDir = path.join(tempFilesDir, fileId);
+            
+            // Ensure directories exist
+            await fs.mkdir(fileDir, { recursive: true });
+            
+            // Save the file
+            const filePath = path.join(fileDir, fileName);
+            await fs.writeFile(filePath, buffer);
+            
+            console.log(`File saved to temp server: ${filePath}`);
+            
+            // Determine the base URL (local vs production)
+            const baseUrl = process.env.BASE_URL || 'http://localhost:10000';
+            
+            return {
+                url: `${baseUrl}/temp-files/${fileId}/${fileName}`,
+                deleteUrl: `${baseUrl}/temp-files/delete/${fileId}`,
+                expiresAt: expiresAt,
+                metadata: { fileId, originalName: fileName, filePath: filePath }
+            };
+        } catch (error) {
+            console.error('Error saving file to temp server:', error);
+            throw new Error(`Failed to save file to temp server: ${error.message}`);
+        }
     },
 
     // Helper functions

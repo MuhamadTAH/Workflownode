@@ -48,7 +48,8 @@
       "Bash(npm uninstall:*)",
       "Bash(timeout 8s npm start)",
       "Bash(mv:*)",
-      "WebFetch(domain:core.telegram.org)"
+      "WebFetch(domain:core.telegram.org)",
+      "Bash(tasklist:*)"
     ],
     "deny": []
   }
