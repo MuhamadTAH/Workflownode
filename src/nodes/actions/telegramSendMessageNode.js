@@ -341,12 +341,12 @@ const telegramSendMessageNode = {
             console.log('Original photoUrl:', photoUrl);
             console.log('Original photoCaption:', photoCaption);
             processedContent.photo = parseUniversalTemplate(photoUrl, inputData);
-            processedContent.caption = photoCaption ? parseUniversalTemplate(photoCaption, inputData) : '';
+            processedContent.caption = (photoCaption && photoCaption.trim()) ? parseUniversalTemplate(photoCaption, inputData) : '';
         } else if (messageType === 'video') {
             console.log('Original videoUrl:', videoUrl);
             console.log('Original videoCaption:', videoCaption);
             processedContent.video = parseUniversalTemplate(videoUrl, inputData);
-            processedContent.caption = videoCaption ? parseUniversalTemplate(videoCaption, inputData) : '';
+            processedContent.caption = (videoCaption && videoCaption.trim()) ? parseUniversalTemplate(videoCaption, inputData) : '';
         }
         
         console.log('Processed chatId:', processedChatId);
@@ -395,7 +395,7 @@ const telegramSendMessageNode = {
                 photo: processedContent.photo,
                 disable_notification: disableNotification,
             };
-            if (processedContent.caption.trim()) {
+            if (processedContent.caption && processedContent.caption.trim()) {
                 requestData.caption = processedContent.caption;
                 // Add parse mode for caption if specified
                 if (parseMode && parseMode.trim()) {
@@ -409,7 +409,7 @@ const telegramSendMessageNode = {
                 video: processedContent.video,
                 disable_notification: disableNotification,
             };
-            if (processedContent.caption.trim()) {
+            if (processedContent.caption && processedContent.caption.trim()) {
                 requestData.caption = processedContent.caption;
                 // Add parse mode for caption if specified
                 if (parseMode && parseMode.trim()) {
