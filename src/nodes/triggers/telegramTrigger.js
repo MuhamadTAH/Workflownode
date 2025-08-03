@@ -82,9 +82,14 @@ const telegramTriggerNode = {
             console.log('📝 Processing Telegram update:', JSON.stringify(update, null, 2));
             console.log('🔍 DEBUG: Update has message?', !!update.message);
             if (update.message) {
+                console.log('🔍 DEBUG: Message has photo?', !!update.message.photo);
+                console.log('🔍 DEBUG: Message has video?', !!update.message.video);
+                console.log('🔍 DEBUG: Message has voice?', !!update.message.voice);
+                console.log('🔍 DEBUG: Message has video_note?', !!update.message.video_note);
+                console.log('🔍 DEBUG: Message has animation?', !!update.message.animation);
+                console.log('🔍 DEBUG: Message has document?', !!update.message.document);
                 console.log('🔍 DEBUG: Message has location?', !!update.message.location);
                 console.log('🔍 DEBUG: Message has contact?', !!update.message.contact);
-                console.log('🔍 DEBUG: Message has voice?', !!update.message.voice);
                 console.log('🔍 DEBUG: Message has text?', !!update.message.text);
                 console.log('🔍 DEBUG: Message keys:', Object.keys(update.message));
             }
@@ -98,56 +103,129 @@ const telegramTriggerNode = {
             const message = update.message;
             const processedUpdate = { ...update };
 
-            // Check if the message contains a voice message
-            if (message.voice) {
+            // Check for different media types and process accordingly
+            if (message.photo && message.photo.length > 0) {
+                // Handle photo messages
+                console.log('📸 Photo message detected!');
+                console.log('📸 Photo data:', JSON.stringify(message.photo, null, 2));
+                
+                const photoData = await this.processPhotoMessage(message.photo, update);
+                
+                processedUpdate.message = {
+                    ...message,
+                    photo: photoData,
+                    has_photo: true,
+                    has_video: false,
+                    has_voice: false,
+                    has_location: false,
+                    has_contact: false,
+                    message_type: 'photo',
+                };
+                
+                console.log('📸 Enhanced photo message data:', JSON.stringify(photoData, null, 2));
+                
+            } else if (message.video) {
+                // Handle video messages
+                console.log('🎬 Video message detected!');
+                console.log('🎬 Video data:', JSON.stringify(message.video, null, 2));
+                
+                const videoData = await this.processVideoMessage(message.video, update);
+                
+                processedUpdate.message = {
+                    ...message,
+                    video: videoData,
+                    has_video: true,
+                    has_photo: false,
+                    has_voice: false,
+                    has_location: false,
+                    has_contact: false,
+                    message_type: 'video',
+                };
+                
+                console.log('🎬 Enhanced video message data:', JSON.stringify(videoData, null, 2));
+                
+            } else if (message.voice) {
+                // Handle voice messages
                 console.log('🎤 Voice message detected!');
                 console.log('🎤 Voice data:', JSON.stringify(message.voice, null, 2));
                 
-                // Get bot token from the message (we need to extract it from webhook URL or pass it differently)
-                // For now, we'll enhance the voice data with what we have and add file URL later
-                const voiceData = {
-                    ...message.voice,
-                    // Add enhanced voice metadata
-                    message_type: 'voice',
-                    duration_formatted: this.formatDuration(message.voice.duration || 0),
-                    file_size_formatted: this.formatFileSize(message.voice.file_size || 0),
-                };
-
-                // Try to get the file URL if we can determine the bot token
-                const botToken = this.extractBotTokenFromContext(update);
-                if (botToken) {
-                    try {
-                        const fileUrl = await this.getVoiceFileUrl(botToken, message.voice.file_id);
-                        voiceData.file_url = fileUrl;
-                        voiceData.download_url = fileUrl;
-                        console.log('🎤 Voice file URL retrieved:', fileUrl);
-                    } catch (error) {
-                        console.log('⚠️ Could not get voice file URL:', error.message);
-                        voiceData.file_url_error = error.message;
-                    }
-                } else {
-                    // Fallback: Generate manual file URL template that can be used with template variables
-                    console.log('🔧 Generating fallback file URL template...');
-                    voiceData.file_url_template = `https://api.telegram.org/bot{{bot_token}}/getFile?file_id=${message.voice.file_id}`;
-                    voiceData.download_url_template = `https://api.telegram.org/file/bot{{bot_token}}/voice_${message.voice.file_unique_id}`;
-                    voiceData.manual_url_info = {
-                        message: "Use bot token to complete URLs",
-                        getFile_url: `https://api.telegram.org/bot{YOUR_BOT_TOKEN}/getFile?file_id=${message.voice.file_id}`,
-                        note: "Call getFile API first to get file_path, then use: https://api.telegram.org/file/bot{YOUR_BOT_TOKEN}/{file_path}"
-                    };
-                    console.log('🔧 Fallback URLs generated with templates');
-                }
-
-                // Enhanced message with voice data
+                const voiceData = await this.processVoiceMessage(message.voice, update);
+                
                 processedUpdate.message = {
                     ...message,
                     voice: voiceData,
-                    // Add convenience flags
                     has_voice: true,
+                    has_photo: false,
+                    has_video: false,
+                    has_location: false,
+                    has_contact: false,
                     message_type: 'voice',
                 };
 
                 console.log('🎤 Enhanced voice message data:', JSON.stringify(voiceData, null, 2));
+                
+            } else if (message.video_note) {
+                // Handle video note (circular video) messages
+                console.log('📹 Video note message detected!');
+                console.log('📹 Video note data:', JSON.stringify(message.video_note, null, 2));
+                
+                const videoNoteData = await this.processVideoNoteMessage(message.video_note, update);
+                
+                processedUpdate.message = {
+                    ...message,
+                    video_note: videoNoteData,
+                    has_video_note: true,
+                    has_photo: false,
+                    has_video: false,
+                    has_voice: false,
+                    has_location: false,
+                    has_contact: false,
+                    message_type: 'video_note',
+                };
+                
+                console.log('📹 Enhanced video note message data:', JSON.stringify(videoNoteData, null, 2));
+                
+            } else if (message.animation) {
+                // Handle GIF/animation messages
+                console.log('🎞️ Animation/GIF message detected!');
+                console.log('🎞️ Animation data:', JSON.stringify(message.animation, null, 2));
+                
+                const animationData = await this.processAnimationMessage(message.animation, update);
+                
+                processedUpdate.message = {
+                    ...message,
+                    animation: animationData,
+                    has_animation: true,
+                    has_photo: false,
+                    has_video: false,
+                    has_voice: false,
+                    has_location: false,
+                    has_contact: false,
+                    message_type: 'animation',
+                };
+                
+                console.log('🎞️ Enhanced animation message data:', JSON.stringify(animationData, null, 2));
+                
+            } else if (message.document) {
+                // Handle document messages
+                console.log('📄 Document message detected!');
+                console.log('📄 Document data:', JSON.stringify(message.document, null, 2));
+                
+                const documentData = await this.processDocumentMessage(message.document, update);
+                
+                processedUpdate.message = {
+                    ...message,
+                    document: documentData,
+                    has_document: true,
+                    has_photo: false,
+                    has_video: false,
+                    has_voice: false,
+                    has_location: false,
+                    has_contact: false,
+                    message_type: 'document',
+                };
+                
+                console.log('📄 Enhanced document message data:', JSON.stringify(documentData, null, 2));
             } else if (message.location) {
                 // Handle location messages
                 console.log('📍 Location message detected!');
@@ -160,7 +238,13 @@ const telegramTriggerNode = {
                     ...message,
                     location: locationData,
                     has_location: true,
+                    has_photo: false,
+                    has_video: false,
                     has_voice: false,
+                    has_contact: false,
+                    has_document: false,
+                    has_animation: false,
+                    has_video_note: false,
                     message_type: 'location',
                 };
                 
@@ -176,8 +260,13 @@ const telegramTriggerNode = {
                     ...message,
                     contact: contactData,
                     has_contact: true,
+                    has_photo: false,
+                    has_video: false,
                     has_voice: false,
                     has_location: false,
+                    has_document: false,
+                    has_animation: false,
+                    has_video_note: false,
                     message_type: 'contact',
                 };
                 
@@ -186,9 +275,14 @@ const telegramTriggerNode = {
                 // Handle text and other message types
                 processedUpdate.message = {
                     ...message,
+                    has_photo: false,
+                    has_video: false,
                     has_voice: false,
                     has_location: false,
                     has_contact: false,
+                    has_document: false,
+                    has_animation: false,
+                    has_video_note: false,
                     message_type: message.text ? 'text' : 'other',
                 };
             }
@@ -201,10 +295,326 @@ const telegramTriggerNode = {
         }
     },
 
-    // Get voice file URL from Telegram API
-    async getVoiceFileUrl(botToken, fileId) {
+    // Process photo message and get file URLs
+    async processPhotoMessage(photoArray, update) {
         try {
-            console.log('🎤 Getting voice file URL for file_id:', fileId);
+            console.log('📸 Processing photo message with', photoArray.length, 'photo sizes');
+            
+            // Telegram sends photos in multiple sizes, get the largest one
+            const largestPhoto = photoArray.reduce((largest, current) => {
+                return (current.file_size || 0) > (largest.file_size || 0) ? current : largest;
+            });
+            
+            const botToken = this.extractBotTokenFromContext(update);
+            
+            const photoData = {
+                sizes: photoArray,
+                largest_photo: largestPhoto,
+                total_sizes: photoArray.length,
+                message_type: 'photo',
+                
+                // Add formatted metadata
+                largest_size_formatted: this.formatFileSize(largestPhoto.file_size || 0),
+                dimensions: `${largestPhoto.width}x${largestPhoto.height}`,
+                aspect_ratio: largestPhoto.width && largestPhoto.height ? 
+                    (largestPhoto.width / largestPhoto.height).toFixed(2) : null,
+            };
+
+            // Try to get file URLs for all photo sizes
+            if (botToken) {
+                try {
+                    photoData.file_urls = {};
+                    for (const photo of photoArray) {
+                        const fileUrl = await this.getFileUrl(botToken, photo.file_id, 'photo');
+                        photoData.file_urls[`${photo.width}x${photo.height}`] = fileUrl;
+                    }
+                    photoData.download_url = photoData.file_urls[`${largestPhoto.width}x${largestPhoto.height}`];
+                    console.log('📸 Photo file URLs retrieved:', Object.keys(photoData.file_urls).length, 'sizes');
+                } catch (error) {
+                    console.log('⚠️ Could not get photo file URLs:', error.message);
+                    photoData.file_url_error = error.message;
+                }
+            } else {
+                // Generate fallback URLs
+                photoData.file_url_templates = {};
+                photoArray.forEach(photo => {
+                    photoData.file_url_templates[`${photo.width}x${photo.height}`] = {
+                        getFile_url: `https://api.telegram.org/bot{{bot_token}}/getFile?file_id=${photo.file_id}`,
+                        file_id: photo.file_id,
+                        file_unique_id: photo.file_unique_id
+                    };
+                });
+                photoData.download_url_template = photoData.file_url_templates[`${largestPhoto.width}x${largestPhoto.height}`];
+            }
+
+            return photoData;
+        } catch (error) {
+            console.error('❌ Error processing photo message:', error);
+            return {
+                sizes: photoArray,
+                processing_error: error.message
+            };
+        }
+    },
+
+    // Process video message and get file URL
+    async processVideoMessage(video, update) {
+        try {
+            console.log('🎬 Processing video message');
+            
+            const botToken = this.extractBotTokenFromContext(update);
+            
+            const videoData = {
+                ...video,
+                message_type: 'video',
+                duration_formatted: this.formatDuration(video.duration || 0),
+                file_size_formatted: this.formatFileSize(video.file_size || 0),
+                dimensions: video.width && video.height ? `${video.width}x${video.height}` : null,
+                aspect_ratio: video.width && video.height ? 
+                    (video.width / video.height).toFixed(2) : null,
+                has_thumb: !!video.thumb,
+            };
+
+            // Try to get video file URL
+            if (botToken) {
+                try {
+                    const fileUrl = await this.getFileUrl(botToken, video.file_id, 'video');
+                    videoData.file_url = fileUrl;
+                    videoData.download_url = fileUrl;
+                    
+                    // Also get thumbnail URL if available
+                    if (video.thumb && video.thumb.file_id) {
+                        const thumbUrl = await this.getFileUrl(botToken, video.thumb.file_id, 'thumb');
+                        videoData.thumbnail_url = thumbUrl;
+                    }
+                    
+                    console.log('🎬 Video file URL retrieved:', fileUrl);
+                } catch (error) {
+                    console.log('⚠️ Could not get video file URL:', error.message);
+                    videoData.file_url_error = error.message;
+                }
+            } else {
+                videoData.file_url_template = `https://api.telegram.org/bot{{bot_token}}/getFile?file_id=${video.file_id}`;
+                videoData.manual_url_info = {
+                    message: "Use bot token to complete URLs",
+                    getFile_url: `https://api.telegram.org/bot{YOUR_BOT_TOKEN}/getFile?file_id=${video.file_id}`,
+                    note: "Call getFile API first to get file_path, then use: https://api.telegram.org/file/bot{YOUR_BOT_TOKEN}/{file_path}"
+                };
+            }
+
+            return videoData;
+        } catch (error) {
+            console.error('❌ Error processing video message:', error);
+            return {
+                ...video,
+                processing_error: error.message
+            };
+        }
+    },
+
+    // Process voice message
+    async processVoiceMessage(voice, update) {
+        try {
+            console.log('🎤 Processing voice message');
+            
+            const botToken = this.extractBotTokenFromContext(update);
+            
+            const voiceData = {
+                ...voice,
+                message_type: 'voice',
+                duration_formatted: this.formatDuration(voice.duration || 0),
+                file_size_formatted: this.formatFileSize(voice.file_size || 0),
+            };
+
+            if (botToken) {
+                try {
+                    const fileUrl = await this.getFileUrl(botToken, voice.file_id, 'voice');
+                    voiceData.file_url = fileUrl;
+                    voiceData.download_url = fileUrl;
+                    console.log('🎤 Voice file URL retrieved:', fileUrl);
+                } catch (error) {
+                    console.log('⚠️ Could not get voice file URL:', error.message);
+                    voiceData.file_url_error = error.message;
+                }
+            } else {
+                voiceData.file_url_template = `https://api.telegram.org/bot{{bot_token}}/getFile?file_id=${voice.file_id}`;
+                voiceData.manual_url_info = {
+                    message: "Use bot token to complete URLs",
+                    getFile_url: `https://api.telegram.org/bot{YOUR_BOT_TOKEN}/getFile?file_id=${voice.file_id}`,
+                    note: "Call getFile API first to get file_path, then use: https://api.telegram.org/file/bot{YOUR_BOT_TOKEN}/{file_path}"
+                };
+            }
+
+            return voiceData;
+        } catch (error) {
+            console.error('❌ Error processing voice message:', error);
+            return {
+                ...voice,
+                processing_error: error.message
+            };
+        }
+    },
+
+    // Process video note (circular video) message
+    async processVideoNoteMessage(videoNote, update) {
+        try {
+            console.log('📹 Processing video note message');
+            
+            const botToken = this.extractBotTokenFromContext(update);
+            
+            const videoNoteData = {
+                ...videoNote,
+                message_type: 'video_note',
+                duration_formatted: this.formatDuration(videoNote.duration || 0),
+                file_size_formatted: this.formatFileSize(videoNote.file_size || 0),
+                is_circular: true,
+                has_thumb: !!videoNote.thumb,
+            };
+
+            if (botToken) {
+                try {
+                    const fileUrl = await this.getFileUrl(botToken, videoNote.file_id, 'video_note');
+                    videoNoteData.file_url = fileUrl;
+                    videoNoteData.download_url = fileUrl;
+                    
+                    if (videoNote.thumb && videoNote.thumb.file_id) {
+                        const thumbUrl = await this.getFileUrl(botToken, videoNote.thumb.file_id, 'thumb');
+                        videoNoteData.thumbnail_url = thumbUrl;
+                    }
+                    
+                    console.log('📹 Video note file URL retrieved:', fileUrl);
+                } catch (error) {
+                    console.log('⚠️ Could not get video note file URL:', error.message);
+                    videoNoteData.file_url_error = error.message;
+                }
+            } else {
+                videoNoteData.file_url_template = `https://api.telegram.org/bot{{bot_token}}/getFile?file_id=${videoNote.file_id}`;
+                videoNoteData.manual_url_info = {
+                    message: "Use bot token to complete URLs",
+                    getFile_url: `https://api.telegram.org/bot{YOUR_BOT_TOKEN}/getFile?file_id=${videoNote.file_id}`,
+                    note: "Call getFile API first to get file_path, then use: https://api.telegram.org/file/bot{YOUR_BOT_TOKEN}/{file_path}"
+                };
+            }
+
+            return videoNoteData;
+        } catch (error) {
+            console.error('❌ Error processing video note message:', error);
+            return {
+                ...videoNote,
+                processing_error: error.message
+            };
+        }
+    },
+
+    // Process animation/GIF message
+    async processAnimationMessage(animation, update) {
+        try {
+            console.log('🎞️ Processing animation message');
+            
+            const botToken = this.extractBotTokenFromContext(update);
+            
+            const animationData = {
+                ...animation,
+                message_type: 'animation',
+                duration_formatted: animation.duration ? this.formatDuration(animation.duration) : 'N/A',
+                file_size_formatted: this.formatFileSize(animation.file_size || 0),
+                dimensions: animation.width && animation.height ? `${animation.width}x${animation.height}` : null,
+                aspect_ratio: animation.width && animation.height ? 
+                    (animation.width / animation.height).toFixed(2) : null,
+                has_thumb: !!animation.thumb,
+                is_gif: true,
+            };
+
+            if (botToken) {
+                try {
+                    const fileUrl = await this.getFileUrl(botToken, animation.file_id, 'animation');
+                    animationData.file_url = fileUrl;
+                    animationData.download_url = fileUrl;
+                    
+                    if (animation.thumb && animation.thumb.file_id) {
+                        const thumbUrl = await this.getFileUrl(botToken, animation.thumb.file_id, 'thumb');
+                        animationData.thumbnail_url = thumbUrl;
+                    }
+                    
+                    console.log('🎞️ Animation file URL retrieved:', fileUrl);
+                } catch (error) {
+                    console.log('⚠️ Could not get animation file URL:', error.message);
+                    animationData.file_url_error = error.message;
+                }
+            } else {
+                animationData.file_url_template = `https://api.telegram.org/bot{{bot_token}}/getFile?file_id=${animation.file_id}`;
+                animationData.manual_url_info = {
+                    message: "Use bot token to complete URLs",
+                    getFile_url: `https://api.telegram.org/bot{YOUR_BOT_TOKEN}/getFile?file_id=${animation.file_id}`,
+                    note: "Call getFile API first to get file_path, then use: https://api.telegram.org/file/bot{YOUR_BOT_TOKEN}/{file_path}"
+                };
+            }
+
+            return animationData;
+        } catch (error) {
+            console.error('❌ Error processing animation message:', error);
+            return {
+                ...animation,
+                processing_error: error.message
+            };
+        }
+    },
+
+    // Process document message
+    async processDocumentMessage(document, update) {
+        try {
+            console.log('📄 Processing document message');
+            
+            const botToken = this.extractBotTokenFromContext(update);
+            
+            const documentData = {
+                ...document,
+                message_type: 'document',
+                file_size_formatted: this.formatFileSize(document.file_size || 0),
+                file_extension: document.file_name ? document.file_name.split('.').pop()?.toLowerCase() : null,
+                has_thumb: !!document.thumb,
+                mime_type_category: this.categorizeFileType(document.mime_type),
+            };
+
+            if (botToken) {
+                try {
+                    const fileUrl = await this.getFileUrl(botToken, document.file_id, 'document');
+                    documentData.file_url = fileUrl;
+                    documentData.download_url = fileUrl;
+                    
+                    if (document.thumb && document.thumb.file_id) {
+                        const thumbUrl = await this.getFileUrl(botToken, document.thumb.file_id, 'thumb');
+                        documentData.thumbnail_url = thumbUrl;
+                    }
+                    
+                    console.log('📄 Document file URL retrieved:', fileUrl);
+                } catch (error) {
+                    console.log('⚠️ Could not get document file URL:', error.message);
+                    documentData.file_url_error = error.message;
+                }
+            } else {
+                documentData.file_url_template = `https://api.telegram.org/bot{{bot_token}}/getFile?file_id=${document.file_id}`;
+                documentData.manual_url_info = {
+                    message: "Use bot token to complete URLs",
+                    getFile_url: `https://api.telegram.org/bot{YOUR_BOT_TOKEN}/getFile?file_id=${document.file_id}`,
+                    note: "Call getFile API first to get file_path, then use: https://api.telegram.org/file/bot{YOUR_BOT_TOKEN}/{file_path}"
+                };
+            }
+
+            return documentData;
+        } catch (error) {
+            console.error('❌ Error processing document message:', error);
+            return {
+                ...document,
+                processing_error: error.message
+            };
+        }
+    },
+
+    // Generic file URL getter (replaces the voice-specific one)
+    async getFileUrl(botToken, fileId, fileType = 'file') {
+        try {
+            console.log(`🔗 Getting ${fileType} file URL for file_id:`, fileId);
             
             const getFileUrl = `https://api.telegram.org/bot${botToken}/getFile`;
             const response = await axios.post(getFileUrl, {
@@ -214,15 +624,20 @@ const telegramTriggerNode = {
             if (response.data.ok) {
                 const filePath = response.data.result.file_path;
                 const fileUrl = `https://api.telegram.org/file/bot${botToken}/${filePath}`;
-                console.log('🎤 Voice file URL generated:', fileUrl);
+                console.log(`🔗 ${fileType} file URL generated:`, fileUrl);
                 return fileUrl;
             } else {
                 throw new Error(`Telegram API error: ${response.data.description}`);
             }
         } catch (error) {
-            console.error('❌ Failed to get voice file URL:', error.message);
+            console.error(`❌ Failed to get ${fileType} file URL:`, error.message);
             throw error;
         }
+    },
+
+    // Get voice file URL from Telegram API (kept for backward compatibility)
+    async getVoiceFileUrl(botToken, fileId) {
+        return this.getFileUrl(botToken, fileId, 'voice');
     },
 
     // Extract bot token from webhook context (this might need adjustment based on how webhooks are configured)
@@ -414,6 +829,31 @@ const telegramTriggerNode = {
         } catch (error) {
             console.log('⚠️ vCard parsing error:', error.message);
             return null;
+        }
+    },
+
+    // Categorize file type based on MIME type
+    categorizeFileType(mimeType) {
+        if (!mimeType) return 'unknown';
+        
+        const lowerMime = mimeType.toLowerCase();
+        
+        if (lowerMime.startsWith('image/')) {
+            return 'image';
+        } else if (lowerMime.startsWith('video/')) {
+            return 'video';
+        } else if (lowerMime.startsWith('audio/')) {
+            return 'audio';
+        } else if (lowerMime.includes('pdf')) {
+            return 'pdf';
+        } else if (lowerMime.includes('document') || lowerMime.includes('word') || lowerMime.includes('excel') || lowerMime.includes('powerpoint')) {
+            return 'office_document';
+        } else if (lowerMime.includes('text/')) {
+            return 'text';
+        } else if (lowerMime.includes('zip') || lowerMime.includes('rar') || lowerMime.includes('tar') || lowerMime.includes('archive')) {
+            return 'archive';
+        } else {
+            return 'other';
         }
     },
 };
