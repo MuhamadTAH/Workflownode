@@ -1,4 +1,5 @@
 const axios = require('axios');
+const telegramTrigger = require('../../nodes/triggers/telegramTrigger');
 
 const verifyToken = async (req, res) => {
     const { token } = req.body;
@@ -49,10 +50,29 @@ const getUpdates = async (req, res) => {
         });
 
         if (response.data.ok) {
+            const updates = response.data.result;
+            console.log(`📥 Retrieved ${updates.length} raw updates from Telegram API`);
+            
+            // Process each update through the telegramTrigger to enhance location/contact/voice data
+            const processedUpdates = [];
+            for (const update of updates) {
+                try {
+                    console.log('🔄 Processing update:', update.update_id);
+                    const processedUpdate = await telegramTrigger.processUpdate(update);
+                    processedUpdates.push(processedUpdate);
+                    console.log('✅ Update processed successfully');
+                } catch (error) {
+                    console.error('❌ Error processing update:', error.message);
+                    // Fall back to original update if processing fails
+                    processedUpdates.push(update);
+                }
+            }
+            
+            console.log(`📤 Sending ${processedUpdates.length} processed updates to frontend`);
             res.status(200).send({
                 ok: true,
-                updates: response.data.result,
-                message: `Retrieved ${response.data.result.length} recent messages.`
+                updates: processedUpdates,
+                message: `Retrieved and processed ${processedUpdates.length} recent messages.`
             });
         } else {
             throw new Error(response.data.description || 'Failed to get updates.');
