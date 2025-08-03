@@ -240,17 +240,16 @@ export const processTemplate = (template, data) => {
   // 1. Handle {{$json.path}} format (traditional backend format)
   result = result.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
     try {
-      console.log('Processing $json template:', match, 'path:', path);
-      console.log('Parsed data structure:', parsedData);
+      // Reduced logging for performance
       
       // For workflow chain data, look inside the steps
       if (Object.keys(parsedData).some(key => key.startsWith('step_'))) {
-        console.log('Detected workflow chain data, searching in steps...');
+        // Processing workflow chain data
         
         // Try to find the path in any step
         for (const [stepKey, stepValue] of Object.entries(parsedData)) {
           if (stepKey.startsWith('step_') && typeof stepValue === 'object') {
-            console.log(`Checking step: ${stepKey}`, stepValue);
+            // Checking step for data
             
             const keys = path.split('.');
             let value = stepValue;
@@ -259,7 +258,7 @@ export const processTemplate = (template, data) => {
             for (const key of keys) {
               if (value && typeof value === 'object' && key in value) {
                 value = value[key];
-                console.log(`Found key '${key}' in step ${stepKey}:`, value);
+                // Found key in step
               } else {
                 found = false;
                 break;
@@ -268,13 +267,13 @@ export const processTemplate = (template, data) => {
             
             if (found) {
               const result = typeof value === 'string' ? value : JSON.stringify(value);
-              console.log('Found value in workflow chain:', result);
+              // Found value in workflow chain
               return result;
             }
           }
         }
         
-        console.log('Path not found in any workflow step');
+        // Path not found in any workflow step
         return match;
       } else {
         // Regular data processing
@@ -284,15 +283,15 @@ export const processTemplate = (template, data) => {
         for (const key of keys) {
           if (value && typeof value === 'object' && key in value) {
             value = value[key];
-            console.log(`After key '${key}':`, value);
+            // Processing key
           } else {
-            console.log(`Key '${key}' not found in:`, value);
+            // Key not found
             return match;
           }
         }
         
         const result = typeof value === 'string' ? value : JSON.stringify(value);
-        console.log('$json result:', result);
+        // $json processing complete
         return result;
       }
     } catch (error) {
@@ -375,9 +374,9 @@ export const processTemplate = (template, data) => {
         for (const key of keys) {
           if (value && typeof value === 'object' && key in value) {
             value = value[key];
-            console.log(`After key '${key}':`, value);
+            // Processing key
           } else {
-            console.log(`Key '${key}' not found in:`, value);
+            // Key not found
             return match;
           }
         }

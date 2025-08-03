@@ -100,56 +100,110 @@ const telegramSendMessageNode = {
             
             let result = inputStr;
             
-            // 1. Handle {{$json.path.to.value}} format (backend system)
+            // 1. Handle {{$json.path.to.value}} format (backend system) with workflow chain support
             result = result.replace(/\{\{\s*\$json\.(.*?)\s*\}\}/g, (match, path) => {
-                console.log('$json template found - match:', match, 'path:', path);
                 try {
-                    if (!json) {
-                        console.log('No json data available');
-                        return match;
-                    }
+                    if (!json) return match;
                     
-                    const keys = path.split('.');
-                    console.log('Path keys:', keys);
-                    let value = json;
-                    for (const key of keys) {
-                        console.log('Looking for key:', key, 'in:', typeof value === 'object' ? Object.keys(value) : value);
-                        if (value && typeof value === 'object' && key in value) {
-                            value = value[key];
-                            console.log('Found value:', value);
-                        } else {
-                            console.log('Key not found, returning original match');
-                            return match; // Keep original if not found
+                    // For workflow chain data, look inside the steps
+                    if (Object.keys(json).some(key => key.startsWith('step_'))) {
+                        console.log('🔗 Telegram: Detected workflow chain data, searching in steps...');
+                        
+                        // Try to find the path in any step
+                        for (const [stepKey, stepValue] of Object.entries(json)) {
+                            if (stepKey.startsWith('step_') && typeof stepValue === 'object') {
+                                console.log(`🔍 Telegram: Checking step: ${stepKey}`);
+                                
+                                const keys = path.split('.');
+                                let value = stepValue;
+                                let found = true;
+                                
+                                for (const key of keys) {
+                                    if (value && typeof value === 'object' && key in value) {
+                                        value = value[key];
+                                    } else {
+                                        found = false;
+                                        break;
+                                    }
+                                }
+                                
+                                if (found) {
+                                    const result = String(value || '');
+                                    console.log('✅ Telegram: Found value in workflow chain:', result);
+                                    return result;
+                                }
+                            }
                         }
+                        
+                        console.log('❌ Telegram: Path not found in any workflow step');
+                        return match;
+                    } else {
+                        // Regular data processing for non-workflow data
+                        const keys = path.split('.');
+                        let value = json;
+                        for (const key of keys) {
+                            if (value && typeof value === 'object' && key in value) {
+                                value = value[key];
+                            } else {
+                                return match; // Keep original if not found
+                            }
+                        }
+                        const finalValue = String(value || '');
+                        return finalValue;
                     }
-                    const finalValue = String(value || '');
-                    console.log('Final replacement value:', finalValue);
-                    return finalValue;
                 } catch (error) {
                     console.error('Error parsing $json template:', error);
                     return match;
                 }
             });
             
-            // 2. Handle {{nodePrefix.path.to.value}} format (frontend system)
-            result = result.replace(/\{\{\s*([a-zA-Z]+)\.(.*?)\s*\}\}/g, (match, nodePrefix, path) => {
+            // 2. Handle {{nodePrefix.path.to.value}} format (frontend system) with step support
+            result = result.replace(/\{\{\s*([a-zA-Z_]+)\.(.+?)\s*\}\}/g, (match, nodePrefix, path) => {
                 try {
-                    if (!json) return match;
-                    
                     let dataSource = null;
                     
-                    // Map node prefixes to data locations
-                    if (nodePrefix === 'telegram' && json._telegram) {
-                        dataSource = json._telegram;
-                    } else if (nodePrefix === 'telegram' && json._originalTrigger) {
-                        dataSource = json._originalTrigger;
-                    } else if (nodePrefix === 'aiAgent' && json.reply) {
-                        if (path === 'reply' || path === 'response') return json.reply;
-                        dataSource = json;
-                    } else if (json[nodePrefix]) {
-                        dataSource = json[nodePrefix];
+                    // For workflow chain data, look for step keys that contain the node prefix
+                    if (Object.keys(json).some(key => key.startsWith('step_'))) {
+                        console.log(`🔗 Telegram: Looking for nodePrefix '${nodePrefix}' in workflow chain...`);
+                        
+                        // Look for steps that match the node prefix
+                        for (const [stepKey, stepValue] of Object.entries(json)) {
+                            if (stepKey.startsWith('step_') && typeof stepValue === 'object') {
+                                // Check if this step matches the node prefix (case insensitive, handle underscores)
+                                const stepName = stepKey.replace(/^step_\d+_/, '').toLowerCase().replace(/_/g, '');
+                                const prefixName = nodePrefix.toLowerCase().replace(/_/g, '');
+                                
+                                if (stepName.includes(prefixName) || prefixName.includes(stepName)) {
+                                    console.log(`🎯 Telegram: Found matching step '${stepKey}' for prefix '${nodePrefix}'`);
+                                    dataSource = stepValue;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!dataSource) {
+                            console.log(`❌ Telegram: No step found for nodePrefix '${nodePrefix}'`);
+                            return match;
+                        }
                     } else {
-                        dataSource = json;
+                        // Fallback to regular node prefix mapping for non-workflow data
+                        if (nodePrefix === 'telegram' && json._telegram) {
+                            dataSource = json._telegram;
+                        } else if (nodePrefix === 'telegram' && json._originalTrigger) {
+                            dataSource = json._originalTrigger;
+                        } else if (nodePrefix === 'aiAgent' && json.reply) {
+                            if (path === 'reply' || path === 'response') return json.reply;
+                            dataSource = json;
+                        } else if (json[nodePrefix]) {
+                            dataSource = json[nodePrefix];
+                        } else {
+                            dataSource = json;
+                        }
+                    }
+                    
+                    if (!dataSource) {
+                        console.log(`❌ Telegram: No data source found for nodePrefix '${nodePrefix}'`);
+                        return match;
                     }
                     
                     // Navigate the path in data source
@@ -159,10 +213,14 @@ const telegramSendMessageNode = {
                         if (value && typeof value === 'object' && key in value) {
                             value = value[key];
                         } else {
+                            console.log(`❌ Telegram: Key '${key}' not found in path '${path}'`);
                             return match;
                         }
                     }
-                    return String(value || '');
+                    
+                    const result = String(value || '');
+                    console.log(`✅ Telegram: Successfully processed ${match} → ${result}`);
+                    return result;
                 } catch (error) {
                     console.error('Error parsing nodePrefix template:', error);
                     return match;

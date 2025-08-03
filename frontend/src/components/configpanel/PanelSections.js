@@ -13,6 +13,18 @@ import React from 'react';
 import { NodeOrganizedJSONViewer } from './JSONViewer';
 import { getNodeMetadata } from '../../config/nodeMetadata';
 
+// Helper function for in-memory storage (clears on page refresh)
+const saveToMemoryStorage = (key, data) => {
+  try {
+    if (!window.panelDataStorage) {
+      window.panelDataStorage = {};
+    }
+    window.panelDataStorage[key] = data;
+  } catch (error) {
+    console.warn('Failed to save to memory storage:', error);
+  }
+};
+
 // Helper function to find nodes connected to the current node as inputs
 const findConnectedPreviousNodes = (currentNodeId, edges, nodes) => {
   if (!edges || !nodes) return [];
@@ -198,12 +210,8 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose, e
         if (chainData) {
           const jsonData = JSON.stringify(chainData, null, 2);
           setInputData(jsonData);
-          // Also save to sessionStorage for session persistence
-          try {
-            sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
-          } catch (error) {
-            console.warn('Failed to save input data to sessionStorage:', error);
-          }
+          // Also save to in-memory storage (clears on refresh)
+          saveToMemoryStorage(`input-${node.id}`, jsonData);
           return;
         }
         
@@ -217,12 +225,8 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose, e
               _note: "Showing immediate connections only - workflow chain data not available"
             }, null, 2);
             setInputData(jsonData);
-            // Also save to sessionStorage for session persistence
-            try {
-              sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
-            } catch (error) {
-              console.warn('Failed to save input data to sessionStorage:', error);
-            }
+            // Also save to in-memory storage (clears on refresh)
+            saveToMemoryStorage(`input-${node.id}`, jsonData);
             return;
           }
         }
@@ -261,22 +265,14 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose, e
             const latestMessage = result.updates[result.updates.length - 1];
             const jsonData = JSON.stringify(latestMessage, null, 2);
             setInputData(jsonData);
-            // Also save to sessionStorage for session persistence
-            try {
-              sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
-            } catch (error) {
-              console.warn('Failed to save input data to sessionStorage:', error);
-            }
+            // Also save to in-memory storage (clears on refresh)
+            saveToMemoryStorage(`input-${node.id}`, jsonData);
           } else {
             // No new messages
             const jsonData = JSON.stringify({ message: "No new messages found" }, null, 2);
             setInputData(jsonData);
-            // Also save to sessionStorage for session persistence
-            try {
-              sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
-            } catch (error) {
-              console.warn('Failed to save input data to sessionStorage:', error);
-            }
+            // Also save to in-memory storage (clears on refresh)
+            saveToMemoryStorage(`input-${node.id}`, jsonData);
           }
         } else {
           const errorResult = await response.json().catch(() => ({ message: 'Unknown error' }));
@@ -288,12 +284,8 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose, e
         if (node.data.type === 'trigger') {
           const jsonData = JSON.stringify({ error: "Bot token not found. Please configure the Telegram Trigger node first." }, null, 2);
           setInputData(jsonData);
-          // Also save to sessionStorage for session persistence
-          try {
-            sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
-          } catch (error) {
-            console.warn('Failed to save input data to sessionStorage:', error);
-          }
+          // Also save to in-memory storage (clears on refresh)
+          saveToMemoryStorage(`input-${node.id}`, jsonData);
         } else {
           const mockData = {
             message: {
@@ -304,24 +296,16 @@ export const InputPanel = ({ inputData, setInputData, node, formData, onClose, e
           };
           const jsonData = JSON.stringify(mockData, null, 2);
           setInputData(jsonData);
-          // Also save to sessionStorage for session persistence
-          try {
-            sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
-          } catch (error) {
-            console.warn('Failed to save input data to sessionStorage:', error);
-          }
+          // Also save to in-memory storage (clears on refresh)
+          saveToMemoryStorage(`input-${node.id}`, jsonData);
         }
       }
     } catch (error) {
       console.error('Error fetching data:', error);
       const jsonData = JSON.stringify({ error: error.message }, null, 2);
       setInputData(jsonData);
-      // Also save to sessionStorage for session persistence
-      try {
-        sessionStorage.setItem(`panel-input-${node.id}`, jsonData);
-      } catch (storageError) {
-        console.warn('Failed to save input data to sessionStorage:', storageError);
-      }
+      // Also save to in-memory storage (clears on refresh)
+      saveToMemoryStorage(`input-${node.id}`, jsonData);
     }
   };
 
@@ -363,12 +347,8 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
       nodeType: node.data.type
     };
     setOutputData(mockOutput);
-    // Also save to sessionStorage for session persistence
-    try {
-      sessionStorage.setItem(`panel-output-${node.id}`, JSON.stringify(mockOutput));
-    } catch (error) {
-      console.warn('Failed to save output data to sessionStorage:', error);
-    }
+    // Also save to in-memory storage (clears on refresh)
+    saveToMemoryStorage(`output-${node.id}`, mockOutput);
   };
 
   const handlePostData = async () => {
@@ -394,12 +374,8 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
           nodeType: node.data.type
         };
         setOutputData(triggerOutput);
-        // Also save to sessionStorage for session persistence
-        try {
-          sessionStorage.setItem(`panel-output-${node.id}`, JSON.stringify(triggerOutput));
-        } catch (error) {
-          console.warn('Failed to save output data to sessionStorage:', error);
-        }
+        // Also save to in-memory storage (clears on refresh)
+        saveToMemoryStorage(`output-${node.id}`, triggerOutput);
         return;
       }
 
@@ -462,12 +438,8 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
           inputData: parsedInput
         };
         setOutputData(telegramOutput);
-        // Also save to sessionStorage for session persistence
-        try {
-          sessionStorage.setItem(`panel-output-${node.id}`, JSON.stringify(telegramOutput));
-        } catch (error) {
-          console.warn('Failed to save output data to sessionStorage:', error);
-        }
+        // Also save to in-memory storage (clears on refresh)
+        saveToMemoryStorage(`output-${node.id}`, telegramOutput);
         return;
       }
 
@@ -492,22 +464,14 @@ export const OutputPanel = ({ outputData, setOutputData, isLoading, node, formDa
       }
       
       setOutputData(result);
-      // Also save to sessionStorage for session persistence
-      try {
-        sessionStorage.setItem(`panel-output-${node.id}`, JSON.stringify(result));
-      } catch (error) {
-        console.warn('Failed to save output data to sessionStorage:', error);
-      }
+      // Also save to in-memory storage (clears on refresh)
+      saveToMemoryStorage(`output-${node.id}`, result);
     } catch (error) {
       console.error('Error processing data:', error);
       const errorOutput = { error: error.message };
       setOutputData(errorOutput);
-      // Also save to sessionStorage for session persistence
-      try {
-        sessionStorage.setItem(`panel-output-${node.id}`, JSON.stringify(errorOutput));
-      } catch (storageError) {
-        console.warn('Failed to save output data to sessionStorage:', storageError);
-      }
+      // Also save to in-memory storage (clears on refresh)
+      saveToMemoryStorage(`output-${node.id}`, errorOutput);
     }
   };
 

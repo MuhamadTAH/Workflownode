@@ -27,11 +27,14 @@ const ConfigPanel = ({ node, onClose, edges, nodes }) => {
   // Enhanced state management - keeping existing simple state + adding advanced features
   const [formData, setFormData] = useState(() => initializeFormData(node));
   
-  // Enhanced state with sessionStorage persistence for INPUT/OUTPUT panel data (clears on refresh)
+  // Enhanced state with in-memory persistence for INPUT/OUTPUT panel data (clears on page refresh)
   const [inputData, setInputData] = useState(() => {
     try {
-      const savedInputData = sessionStorage.getItem(`panel-input-${node.id}`);
-      return savedInputData || '';
+      // Use global in-memory storage that clears on refresh
+      if (window.panelDataStorage && window.panelDataStorage[`input-${node.id}`]) {
+        return window.panelDataStorage[`input-${node.id}`];
+      }
+      return '';
     } catch (error) {
       console.warn('Failed to load saved input data:', error);
       return '';
@@ -40,8 +43,11 @@ const ConfigPanel = ({ node, onClose, edges, nodes }) => {
   
   const [outputData, setOutputData] = useState(() => {
     try {
-      const savedOutputData = sessionStorage.getItem(`panel-output-${node.id}`);
-      return savedOutputData ? JSON.parse(savedOutputData) : null;
+      // Use global in-memory storage that clears on refresh
+      if (window.panelDataStorage && window.panelDataStorage[`output-${node.id}`]) {
+        return window.panelDataStorage[`output-${node.id}`];
+      }
+      return null;
     } catch (error) {
       console.warn('Failed to load saved output data:', error);
       return null;
@@ -50,15 +56,18 @@ const ConfigPanel = ({ node, onClose, edges, nodes }) => {
   
   const [isLoading, setIsLoading] = useState(false);
 
-  // Enhanced setters that store data in sessionStorage (persists during session, clears on refresh)
+  // Enhanced setters that store data in memory (persists until page refresh)
   const setInputDataWithTempStorage = (data) => {
     setInputData(data);
     
-    // Store in sessionStorage for panel persistence during session only
+    // Store in global in-memory storage that clears on refresh
     try {
-      sessionStorage.setItem(`panel-input-${node.id}`, data);
+      if (!window.panelDataStorage) {
+        window.panelDataStorage = {};
+      }
+      window.panelDataStorage[`input-${node.id}`] = data;
     } catch (error) {
-      console.warn('Failed to save input data to sessionStorage:', error);
+      console.warn('Failed to save input data to memory storage:', error);
     }
     
     // Store temporarily for connected nodes to access during this session only
@@ -89,11 +98,14 @@ const ConfigPanel = ({ node, onClose, edges, nodes }) => {
   const setOutputDataWithTempStorage = (data) => {
     setOutputData(data);
     
-    // Store in sessionStorage for panel persistence during session only
+    // Store in global in-memory storage that clears on refresh
     try {
-      sessionStorage.setItem(`panel-output-${node.id}`, JSON.stringify(data));
+      if (!window.panelDataStorage) {
+        window.panelDataStorage = {};
+      }
+      window.panelDataStorage[`output-${node.id}`] = data;
     } catch (error) {
-      console.warn('Failed to save output data to sessionStorage:', error);
+      console.warn('Failed to save output data to memory storage:', error);
     }
     
     // Store temporarily for connected nodes to access during this session only
