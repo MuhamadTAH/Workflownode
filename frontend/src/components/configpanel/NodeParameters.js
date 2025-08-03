@@ -688,8 +688,8 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
           <label>Message</label>
           <DroppableTextInput
             type="textarea"
-            name="message"
-            value={formData.message || ''}
+            name="messageText"
+            value={formData.messageText || ''}
             onChange={handleFormFieldChange}
             className="condition-input"
             placeholder="Enter your message here... You can use template variables like {{message.text}} or {{telegram.message.from.username}}"

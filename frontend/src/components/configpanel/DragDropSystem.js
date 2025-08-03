@@ -330,8 +330,7 @@ export const processTemplate = (template, data) => {
   // 3. Handle {{stepName.field}} format (workflow chain format) - with spaces
   result = result.replace(/\{\{\s*([^}]+?)\.(.*?)\s*\}\}/g, (match, stepName, path) => {
     try {
-      console.log('Processing template:', match, 'stepName:', stepName, 'path:', path);
-      console.log('Available data keys:', Object.keys(parsedData));
+      // Processing workflow chain template
       
       // Enhanced step key finding with better space handling
       const stepKey = Object.keys(parsedData).find(key => {
@@ -363,13 +362,13 @@ export const processTemplate = (template, data) => {
         return false;
       });
       
-      console.log('Found stepKey:', stepKey);
+      // Found matching step
       
       if (stepKey && parsedData[stepKey]) {
         const keys = path.split('.');
         let value = parsedData[stepKey];
         
-        console.log('Initial value:', value);
+        // Processing path in step data
         
         for (const key of keys) {
           if (value && typeof value === 'object' && key in value) {
@@ -382,11 +381,11 @@ export const processTemplate = (template, data) => {
         }
         
         const result = typeof value === 'string' ? value : JSON.stringify(value);
-        console.log('Final result:', result);
+        // Template processing complete
         return result;
       }
       
-      console.log('No stepKey found, returning match');
+      // No matching step found
       return match;
     } catch (error) {
       console.error('Error in template processing:', error);

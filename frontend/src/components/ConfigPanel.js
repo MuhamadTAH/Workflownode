@@ -232,12 +232,12 @@ const ConfigPanel = ({ node, onClose, edges, nodes }) => {
         if (!formData.chatId) {
           throw new Error('Chat ID is required');
         }
-        if (!formData.message) {
+        if (!formData.messageText) {
           throw new Error('Message is required');
         }
 
         // Process template variables in the message
-        let processedMessage = formData.message;
+        let processedMessage = formData.messageText;
         
         // Simple template variable replacement
         if (fetchedInputData) {
@@ -278,7 +278,7 @@ const ConfigPanel = ({ node, onClose, edges, nodes }) => {
         
         const telegramOutput = {
           ...sendResult,
-          originalMessage: formData.message,
+          originalMessage: formData.messageText,
           processedMessage: processedMessage,
           inputData: fetchedInputData
         };
