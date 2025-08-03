@@ -66,6 +66,14 @@ const Sidebar = ({ onSave, onRestore, onActivate, onDeactivate }) => {
         />
         <DraggableNode 
           nodeInfo={{ 
+              label: 'File Converter', 
+              icon: 'fa-solid fa-file-arrow-up', 
+              description: 'Convert files to Telegram-compatible URLs',
+              type: 'fileConverter'
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
               label: 'Telegram Send Message', 
               icon: 'fa-brands fa-telegram', 
               description: 'Send messages to Telegram bot chats',

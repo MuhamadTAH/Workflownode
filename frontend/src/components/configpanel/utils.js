@@ -222,6 +222,21 @@ export const initializeFormData = (node) => {
     documentUrl: node.data.documentUrl || '',
     content: node.data.content || '',
     title: node.data.title || '',
-    dataStorage: node.data.dataStorage || {}
+    dataStorage: node.data.dataStorage || {},
+    
+    // File Converter fields
+    inputType: node.data.inputType || 'google_drive',
+    googleDriveUrl: node.data.googleDriveUrl || '',
+    base64Data: node.data.base64Data || '',
+    fileExtension: node.data.fileExtension || '',
+    fileUrl: node.data.fileUrl || '',
+    localFilePath: node.data.localFilePath || '',
+    outputFormat: node.data.outputFormat || 'original',
+    hostingService: node.data.hostingService || 'temp_server',
+    imgbbApiKey: node.data.imgbbApiKey || '',
+    imgurClientId: node.data.imgurClientId || '',
+    imageQuality: node.data.imageQuality || 85,
+    maxFileSizeMB: node.data.maxFileSizeMB || 50,
+    cacheDurationHours: node.data.cacheDurationHours || 24
   };
 };

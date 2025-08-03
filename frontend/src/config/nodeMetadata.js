@@ -84,6 +84,15 @@ export const nodeMetadata = {
     bgColor: "#fff4e6"
   },
 
+  file_converter: {
+    title: "File Converter/Proxy",
+    description: "Convert files from various sources (Google Drive, Base64, URLs) to Telegram-compatible URLs. Perfect for making media files accessible to Telegram bots.",
+    icon: "🔄",
+    category: "utility",
+    color: "#8b5cf6",
+    bgColor: "#f5f3ff"
+  },
+
   // ===== LOGIC NODES =====
   if: {
     title: "Conditional Logic (If)",

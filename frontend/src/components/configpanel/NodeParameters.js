@@ -1373,6 +1373,260 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
     );
   }
 
+  if (node.data.type === 'fileConverter') {
+    return (
+      <>
+        <NodeDescription nodeType="file_converter" />
+        
+        <div className="form-group">
+          <label>Input Type</label>
+          <select 
+            name="inputType" 
+            value={formData.inputType || 'google_drive'} 
+            onChange={handleFormFieldChange} 
+            className="condition-input"
+          >
+            <option value="google_drive">📁 Google Drive URL</option>
+            <option value="base64">🔢 Base64 Data</option>
+            <option value="direct_url">🌐 Direct URL (needs proxy)</option>
+            <option value="onedrive">☁️ OneDrive/SharePoint URL</option>
+            <option value="dropbox">📦 Dropbox URL</option>
+            <option value="local_file">💾 Local File Path</option>
+          </select>
+          <div className="text-xs text-gray-500 mt-1">
+            💡 Choose your file source type
+          </div>
+        </div>
+
+        {/* Google Drive Fields */}
+        {(formData.inputType || 'google_drive') === 'google_drive' && (
+          <div className="form-group">
+            <label>Google Drive URL or File ID</label>
+            <DroppableTextInput
+              type="text"
+              name="googleDriveUrl"
+              value={formData.googleDriveUrl || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              placeholder="https://drive.google.com/file/d/1ABC123.../view or 1ABC123..."
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              📁 Google Drive sharing URL or just the file ID
+            </div>
+          </div>
+        )}
+
+        {/* Base64 Fields */}
+        {formData.inputType === 'base64' && (
+          <>
+            <div className="form-group">
+              <label>Base64 Data</label>
+              <DroppableTextInput
+                type="textarea"
+                name="base64Data"
+                value={formData.base64Data || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ... or just the base64 string"
+                inputData={inputData}
+                rows={4}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🔢 Base64 encoded file data (with or without data URL prefix)
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>File Extension</label>
+              <DroppableTextInput
+                type="text"
+                name="fileExtension"
+                value={formData.fileExtension || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="jpg, png, mp4, pdf, etc."
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                📄 File extension to determine file type
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* URL Fields */}
+        {(formData.inputType === 'direct_url' || 
+          formData.inputType === 'onedrive' || 
+          formData.inputType === 'dropbox') && (
+          <div className="form-group">
+            <label>File URL</label>
+            <DroppableTextInput
+              type="text"
+              name="fileUrl"
+              value={formData.fileUrl || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              placeholder="https://example.com/file.jpg or https://1drv.ms/..."
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              🌐 Direct URL to the file that needs proxying
+            </div>
+          </div>
+        )}
+
+        {/* Local File Fields */}
+        {formData.inputType === 'local_file' && (
+          <div className="form-group">
+            <label>Local File Path</label>
+            <DroppableTextInput
+              type="text"
+              name="localFilePath"
+              value={formData.localFilePath || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              placeholder="/tmp/uploads/image.jpg"
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              💾 Path to file on the server
+            </div>
+          </div>
+        )}
+
+        <div className="form-group">
+          <label>Output Format</label>
+          <select 
+            name="outputFormat" 
+            value={formData.outputFormat || 'original'} 
+            onChange={handleFormFieldChange} 
+            className="condition-input"
+          >
+            <option value="original">📋 Keep Original</option>
+            <option value="jpg">🖼️ Convert to JPG</option>
+            <option value="png">🖼️ Convert to PNG</option>
+            <option value="webp">🖼️ Convert to WebP</option>
+            <option value="mp4">🎥 Convert to MP4</option>
+            <option value="pdf">📄 Convert to PDF</option>
+          </select>
+          <div className="text-xs text-gray-500 mt-1">
+            🔄 File format conversion (requires conversion service)
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label>Hosting Service</label>
+          <select 
+            name="hostingService" 
+            value={formData.hostingService || 'temp_server'} 
+            onChange={handleFormFieldChange} 
+            className="condition-input"
+          >
+            <option value="temp_server">⏱️ Temporary File Server</option>
+            <option value="imgbb">🖼️ ImgBB (Images only)</option>
+            <option value="imgur">🖼️ Imgur (Images only)</option>
+            <option value="fileio">📁 File.io (Temporary)</option>
+            <option value="telegraph">📸 Telegraph (Images only)</option>
+          </select>
+          <div className="text-xs text-gray-500 mt-1">
+            ☁️ Service to host the converted file
+          </div>
+        </div>
+
+        {/* API Key Fields */}
+        {formData.hostingService === 'imgbb' && (
+          <div className="form-group">
+            <label>ImgBB API Key</label>
+            <input
+              type="password"
+              name="imgbbApiKey"
+              value={formData.imgbbApiKey || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              placeholder="Get from https://api.imgbb.com/"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              🔑 Free API key from ImgBB (sign up required)
+            </div>
+          </div>
+        )}
+
+        {formData.hostingService === 'imgur' && (
+          <div className="form-group">
+            <label>Imgur Client ID</label>
+            <input
+              type="password"
+              name="imgurClientId"
+              value={formData.imgurClientId || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              placeholder="Get from https://api.imgur.com/"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              🔑 Free Client ID from Imgur (app registration required)
+            </div>
+          </div>
+        )}
+
+        {/* Advanced Options */}
+        {formData.outputFormat === 'jpg' && (
+          <div className="form-group">
+            <label>Image Quality (1-100)</label>
+            <input
+              type="number"
+              name="imageQuality"
+              value={formData.imageQuality || 85}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              min="1"
+              max="100"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              📊 JPEG compression quality (higher = better quality, larger file)
+            </div>
+          </div>
+        )}
+
+        <div className="form-group">
+          <label>Max File Size (MB)</label>
+          <input
+            type="number"
+            name="maxFileSizeMB"
+            value={formData.maxFileSizeMB || 50}
+            onChange={handleFormFieldChange}
+            className="condition-input"
+            min="1"
+            max="50"
+          />
+          <div className="text-xs text-gray-500 mt-1">
+            📏 Maximum file size (Telegram limit: 50MB for bots)
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label>Cache Duration (hours)</label>
+          <input
+            type="number"
+            name="cacheDurationHours"
+            value={formData.cacheDurationHours || 24}
+            onChange={handleFormFieldChange}
+            className="condition-input"
+            min="1"
+            max="168"
+          />
+          <div className="text-xs text-gray-500 mt-1">
+            ⏰ How long to keep the file accessible (1-168 hours)
+          </div>
+        </div>
+
+        <div className="text-xs text-gray-500 mb-2">
+          🔄 This node converts files from various sources to Telegram-compatible URLs
+        </div>
+      </>
+    );
+  }
+
   // Fallback for unknown node types
   return (
     <>

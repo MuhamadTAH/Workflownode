@@ -10,6 +10,7 @@ const modelNode = require('../../nodes/actions/modelNode');
 const googleDocsNode = require('../../nodes/actions/googleDocsNode');
 const DataStorageNode = require('../../nodes/actions/dataStorageNode');
 const telegramSendMessageNode = require('../../nodes/actions/telegramSendMessageNode');
+const fileConverterNode = require('../../nodes/actions/fileConverterNode');
 
 const runNode = async (req, res) => {
     try {
@@ -42,6 +43,9 @@ const runNode = async (req, res) => {
                 break;
             case 'telegramSendMessage':
                 result = await telegramSendMessageNode.execute(node.config, inputData, connectedNodes);
+                break;
+            case 'fileConverter':
+                result = await fileConverterNode.execute(node.config, inputData, connectedNodes);
                 break;
             default:
                 return res.status(400).send({ message: `Node type "${node.type}" is not supported.` });
