@@ -154,58 +154,168 @@ const ConfigPanel = ({ node, onClose, edges, nodes }) => {
     onClose({ ...node.data, ...formData });
   };
 
-  // Enhanced Execute button - runs GET then POST automatically
+  // Enhanced Execute button - runs GET then POST automatically using same logic as GET button
   const handleExecuteStep = async () => {
     setIsLoading(true);
     try {
-      // Step 1: GET - Fetch input data
+      // Step 1: GET - Fetch input data using SAME logic as GET button
       let fetchedInputData = null;
       
-      const botToken = formData.botToken || node.data.botToken || formData.token || node.data.token;
+      // Use IDENTICAL logic to GET button - copied helper functions
       
-      if (node.data.type === 'trigger' && botToken) {
-        // First, try to delete any existing webhook to avoid conflicts
+      // Helper function to trace workflow chain (copied from PanelSections.js)
+      const traceWorkflowChain = (currentNodeId, edges, nodes) => {
+        if (!edges || !nodes) return [];
+        
+        const workflowChain = [];
+        const visited = new Set();
+        
+        const buildChain = (nodeId) => {
+          if (visited.has(nodeId)) return;
+          visited.add(nodeId);
+          
+          const incomingEdges = edges.filter(edge => edge.target === nodeId);
+          
+          if (incomingEdges.length === 0) {
+            const startNode = nodes.find(n => n.id === nodeId);
+            if (startNode) {
+              workflowChain.unshift({
+                id: startNode.id,
+                type: startNode.data.type,
+                label: startNode.data.label,
+                position: 'start',
+                node: startNode
+              });
+            }
+          } else {
+            for (const edge of incomingEdges) {
+              buildChain(edge.source);
+            }
+            
+            const currentNode = nodes.find(n => n.id === nodeId);
+            if (currentNode) {
+              workflowChain.push({
+                id: currentNode.id,
+                type: currentNode.data.type,
+                label: currentNode.data.label,
+                position: workflowChain.length === 0 ? 'start' : 'middle',
+                node: currentNode
+              });
+            }
+          }
+        };
+        
+        buildChain(currentNodeId);
+        const filteredChain = workflowChain.filter(item => item.id !== currentNodeId);
+        return filteredChain.reverse();
+      };
+      
+      // Helper function to get workflow chain data (copied from PanelSections.js)
+      const getWorkflowChainData = async (workflowChain) => {
         try {
-          await fetch('https://workflownode.onrender.com/api/telegram/delete-webhook', {
+          const chainData = {};
+          let hasAnyData = false;
+          
+          for (let i = 0; i < workflowChain.length; i++) {
+            const chainNode = workflowChain[i];
+            const storageKey = `temp-node-execution-${chainNode.id}`;
+            const storedData = sessionStorage.getItem(storageKey);
+            
+            if (storedData) {
+              try {
+                const parsedData = JSON.parse(storedData);
+                
+                if (parsedData.outputData) {
+                  const nodeDisplayName = (chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`).replace(/ /g, '_');
+                  chainData[`step_${i + 1}_${nodeDisplayName}`] = parsedData.outputData;
+                  hasAnyData = true;
+                }
+              } catch (parseError) {
+                console.warn(`Failed to parse stored data for chain node ${chainNode.id}:`, parseError);
+              }
+            } else {
+              const nodeDisplayName = (chainNode.label || `${chainNode.type}_${chainNode.id.slice(-4)}`).replace(/ /g, '_');
+              chainData[`step_${i + 1}_${nodeDisplayName}`] = 'No execution data available for this node';
+            }
+          }
+          
+          if (hasAnyData || Object.keys(chainData).length > 0) {
+            return chainData;
+          }
+          
+          return null;
+        } catch (error) {
+          console.error('Error getting workflow chain data:', error);
+          return null;
+        }
+      };
+      
+      // Use workflow chain logic
+      const workflowChain = traceWorkflowChain(node.id, edges, nodes);
+      
+      if (workflowChain.length > 0) {
+        console.log(`🚀 Execute Step: Found workflow chain with ${workflowChain.length} nodes:`, workflowChain.map(n => n.type));
+        
+        // Get data from the entire workflow chain (same as GET button)
+        const chainData = await getWorkflowChainData(workflowChain);
+        
+        if (chainData) {
+          console.log('🚀 Execute Step: Using workflow chain data');
+          fetchedInputData = chainData;
+        } else {
+          console.log('🚀 Execute Step: No workflow chain data available');
+        }
+      }
+      
+      // If no workflow chain data, try trigger-specific logic
+      if (!fetchedInputData) {
+        const botToken = formData.botToken || node.data.botToken || formData.token || node.data.token;
+        
+        if (node.data.type === 'trigger' && botToken) {
+          // First, try to delete any existing webhook to avoid conflicts
+          try {
+            await fetch('https://workflownode.onrender.com/api/telegram/delete-webhook', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ token: botToken }),
+            });
+          } catch (webhookError) {
+            console.warn('Webhook deletion failed in Execute, continuing anyway:', webhookError);
+          }
+          
+          // Fetch from Telegram API for Telegram Trigger
+          const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ token: botToken }),
           });
-        } catch (webhookError) {
-          console.warn('Webhook deletion failed in Execute, continuing anyway:', webhookError);
-        }
-        
-        // Fetch from Telegram API for Telegram Trigger
-        const response = await fetch('https://workflownode.onrender.com/api/telegram/get-updates', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token: botToken }),
-        });
 
-        if (response.ok) {
-          const result = await response.json();
-          if (result.updates && result.updates.length > 0) {
-            const latestMessage = result.updates[result.updates.length - 1];
-            fetchedInputData = latestMessage;
+          if (response.ok) {
+            const result = await response.json();
+            if (result.updates && result.updates.length > 0) {
+              const latestMessage = result.updates[result.updates.length - 1];
+              fetchedInputData = latestMessage;
+            } else {
+              fetchedInputData = { message: "No new messages found" };
+            }
           } else {
-            fetchedInputData = { message: "No new messages found" };
+            throw new Error('Failed to fetch Telegram updates');
           }
         } else {
-          throw new Error('Failed to fetch Telegram updates');
+          // Last resort: Default mock data only if no other data available
+          console.log('🚀 Execute Step: No workflow data available, using mock data');
+          fetchedInputData = {
+            message: {
+              text: "Hello from Telegram",
+              chat: { id: 12345 },
+              from: { username: "testuser" }
+            }
+          };
         }
-      } else {
-        // Default mock data for other node types
-        fetchedInputData = {
-          message: {
-            text: "Hello from Telegram",
-            chat: { id: 12345 },
-            from: { username: "testuser" }
-          }
-        };
       }
 
       // Update input data display
