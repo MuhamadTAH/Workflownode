@@ -298,6 +298,11 @@ const telegramSendMessageNode = {
             botToken, 
             chatId, 
             messageText, 
+            messageType = 'text',
+            photoUrl,
+            photoCaption,
+            videoUrl,
+            videoCaption,
             parseMode = '', 
             disableWebPagePreview = false, 
             disableNotification = false 
@@ -311,26 +316,55 @@ const telegramSendMessageNode = {
             throw new Error('Chat ID is required for Telegram Send Message node.');
         }
 
-        if (!messageText) {
-            throw new Error('Message Text is required for Telegram Send Message node.');
+        // Validate content based on message type
+        if (messageType === 'text' && !messageText) {
+            throw new Error('Message Text is required for text messages.');
+        }
+        if (messageType === 'photo' && !photoUrl) {
+            throw new Error('Photo URL is required for photo messages.');
+        }
+        if (messageType === 'video' && !videoUrl) {
+            throw new Error('Video URL is required for video messages.');
         }
 
-        // Process template variables in chatId and messageText
+        // Process template variables in chatId and content
         console.log('Original chatId:', chatId);
-        console.log('Original messageText:', messageText);
+        console.log('Message type:', messageType);
         
         const processedChatId = parseUniversalTemplate(chatId, inputData);
-        const processedMessageText = parseUniversalTemplate(messageText, inputData);
+        
+        let processedContent = {};
+        if (messageType === 'text') {
+            console.log('Original messageText:', messageText);
+            processedContent.text = parseUniversalTemplate(messageText, inputData);
+        } else if (messageType === 'photo') {
+            console.log('Original photoUrl:', photoUrl);
+            console.log('Original photoCaption:', photoCaption);
+            processedContent.photo = parseUniversalTemplate(photoUrl, inputData);
+            processedContent.caption = photoCaption ? parseUniversalTemplate(photoCaption, inputData) : '';
+        } else if (messageType === 'video') {
+            console.log('Original videoUrl:', videoUrl);
+            console.log('Original videoCaption:', videoCaption);
+            processedContent.video = parseUniversalTemplate(videoUrl, inputData);
+            processedContent.caption = videoCaption ? parseUniversalTemplate(videoCaption, inputData) : '';
+        }
         
         console.log('Processed chatId:', processedChatId);
-        console.log('Processed messageText:', processedMessageText);
+        console.log('Processed content:', processedContent);
 
         if (!processedChatId.trim()) {
             throw new Error('Processed Chat ID cannot be empty. Check your template variables.');
         }
 
-        if (!processedMessageText.trim()) {
+        // Validate processed content based on message type
+        if (messageType === 'text' && !processedContent.text.trim()) {
             throw new Error('Processed Message Text cannot be empty. Check your template variables.');
+        }
+        if (messageType === 'photo' && !processedContent.photo.trim()) {
+            throw new Error('Processed Photo URL cannot be empty. Check your template variables.');
+        }
+        if (messageType === 'video' && !processedContent.video.trim()) {
+            throw new Error('Processed Video URL cannot be empty. Check your template variables.');
         }
 
         // Validate chat ID is numeric (Telegram chat IDs are numbers)
@@ -339,24 +373,62 @@ const telegramSendMessageNode = {
             throw new Error(`Invalid Chat ID format: "${numericChatId}". Chat ID must be a number.`);
         }
 
-        // Prepare the API request
-        const telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-        
-        const requestData = {
-            chat_id: numericChatId,
-            text: processedMessageText,
-            disable_web_page_preview: disableWebPagePreview,
-            disable_notification: disableNotification,
-        };
+        // Prepare the API request based on message type
+        let telegramApiUrl, requestData;
 
-        // Add parse mode if specified
-        if (parseMode && parseMode.trim()) {
-            requestData.parse_mode = parseMode;
+        if (messageType === 'text') {
+            telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+            requestData = {
+                chat_id: numericChatId,
+                text: processedContent.text,
+                disable_web_page_preview: disableWebPagePreview,
+                disable_notification: disableNotification,
+            };
+            // Add parse mode if specified
+            if (parseMode && parseMode.trim()) {
+                requestData.parse_mode = parseMode;
+            }
+        } else if (messageType === 'photo') {
+            telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendPhoto`;
+            requestData = {
+                chat_id: numericChatId,
+                photo: processedContent.photo,
+                disable_notification: disableNotification,
+            };
+            if (processedContent.caption.trim()) {
+                requestData.caption = processedContent.caption;
+                // Add parse mode for caption if specified
+                if (parseMode && parseMode.trim()) {
+                    requestData.parse_mode = parseMode;
+                }
+            }
+        } else if (messageType === 'video') {
+            telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendVideo`;
+            requestData = {
+                chat_id: numericChatId,
+                video: processedContent.video,
+                disable_notification: disableNotification,
+            };
+            if (processedContent.caption.trim()) {
+                requestData.caption = processedContent.caption;
+                // Add parse mode for caption if specified
+                if (parseMode && parseMode.trim()) {
+                    requestData.parse_mode = parseMode;
+                }
+            }
         }
 
         try {
-            console.log('Sending Telegram message to chat:', numericChatId);
-            console.log('Message text:', processedMessageText.substring(0, 100) + (processedMessageText.length > 100 ? '...' : ''));
+            console.log('Sending Telegram', messageType, 'to chat:', numericChatId);
+            if (messageType === 'text') {
+                console.log('Message text:', processedContent.text.substring(0, 100) + (processedContent.text.length > 100 ? '...' : ''));
+            } else if (messageType === 'photo') {
+                console.log('Photo URL:', processedContent.photo);
+                console.log('Photo caption:', processedContent.caption || 'No caption');
+            } else if (messageType === 'video') {
+                console.log('Video URL:', processedContent.video);
+                console.log('Video caption:', processedContent.caption || 'No caption');
+            }
             
             const response = await axios.post(telegramApiUrl, requestData);
             
@@ -365,18 +437,35 @@ const telegramSendMessageNode = {
             if (messageData.ok) {
                 console.log('Message sent successfully:', messageData.result.message_id);
                 
-                return {
+                const responseData = {
                     success: true,
                     messageId: messageData.result.message_id,
                     chatId: numericChatId,
-                    sentText: processedMessageText,
+                    messageType: messageType,
                     timestamp: new Date().toISOString(),
                     botToken: botToken.substring(0, 10) + '...', // Partial token for logging
                     parseMode: parseMode,
                     telegramResponse: messageData.result,
                     originalChatId: chatId,
-                    originalMessageText: messageText
                 };
+
+                // Add type-specific content information
+                if (messageType === 'text') {
+                    responseData.sentText = processedContent.text;
+                    responseData.originalMessageText = messageText;
+                } else if (messageType === 'photo') {
+                    responseData.sentPhotoUrl = processedContent.photo;
+                    responseData.sentCaption = processedContent.caption;
+                    responseData.originalPhotoUrl = photoUrl;
+                    responseData.originalPhotoCaption = photoCaption;
+                } else if (messageType === 'video') {
+                    responseData.sentVideoUrl = processedContent.video;
+                    responseData.sentCaption = processedContent.caption;
+                    responseData.originalVideoUrl = videoUrl;
+                    responseData.originalVideoCaption = videoCaption;
+                }
+
+                return responseData;
             } else {
                 throw new Error(`Telegram API error: ${messageData.description || 'Unknown error'}`);
             }
@@ -398,6 +487,14 @@ const telegramSendMessageNode = {
                         errorMessage += ' (Check if the bot token is correct)';
                     } else if (telegramError.description.includes('blocked')) {
                         errorMessage += ' (The bot has been blocked by the user)';
+                    } else if (telegramError.description.includes('failed to get HTTP URL content')) {
+                        errorMessage += ' (Media URL is not accessible. Check if the URL is correct and publicly available)';
+                    } else if (telegramError.description.includes('photo_invalid_dimensions')) {
+                        errorMessage += ' (Photo dimensions are invalid. Check if the image file is valid)';
+                    } else if (telegramError.description.includes('video_file_invalid')) {
+                        errorMessage += ' (Video file is invalid. Check if the video URL is correct and the file format is supported)';
+                    } else if (telegramError.description.includes('wrong file identifier')) {
+                        errorMessage += ' (Invalid media URL format. Make sure the URL points directly to a media file)';
                     }
                 }
             } else {

@@ -45,7 +45,128 @@ const NodeDescription = ({ nodeType }) => {
   );
 };
 
+// Description Field Component for Settings Tab
+const DescriptionField = ({ value, onChange }) => {
+  return (
+    <div className="form-group">
+      <label>Description</label>
+      <textarea
+        name="description"
+        value={value || ''}
+        onChange={onChange}
+        placeholder="Enter a description for this node..."
+        className="condition-input"
+        rows="3"
+        style={{ resize: 'vertical', minHeight: '60px' }}
+      />
+      <div className="text-xs text-gray-500 mt-1">
+        📝 Optional description to help document what this node does in your workflow.
+      </div>
+    </div>
+  );
+};
+
+// Note Field Component for Settings Tab
+const NoteField = ({ value, onChange }) => {
+  return (
+    <div className="form-group">
+      <label>Notes</label>
+      <textarea
+        name="note"
+        value={value || ''}
+        onChange={onChange}
+        placeholder="Add any notes, reminders, or additional information..."
+        className="condition-input"
+        rows="4"
+        style={{ resize: 'vertical', minHeight: '80px' }}
+      />
+      <div className="text-xs text-gray-500 mt-1">
+        📋 Personal notes and reminders about this node's configuration or purpose.
+      </div>
+    </div>
+  );
+};
+
+// Universal Settings Tab Component for All Node Types
+const UniversalSettingsTab = ({ formData, handleFormFieldChange, nodeType }) => {
+  return (
+    <>
+      <DescriptionField value={formData.description} onChange={handleFormFieldChange} />
+      <NoteField value={formData.note} onChange={handleFormFieldChange} />
+      
+      {/* AI-specific settings only for AI nodes */}
+      {(nodeType === 'aiAgent' || nodeType === 'modelNode') && (
+        <>
+          <div className="form-group">
+            <label>User ID (for conversation memory)</label>
+            <input 
+              type="text" 
+              name="userId" 
+              value={formData.userId || 'default'} 
+              onChange={handleFormFieldChange} 
+              className="condition-input" 
+              placeholder="default"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              💡 Used to separate conversations. Each User ID gets its own memory.
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label>Max Tokens</label>
+            <input 
+              type="number" 
+              name="maxTokens" 
+              value={formData.maxTokens || 1000} 
+              onChange={handleFormFieldChange} 
+              className="condition-input" 
+              min="1"
+              max="4000"
+              placeholder="1000"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              💡 Maximum number of tokens for the AI response (1-4000)
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label>Temperature</label>
+            <input 
+              type="number" 
+              name="temperature" 
+              value={formData.temperature || 0.7} 
+              onChange={handleFormFieldChange} 
+              className="condition-input" 
+              min="0"
+              max="1"
+              step="0.1"
+              placeholder="0.7"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              💡 Controls randomness: 0 = focused, 1 = creative (0.0-1.0)
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
+};
+
 export const renderNodeParameters = (node, formData, handleFormFieldChange, handleInputChange, handleFormChange, addCondition, removeCondition, inputData, handleTelegramTokenCheck, activeTab, handleClaudeApiCheck, claudeApiStatus, availableModels) => {
+  // Universal Settings Tab for ALL Node Types (PRIORITY - must be first)
+  if (activeTab === 'settings') {
+    return (
+      <>
+        <NodeDescription nodeType={node.data.type} />
+        <UniversalSettingsTab 
+          formData={formData} 
+          handleFormFieldChange={handleFormFieldChange} 
+          nodeType={node.data.type} 
+        />
+      </>
+    );
+  }
+
   // Existing simple node types (preserved)
   if (node.data.type === 'if' || node.data.type === 'filter') {
     return (
@@ -232,61 +353,6 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   💡 Verify your API key first to see available models
                 </div>
               )}
-            </div>
-          </>
-        )}
-        
-        {/* Settings Tab */}
-        {activeTab === 'settings' && (
-          <>
-            <div className="form-group">
-              <label>User ID (for conversation memory)</label>
-              <input 
-                type="text" 
-                name="userId" 
-                value={formData.userId || 'default'} 
-                onChange={handleFormFieldChange} 
-                className="condition-input" 
-                placeholder="default"
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                💡 Used to separate conversations. Each User ID gets its own memory.
-              </div>
-            </div>
-            
-            <div className="form-group">
-              <label>Max Tokens</label>
-              <input 
-                type="number" 
-                name="maxTokens" 
-                value={formData.maxTokens || 1000} 
-                onChange={handleFormFieldChange} 
-                className="condition-input" 
-                min="1"
-                max="4000"
-                placeholder="1000"
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                💡 Maximum number of tokens for the AI response (1-4000)
-              </div>
-            </div>
-            
-            <div className="form-group">
-              <label>Temperature</label>
-              <input 
-                type="number" 
-                name="temperature" 
-                value={formData.temperature || 0.7} 
-                onChange={handleFormFieldChange} 
-                className="condition-input" 
-                min="0"
-                max="1"
-                step="0.1"
-                placeholder="0.7"
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                💡 Controls randomness: 0 = focused, 1 = creative (0.0-1.0)
-              </div>
             </div>
           </>
         )}
@@ -685,21 +751,117 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
         </div>
 
         <div className="form-group">
-          <label>Message</label>
-          <DroppableTextInput
-            type="textarea"
-            name="messageText"
-            value={formData.messageText || ''}
-            onChange={handleFormFieldChange}
+          <label>Message Type</label>
+          <select 
+            name="messageType" 
+            value={formData.messageType || 'text'} 
+            onChange={handleFormFieldChange} 
             className="condition-input"
-            placeholder="Enter your message here... You can use template variables like {{message.text}} or {{telegram.message.from.username}}"
-            inputData={inputData}
-            rows={4}
-          />
+          >
+            <option value="text">📝 Text Message</option>
+            <option value="photo">🖼️ Photo</option>
+            <option value="video">🎥 Video</option>
+          </select>
           <div className="text-xs text-gray-500 mt-1">
-            💡 Drag fields from Input panel to create dynamic messages with template variables
+            💡 Choose what type of content to send via Telegram
           </div>
         </div>
+
+        {/* Text Message Fields */}
+        {(formData.messageType || 'text') === 'text' && (
+          <div className="form-group">
+            <label>Message</label>
+            <DroppableTextInput
+              type="textarea"
+              name="messageText"
+              value={formData.messageText || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              placeholder="Enter your message here... You can use template variables like {{message.text}} or {{telegram.message.from.username}}"
+              inputData={inputData}
+              rows={4}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              💡 Drag fields from Input panel to create dynamic messages with template variables
+            </div>
+          </div>
+        )}
+
+        {/* Photo Message Fields */}
+        {formData.messageType === 'photo' && (
+          <>
+            <div className="form-group">
+              <label>Photo URL</label>
+              <DroppableTextInput
+                type="text"
+                name="photoUrl"
+                value={formData.photoUrl || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="https://example.com/image.jpg or use template variables like {{storage.image_url}}"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🖼️ Direct link to image file (JPG, PNG, GIF). Must be publicly accessible.
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Caption (Optional)</label>
+              <DroppableTextInput
+                type="textarea"
+                name="photoCaption"
+                value={formData.photoCaption || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="Add a caption for your photo... You can use template variables"
+                inputData={inputData}
+                rows={3}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                💡 Optional text that will appear with the photo
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Video Message Fields */}
+        {formData.messageType === 'video' && (
+          <>
+            <div className="form-group">
+              <label>Video URL</label>
+              <DroppableTextInput
+                type="text"
+                name="videoUrl"
+                value={formData.videoUrl || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="https://example.com/video.mp4 or use template variables like {{storage.video_url}}"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🎥 Direct link to video file (MP4, AVI, MOV). Must be publicly accessible.
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Caption (Optional)</label>
+              <DroppableTextInput
+                type="textarea"
+                name="videoCaption"
+                value={formData.videoCaption || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="Add a caption for your video... You can use template variables"
+                inputData={inputData}
+                rows={3}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                💡 Optional text that will appear with the video
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="text-xs text-gray-500 mb-2">
           📤 This node will send the message to the specified chat using your bot

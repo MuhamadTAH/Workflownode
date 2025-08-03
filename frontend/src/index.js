@@ -1,4 +1,8 @@
-// No changes here.
+/*
+=================================================================
+FRONTEND FILE: src/index.js (UPDATED)
+=================================================================
+*/// No changes here.
 //
 import React from 'react';
 import ReactDOM from 'react-dom/client';

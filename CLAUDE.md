@@ -1289,7 +1289,94 @@ Status: ✅ SUCCESS - Enhanced matching finds correct step key
 
 ---
 
-*Last updated: 2025-08-02*  
-*Latest Session: Template processing breakthrough - fixed drag-and-drop live preview to show actual data values*  
-*Major Achievement: Complete resolution of space/underscore mismatch in step name processing*  
-*Current State: Production-ready template system with reliable live preview functionality*
+## 🔧 EXECUTE STEP TEMPLATE PROCESSING FIX (2025-08-03)
+
+### Critical Bug: Execute Step Template Variables Not Working
+**Date**: August 3, 2025  
+**Problem**: Execute Step button failed to process template variables in Telegram Send Message node  
+**Impact**: Templates like `{{telegram.message.chat.id}}` not replaced with actual values, causing "Chat ID not found" errors  
+
+### 🔍 Root Cause Analysis
+
+**Manual POST (WORKING):**
+```javascript
+// Calls backend node executor with full template processing
+fetch('/api/nodes/run-node', {
+  body: JSON.stringify({
+    node: { type: node.data.type, config: formData },
+    inputData: parsedInput,
+  })
+});
+```
+
+**Execute Step (BROKEN):**
+```javascript
+// Called Telegram API directly, bypassing backend template processing
+fetch('/api/telegram/send-message', {
+  body: JSON.stringify({
+    token: formData.botToken,
+    chatId: formData.chatId,     // ❌ RAW: "{{telegram.message.chat.id}}"
+    message: processedMessage,   // ✅ PROCESSED: "hello"
+  })
+});
+```
+
+### ✅ Solution Implemented
+
+**Fixed Execute Step to Use Backend Node Executor:**
+```javascript
+// Changed Execute Step to use same backend processing as manual POST
+const executeResponse = await fetch('/api/nodes/run-node', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    node: { type: node.data.type, config: formData },
+    inputData: fetchedInputData,
+  }),
+});
+```
+
+### 🔧 Additional Fix: Legacy Data Prefix Handling
+
+**Problem**: Templates with `{{Telegram_Trigger.data.message.from.id}}` format contained extra `data` level  
+**Solution**: Added automatic detection and removal of legacy `data` prefix in backend template parser
+
+```javascript
+// Handle legacy templates with 'data' prefix
+if (keys[0] === 'data' && keys.length > 1 && !(keys[0] in value)) {
+  console.log('🔧 Telegram: Detected legacy "data" prefix in template, removing it');
+  keys.shift(); // Remove the 'data' prefix
+}
+```
+
+### 📊 Results Achieved
+
+✅ **Execute Step Fixed**: Now processes ALL template variables using backend's universal parser  
+✅ **Workflow Activation**: Automatic bot responses work correctly with template replacement  
+✅ **Manual POST**: Restored functionality after safer template processing implementation  
+✅ **Template Compatibility**: Handles both legacy `{{prefix.data.field}}` and current `{{prefix.field}}` formats  
+✅ **Backend Consistency**: Execute Step now matches manual POST behavior exactly  
+
+### 🎯 Technical Implementation
+
+**Files Modified:**
+- `frontend/src/components/ConfigPanel.js:337-364` - Execute Step backend integration
+- `src/nodes/actions/telegramSendMessageNode.js:213-218` - Legacy data prefix handling
+
+**Commits:**
+- `6b1ca72` - Execute Step backend integration fix
+- `4535da3` - Legacy data prefix handling
+- `453ef67` - Safer template processing implementation
+
+**Benefits:**
+- **Consistent Template Processing**: All execution paths use same backend logic
+- **Reduced Code Duplication**: Eliminated manual template replacement in frontend
+- **Enhanced Reliability**: Backend's comprehensive template parser handles edge cases
+- **Future-Proof**: New template formats automatically supported across all execution methods
+
+---
+
+*Last updated: 2025-08-03*  
+*Latest Session: Execute Step template processing fix - backend integration and legacy data prefix handling*  
+*Major Achievement: Complete Execute Step functionality with universal template processing*  
+*Current State: Production-ready workflow automation with working Execute Step and activation system*

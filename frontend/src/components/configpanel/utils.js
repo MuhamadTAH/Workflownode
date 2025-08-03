@@ -143,6 +143,7 @@ export const initializeFormData = (node) => {
     
     // Advanced features added back
     description: node.data.description || '',
+    note: node.data.note || '',
     model: node.data.model || 'claude-3-5-sonnet-20241022',
     apiKey: node.data.apiKey || '',
     claudeApiKey: node.data.claudeApiKey || '', // Fix: Add claudeApiKey field for AI Agent nodes
@@ -161,6 +162,12 @@ export const initializeFormData = (node) => {
     botInfo: node.data.botInfo || null,
     chatId: node.data.chatId || '',
     message: node.data.message || '',
+    messageText: node.data.messageText || '',
+    messageType: node.data.messageType || 'text',
+    photoUrl: node.data.photoUrl || '',
+    photoCaption: node.data.photoCaption || '',
+    videoUrl: node.data.videoUrl || '',
+    videoCaption: node.data.videoCaption || '',
     clientId: node.data.clientId || '',
     clientSecret: node.data.clientSecret || '',
     action: node.data.action || 'getDocument',

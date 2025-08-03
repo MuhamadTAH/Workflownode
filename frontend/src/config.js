@@ -1,3 +1,9 @@
+/*
+=================================================================
+FRONTEND FILE: src/config.js (UPDATED)
+=================================================================
+*/
+
 // Configuration for different environments
 const config = {
   // Backend URL - can be overridden by environment variable
