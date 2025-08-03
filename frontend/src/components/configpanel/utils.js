@@ -164,10 +164,58 @@ export const initializeFormData = (node) => {
     message: node.data.message || '',
     messageText: node.data.messageText || '',
     messageType: node.data.messageType || 'text',
+    parseMode: node.data.parseMode || '',
+    disableWebPagePreview: node.data.disableWebPagePreview || false,
+    disableNotification: node.data.disableNotification || false,
+    protectContent: node.data.protectContent || false,
+    
+    // Photo fields
     photoUrl: node.data.photoUrl || '',
     photoCaption: node.data.photoCaption || '',
+    
+    // Video fields
     videoUrl: node.data.videoUrl || '',
     videoCaption: node.data.videoCaption || '',
+    videoDuration: node.data.videoDuration || '',
+    
+    // Audio fields
+    audioUrl: node.data.audioUrl || '',
+    audioTitle: node.data.audioTitle || '',
+    audioPerformer: node.data.audioPerformer || '',
+    audioDuration: node.data.audioDuration || '',
+    
+    // Voice fields
+    voiceUrl: node.data.voiceUrl || '',
+    voiceDuration: node.data.voiceDuration || '',
+    
+    // Document fields
+    documentCaption: node.data.documentCaption || '',
+    
+    // Animation fields
+    animationUrl: node.data.animationUrl || '',
+    animationCaption: node.data.animationCaption || '',
+    
+    // Sticker fields
+    stickerFileId: node.data.stickerFileId || '',
+    
+    // Location fields
+    latitude: node.data.latitude || '',
+    longitude: node.data.longitude || '',
+    livePeriod: node.data.livePeriod || '',
+    
+    // Contact fields
+    contactPhone: node.data.contactPhone || '',
+    contactFirstName: node.data.contactFirstName || '',
+    contactLastName: node.data.contactLastName || '',
+    contactUserId: node.data.contactUserId || '',
+    
+    // Poll fields
+    pollQuestion: node.data.pollQuestion || '',
+    pollOptions: node.data.pollOptions || 'Red\nBlue\nGreen\nYellow',
+    pollType: node.data.pollType || 'regular',
+    pollAnonymous: node.data.pollAnonymous !== false,
+    pollMultipleAnswers: node.data.pollMultipleAnswers || false,
+    quizCorrectOption: node.data.quizCorrectOption || 0,
     clientId: node.data.clientId || '',
     clientSecret: node.data.clientSecret || '',
     action: node.data.action || 'getDocument',

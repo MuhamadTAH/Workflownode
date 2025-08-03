@@ -759,8 +759,16 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
             className="condition-input"
           >
             <option value="text">📝 Text Message</option>
-            <option value="photo">🖼️ Photo</option>
+            <option value="photo">🖼️ Photo/Image</option>
             <option value="video">🎥 Video</option>
+            <option value="audio">🎵 Audio</option>
+            <option value="voice">🎤 Voice Note</option>
+            <option value="document">📄 Document</option>
+            <option value="animation">🎬 Animation/GIF</option>
+            <option value="sticker">😊 Sticker</option>
+            <option value="location">📍 Location</option>
+            <option value="contact">👤 Contact</option>
+            <option value="poll">📊 Poll/Quiz</option>
           </select>
           <div className="text-xs text-gray-500 mt-1">
             💡 Choose what type of content to send via Telegram
@@ -860,8 +868,503 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                 💡 Optional text that will appear with the video
               </div>
             </div>
+            
+            <div className="form-group">
+              <label>Duration (seconds, optional)</label>
+              <input
+                type="number"
+                name="videoDuration"
+                value={formData.videoDuration || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="0"
+                min="0"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                ⏱️ Video duration in seconds (optional)
+              </div>
+            </div>
           </>
         )}
+
+        {/* Audio Message Fields */}
+        {formData.messageType === 'audio' && (
+          <>
+            <div className="form-group">
+              <label>Audio URL</label>
+              <DroppableTextInput
+                type="text"
+                name="audioUrl"
+                value={formData.audioUrl || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="https://example.com/audio.mp3 or use template variables"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🎵 Direct link to audio file (MP3, WAV, FLAC). Must be publicly accessible.
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Title (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="audioTitle"
+                value={formData.audioTitle || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="Song title or audio name"
+                inputData={inputData}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Performer (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="audioPerformer"
+                value={formData.audioPerformer || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="Artist or performer name"
+                inputData={inputData}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Duration (seconds, optional)</label>
+              <input
+                type="number"
+                name="audioDuration"
+                value={formData.audioDuration || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="0"
+                min="0"
+              />
+            </div>
+          </>
+        )}
+
+        {/* Voice Note Fields */}
+        {formData.messageType === 'voice' && (
+          <>
+            <div className="form-group">
+              <label>Voice Note URL</label>
+              <DroppableTextInput
+                type="text"
+                name="voiceUrl"
+                value={formData.voiceUrl || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="https://example.com/voice.ogg or use template variables"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🎤 Direct link to voice note file (.ogg format). Must be publicly accessible.
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Duration (seconds, optional)</label>
+              <input
+                type="number"
+                name="voiceDuration"
+                value={formData.voiceDuration || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="0"
+                min="0"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                ⏱️ Voice note duration in seconds (optional)
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Document Fields */}
+        {formData.messageType === 'document' && (
+          <>
+            <div className="form-group">
+              <label>Document URL</label>
+              <DroppableTextInput
+                type="text"
+                name="documentUrl"
+                value={formData.documentUrl || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="https://example.com/document.pdf or use template variables"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                📄 Direct link to document (PDF, DOC, TXT, etc.). Must be publicly accessible.
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Caption (Optional)</label>
+              <DroppableTextInput
+                type="textarea"
+                name="documentCaption"
+                value={formData.documentCaption || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="Add a caption for your document... You can use template variables"
+                inputData={inputData}
+                rows={3}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                💡 Optional text that will appear with the document
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Animation/GIF Fields */}
+        {formData.messageType === 'animation' && (
+          <>
+            <div className="form-group">
+              <label>Animation URL</label>
+              <DroppableTextInput
+                type="text"
+                name="animationUrl"
+                value={formData.animationUrl || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="https://example.com/animation.gif or use template variables"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🎬 Direct link to GIF or animation file. Must be publicly accessible.
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Caption (Optional)</label>
+              <DroppableTextInput
+                type="textarea"
+                name="animationCaption"
+                value={formData.animationCaption || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="Add a caption for your animation... You can use template variables"
+                inputData={inputData}
+                rows={3}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                💡 Optional text that will appear with the animation
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Sticker Fields */}
+        {formData.messageType === 'sticker' && (
+          <>
+            <div className="form-group">
+              <label>Sticker File ID</label>
+              <DroppableTextInput
+                type="text"
+                name="stickerFileId"
+                value={formData.stickerFileId || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="CAADAgADQAADyIsGAAE7MpzFPFQX5QI or use template variables"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                😊 Telegram sticker file ID. Get this from forwarding a sticker to @userinfobot.
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Location Fields */}
+        {formData.messageType === 'location' && (
+          <>
+            <div className="form-group">
+              <label>Latitude</label>
+              <DroppableTextInput
+                type="text"
+                name="latitude"
+                value={formData.latitude || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="51.5074 or use template variables like {{telegram.message.location.latitude}}"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                📍 Location latitude (decimal degrees)
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Longitude</label>
+              <DroppableTextInput
+                type="text"
+                name="longitude"
+                value={formData.longitude || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="-0.1278 or use template variables like {{telegram.message.location.longitude}}"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                📍 Location longitude (decimal degrees)
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Live Location Period (Optional)</label>
+              <input
+                type="number"
+                name="livePeriod"
+                value={formData.livePeriod || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="0"
+                min="60"
+                max="86400"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                ⏱️ Period in seconds for live location updates (60-86400). Leave 0 for static location.
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Contact Fields */}
+        {formData.messageType === 'contact' && (
+          <>
+            <div className="form-group">
+              <label>Phone Number</label>
+              <DroppableTextInput
+                type="text"
+                name="contactPhone"
+                value={formData.contactPhone || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="+1234567890 or use template variables like {{telegram.message.contact.phone_number}}"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                📞 Contact phone number (include country code)
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>First Name</label>
+              <DroppableTextInput
+                type="text"
+                name="contactFirstName"
+                value={formData.contactFirstName || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="John or use template variables like {{telegram.message.contact.first_name}}"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                👤 Contact first name
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Last Name (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="contactLastName"
+                value={formData.contactLastName || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="Doe or use template variables like {{telegram.message.contact.last_name}}"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                👤 Contact last name (optional)
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Telegram User ID (Optional)</label>
+              <input
+                type="number"
+                name="contactUserId"
+                value={formData.contactUserId || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="123456789"
+                min="0"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🆔 Telegram user ID if this contact is a Telegram user (optional)
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Poll/Quiz Fields */}
+        {formData.messageType === 'poll' && (
+          <>
+            <div className="form-group">
+              <label>Poll Question</label>
+              <DroppableTextInput
+                type="text"
+                name="pollQuestion"
+                value={formData.pollQuestion || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="What is your favorite color? (use template variables if needed)"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                ❓ The main poll question
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Poll Options</label>
+              <DroppableTextInput
+                type="textarea"
+                name="pollOptions"
+                value={formData.pollOptions || 'Red\nBlue\nGreen\nYellow'}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="Red\nBlue\nGreen\nYellow\n(One option per line)"
+                inputData={inputData}
+                rows={4}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                📝 Poll options, one per line (2-10 options)
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Poll Type</label>
+              <select 
+                name="pollType" 
+                value={formData.pollType || 'regular'} 
+                onChange={handleFormFieldChange} 
+                className="condition-input"
+              >
+                <option value="regular">📊 Regular Poll</option>
+                <option value="quiz">🧠 Quiz</option>
+              </select>
+              <div className="text-xs text-gray-500 mt-1">
+                💡 Quiz type shows correct answers, regular poll doesn't
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="pollAnonymous"
+                  checked={formData.pollAnonymous !== false}
+                  onChange={handleFormFieldChange}
+                  className="mr-2"
+                />
+                Anonymous Poll
+              </label>
+              <div className="text-xs text-gray-500 mt-1">
+                🕶️ Hide who voted for what option
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="pollMultipleAnswers"
+                  checked={formData.pollMultipleAnswers === true}
+                  onChange={handleFormFieldChange}
+                  className="mr-2"
+                />
+                Allow Multiple Answers
+              </label>
+              <div className="text-xs text-gray-500 mt-1">
+                ✅ Users can select multiple options
+              </div>
+            </div>
+            
+            {formData.pollType === 'quiz' && (
+              <div className="form-group">
+                <label>Correct Answer Index (Quiz only)</label>
+                <input
+                  type="number"
+                  name="quizCorrectOption"
+                  value={formData.quizCorrectOption || 0}
+                  onChange={handleFormFieldChange}
+                  className="condition-input"
+                  placeholder="0"
+                  min="0"
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  🎯 Index of correct answer (0 = first option, 1 = second, etc.)
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Text Message Fields - Add Parse Mode for media captions */}
+        {((formData.messageType || 'text') === 'text' || 
+          formData.messageType === 'photo' || 
+          formData.messageType === 'video' || 
+          formData.messageType === 'document' || 
+          formData.messageType === 'animation') && (
+          <div className="form-group">
+            <label>Parse Mode (Optional)</label>
+            <select 
+              name="parseMode" 
+              value={formData.parseMode || ''} 
+              onChange={handleFormFieldChange} 
+              className="condition-input"
+            >
+              <option value="">None</option>
+              <option value="Markdown">Markdown</option>
+              <option value="MarkdownV2">MarkdownV2</option>
+              <option value="HTML">HTML</option>
+            </select>
+            <div className="text-xs text-gray-500 mt-1">
+              ✨ Enable text formatting: **bold**, *italic*, [links](url), etc.
+            </div>
+          </div>
+        )}
+
+        {/* Common options for all message types */}
+        <div className="form-group">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              name="disableNotification"
+              checked={formData.disableNotification === true}
+              onChange={handleFormFieldChange}
+              className="mr-2"
+            />
+            Send Silently
+          </label>
+          <div className="text-xs text-gray-500 mt-1">
+            🔇 Users will receive notification without sound
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              name="protectContent"
+              checked={formData.protectContent === true}
+              onChange={handleFormFieldChange}
+              className="mr-2"
+            />
+            Protect Content
+          </label>
+          <div className="text-xs text-gray-500 mt-1">
+            🛡️ Prevents forwarding and saving of the message
+          </div>
+        </div>
 
         <div className="text-xs text-gray-500 mb-2">
           📤 This node will send the message to the specified chat using your bot
