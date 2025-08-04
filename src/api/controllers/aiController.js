@@ -4,7 +4,7 @@ BACKEND FILE: src/api/controllers/aiController.js (ENHANCED WITH CLAUDE SDK)
 =================================================================
 This controller handles AI-related actions using the official Anthropic Claude SDK.
 */
-const { verifyClaudeApiKey, getClaudeUsage, callClaudeApiStream } = require('../../services/aiService');
+const { verifyClaudeApiKey, getClaudeUsage, callClaudeApiStream, callClaudeApi } = require('../../services/aiService');
 
 // Enhanced Claude API key verification using SDK
 const verifyClaudeKey = async (req, res) => {
@@ -145,11 +145,100 @@ const testConnection = async (req, res) => {
     }
 };
 
+// Chatbot response for conversational workflow building
+const chatbotResponse = async (req, res) => {
+    const { apiKey, userMessage, systemPrompt, conversationHistory } = req.body;
+
+    if (!userMessage) {
+        return res.status(400).json({ error: 'User message is required.' });
+    }
+
+    try {
+        console.log('🤖 Chatbot request received:', userMessage);
+        
+        // Use a demo response if no API key provided (for demo purposes)
+        if (!apiKey || apiKey === 'demo-key') {
+            const demoResponse = generateDemoResponse(userMessage);
+            return res.status(200).json({
+                text: demoResponse,
+                usage: { input_tokens: 50, output_tokens: 100 },
+                model: 'demo-mode'
+            });
+        }
+
+        // Call Claude API for real responses
+        const response = await callClaudeApi(
+            apiKey, 
+            userMessage, 
+            systemPrompt || 'You are a helpful workflow building assistant.',
+            conversationHistory || []
+        );
+        
+        res.status(200).json(response);
+        
+    } catch (error) {
+        console.error('❌ Chatbot error:', error.message);
+        
+        // Fallback to demo response on error
+        const fallbackResponse = generateDemoResponse(userMessage);
+        res.status(200).json({
+            text: fallbackResponse,
+            usage: { input_tokens: 0, output_tokens: 0 },
+            model: 'fallback-mode',
+            note: 'Using fallback response due to API error'
+        });
+    }
+};
+
+// Generate demo responses for common chatbot requests
+const generateDemoResponse = (userMessage) => {
+    const lowerMsg = userMessage.toLowerCase();
+    
+    if (lowerMsg.includes('add') && lowerMsg.includes('telegram')) {
+        return `I'll add a Telegram trigger node for you! This will start your workflow when messages are received.
+
+{"action": "addNode", "nodeType": "trigger", "label": "Telegram Trigger", "position": {"x": 100, "y": 100}}`;
+    }
+    
+    if (lowerMsg.includes('add') && lowerMsg.includes('ai')) {
+        return `Great! I'll add an AI Agent node that can process data and generate intelligent responses.
+
+{"action": "addNode", "nodeType": "aiAgent", "label": "AI Agent", "position": {"x": 350, "y": 100}}`;
+    }
+    
+    if (lowerMsg.includes('connect')) {
+        return `I'll connect your nodes to create a workflow path. This allows data to flow from one node to the next.
+
+{"action": "connectNodes", "sourceId": "dndnode_0", "targetId": "dndnode_1"}`;
+    }
+    
+    if (lowerMsg.includes('filter')) {
+        return `I'll add a filter node to help you process and filter your data based on conditions.
+
+{"action": "addNode", "nodeType": "filter", "label": "Filter", "position": {"x": 200, "y": 200}}`;
+    }
+    
+    if (lowerMsg.includes('what') || lowerMsg.includes('show') || lowerMsg.includes('help')) {
+        return `I can help you build workflows by understanding commands like:
+
+• "Add a Telegram trigger" - Adds a trigger node
+• "Add an AI agent" - Adds an AI processing node  
+• "Connect them" - Connects the last two nodes
+• "Add a filter node" - Adds data filtering
+• "Show me what I have" - Lists your current nodes
+
+Just tell me what you want to add or change in your workflow!`;
+    }
+    
+    return `I understand you want to work with your workflow. I can help you add nodes, connect them, and build automation workflows. Try asking me to "add a telegram trigger" or "add an AI agent" to get started!`;
+};
+
 module.exports = {
     verifyClaudeKey,
     getUsageStats,
     streamClaude,
     testConnection,
+    chatbotResponse,
     // Maintain backward compatibility
     verifyClaudeApiKey: verifyClaudeKey
 };

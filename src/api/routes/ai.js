@@ -21,6 +21,9 @@ router.post('/stream', aiController.streamClaude);
 // Test Claude SDK connection
 router.post('/test-connection', aiController.testConnection);
 
+// Chatbot endpoint for conversational workflow building
+router.post('/chat', aiController.chatbotResponse);
+
 // Backward compatibility
 router.post('/verify-claude-key', aiController.verifyClaudeKey);
 

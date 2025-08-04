@@ -19,7 +19,7 @@ import 'reactflow/dist/style.css';
 import Sidebar from './components/Sidebar';
 import CustomNode from './components/CustomNode';
 import ConfigPanel from './components/ConfigPanel';
-// REMOVED: ChatbotPanel is no longer needed here
+import WorkflowChatbot from './components/WorkflowChatbot';
 import './styles/CustomNode.css';
 import './styles/configpanel/index.css';
 import './styles/ChatbotPanel.css';
@@ -38,6 +38,41 @@ const FlowEditorComponent = () => {
   const [clipboard, setClipboard] = useState(null);
   
   const { getNodes, setViewport, toObject, screenToFlowPosition } = useReactFlow();
+
+  // Chatbot functions for adding nodes and connections
+  const handleChatbotAddNode = useCallback((nodeData) => {
+    const position = nodeData.position || { x: 100, y: 100 };
+    const newNode = {
+      id: getId(),
+      type: 'custom',
+      position,
+      data: {
+        type: nodeData.type,
+        label: nodeData.label || `${nodeData.type} Node`,
+        ...nodeData
+      },
+    };
+    
+    setNodes((nds) => nds.concat(newNode));
+    console.log('🤖 Chatbot added node:', newNode);
+  }, [setNodes]);
+
+  const handleChatbotConnectNodes = useCallback((sourceId, targetId) => {
+    const newEdge = {
+      id: `${sourceId}-${targetId}`,
+      source: sourceId,
+      target: targetId,
+      type: 'default'
+    };
+    
+    setEdges((eds) => addEdge(newEdge, eds));
+    console.log('🤖 Chatbot connected nodes:', sourceId, '->', targetId);
+  }, [setEdges]);
+
+  const handleWorkflowUpdate = useCallback((updatedNodes, updatedEdges) => {
+    if (updatedNodes) setNodes(updatedNodes);
+    if (updatedEdges) setEdges(updatedEdges);
+  }, [setNodes, setEdges]);
 
   const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
 
@@ -204,6 +239,15 @@ const FlowEditorComponent = () => {
           edges={edges}
         />
       )}
+
+      {/* Conversational Workflow Builder Chatbot */}
+      <WorkflowChatbot
+        onAddNode={handleChatbotAddNode}
+        onConnectNodes={handleChatbotConnectNodes}
+        nodes={nodes}
+        edges={edges}
+        onUpdateWorkflow={handleWorkflowUpdate}
+      />
     </div>
   );
 };
