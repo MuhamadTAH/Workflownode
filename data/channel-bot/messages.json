@@ -1,0 +1,26 @@
+[
+  {
+    "id": "@your_test_channel_123",
+    "channelId": "@your_test_channel",
+    "messageId": 123,
+    "type": "text",
+    "text": "Test message",
+    "date": 1754312552,
+    "config": {
+      "botToken": "YOUR_BOT_TOKEN",
+      "channelId": "@your_test_channel",
+      "command": "post",
+      "messageType": "text",
+      "messageText": "Test message from WorkflowNode Channel Bot! 🚀",
+      "parseMode": "Markdown",
+      "enableAnalytics": true,
+      "storeMessageData": true
+    },
+    "analytics": {
+      "views": 0,
+      "forwards": 0,
+      "reactions": {}
+    },
+    "createdAt": "2025-08-04T13:02:32.435Z"
+  }
+]

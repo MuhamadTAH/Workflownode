@@ -35,10 +35,16 @@ const workflowRoutes = require('./src/api/routes/workflows');
 const telegramRoutes = require('./src/api/routes/telegram');
 const nodeRoutes = require('./src/api/routes/nodes');
 const aiRoutes = require('./src/api/routes/ai');
+const channelBotRoutes = require('./src/api/routes/channelBot');
 
 // Initialize workflow executor service
 const workflowExecutor = require('./src/services/workflowExecutor');
-console.log('✅ Workflow Executor service initialized'); // <-- Import new routes
+console.log('✅ Workflow Executor service initialized');
+
+// Initialize channel bot scheduler
+const channelBotScheduler = require('./src/services/channelBotScheduler');
+channelBotScheduler.start();
+console.log('✅ Channel Bot Scheduler initialized and started');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -115,6 +121,7 @@ app.use('/api/workflows', workflowRoutes);
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/nodes', nodeRoutes);
 app.use('/api/ai', aiRoutes); // <-- Register new routes
+app.use('/api/channel-bot', channelBotRoutes);
 
 // Create temp-files directory if it doesn't exist
 const tempFilesDir = path.join(__dirname, 'temp-files');
