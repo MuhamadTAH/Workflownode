@@ -8,6 +8,42 @@ const handleTelegramWebhook = async (req, res) => {
     try {
         const workflowId = req.params.workflowId;
         console.log(`\n🔔 Webhook received for workflowId: ${workflowId}`);
+        
+        // 🔍 DEBUG: Log complete raw incoming data from Telegram
+        console.log('🔍 RAW WEBHOOK DATA - Complete request body:');
+        console.log(JSON.stringify(req.body, null, 2));
+        
+        // 🔍 DEBUG: Check specifically for media types in the message
+        if (req.body && req.body.message) {
+            const message = req.body.message;
+            console.log('🔍 MEDIA TYPE ANALYSIS:');
+            console.log('  - Has photo?', !!message.photo, message.photo ? `(${message.photo.length} sizes)` : '');
+            console.log('  - Has video?', !!message.video, message.video ? `(${message.video.duration}s, ${message.video.file_size} bytes)` : '');
+            console.log('  - Has animation?', !!message.animation);
+            console.log('  - Has document?', !!message.document);
+            console.log('  - Has video_note?', !!message.video_note);
+            console.log('  - Message keys:', Object.keys(message));
+            
+            // 🔍 DEBUG: If it's a video, show video details
+            if (message.video) {
+                console.log('🎬 VIDEO DETAILS FROM TELEGRAM:');
+                console.log('  - File ID:', message.video.file_id);
+                console.log('  - File unique ID:', message.video.file_unique_id);
+                console.log('  - Duration:', message.video.duration, 'seconds');
+                console.log('  - Width x Height:', message.video.width, 'x', message.video.height);
+                console.log('  - File size:', message.video.file_size, 'bytes');
+                console.log('  - MIME type:', message.video.mime_type);
+                console.log('  - Has thumbnail?', !!message.video.thumb);
+            }
+            
+            // 🔍 DEBUG: If it's a photo, show photo details
+            if (message.photo) {
+                console.log('📸 PHOTO DETAILS FROM TELEGRAM:');
+                message.photo.forEach((photo, index) => {
+                    console.log(`  - Photo ${index + 1}: ${photo.width}x${photo.height}, ${photo.file_size} bytes, ID: ${photo.file_id}`);
+                });
+            }
+        }
 
         // Get workflow credentials (including bot token) for trigger processing
         const credentials = workflowExecutor.getWorkflowCredentials(workflowId);
