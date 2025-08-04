@@ -2948,6 +2948,633 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
     );
   }
 
+  if (node.data.type === 'instagram') {
+    return (
+      <>
+        <NodeDescription nodeType="instagram" />
+        
+        {/* Instagram API Configuration Section */}
+        <div className="form-group" style={{ 
+          background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', 
+          color: 'white', 
+          padding: '12px', 
+          borderRadius: '4px', 
+          marginBottom: '16px' 
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <i className="fa-brands fa-instagram" style={{ fontSize: '16px' }}></i>
+            <strong>Instagram Business API</strong>
+          </div>
+          <div style={{ fontSize: '13px', opacity: '0.9' }}>
+            Publish content, manage interactions, stories, and analyze Instagram performance using Meta Graph API.
+          </div>
+          
+          <div style={{ marginTop: '12px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button 
+              type="button"
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/instagram/verify-setup', { method: 'POST' });
+                  const data = await response.json();
+                  if (data.success) {
+                    alert('✅ Instagram Business API verified successfully!');
+                  } else {
+                    alert('❌ Setup verification failed: ' + data.error);
+                  }
+                } catch (error) {
+                  alert('❌ Verification failed: ' + error.message);
+                }
+              }}
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: 'white',
+                padding: '6px 12px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              🔍 Verify Setup
+            </button>
+            <span style={{ fontSize: '12px', opacity: '0.8' }}>
+              Check API credentials and connectivity
+            </span>
+          </div>
+        </div>
+
+        {/* Operation Selection */}
+        <div className="form-group">
+          <label>Operation</label>
+          <select 
+            name="operation" 
+            value={formData.operation || 'publishPhoto'} 
+            onChange={handleFormFieldChange}
+            className="condition-input"
+          >
+            <optgroup label="Content Publishing">
+              <option value="publishPhoto">Publish Photo</option>
+              <option value="publishVideo">Publish Video/Reel</option>
+              <option value="publishCarousel">Publish Carousel</option>
+              <option value="createStory">Create Story</option>
+            </optgroup>
+            <optgroup label="Account Management">
+              <option value="getAccountInfo">Get Account Info</option>
+              <option value="getMedia">Get Account Media</option>
+              <option value="getMediaDetails">Get Media Details</option>
+              <option value="updateCaption">Update Media Caption</option>
+              <option value="deleteMedia">Delete Media</option>
+            </optgroup>
+            <optgroup label="Comments & Interactions">
+              <option value="getMediaComments">Get Media Comments</option>
+              <option value="replyToComment">Reply to Comment</option>
+              <option value="deleteComment">Delete Comment</option>
+              <option value="hideComment">Hide/Unhide Comment</option>
+              <option value="getMentions">Get Mentions</option>
+              <option value="getTaggedMedia">Get Tagged Media</option>
+            </optgroup>
+            <optgroup label="Analytics & Insights">
+              <option value="getAccountInsights">Get Account Insights</option>
+              <option value="getMediaInsights">Get Media Insights</option>
+            </optgroup>
+            <optgroup label="Hashtag Research">
+              <option value="searchHashtags">Search Hashtags</option>
+              <option value="getHashtagMedia">Get Hashtag Media</option>
+            </optgroup>
+            <optgroup label="Direct Messaging">
+              <option value="sendDirectMessage">Send Direct Message</option>
+              <option value="getDirectMessages">Get Direct Messages</option>
+            </optgroup>
+          </select>
+          <div className="text-xs text-gray-500 mt-1">
+            Choose the Instagram operation to perform
+          </div>
+        </div>
+
+        {/* Photo Publishing Parameters */}
+        {formData.operation === 'publishPhoto' && (
+          <>
+            <div className="form-group">
+              <label>Photo URL</label>
+              <DroppableTextInput
+                type="text"
+                name="mediaUrl"
+                placeholder="https://example.com/photo.jpg"
+                value={formData.mediaUrl || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Direct URL to the image file (JPEG, PNG, WebP)
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Caption (Optional)</label>
+              <DroppableTextInput
+                type="textarea"
+                name="caption"
+                placeholder="Your photo caption... Use hashtags and mentions! #instagram"
+                value={formData.caption || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="4"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Caption text with hashtags and mentions
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Location ID (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="locationId"
+                placeholder="Location ID from Instagram"
+                value={formData.locationId || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Instagram location ID for geo-tagging
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Video Publishing Parameters */}
+        {formData.operation === 'publishVideo' && (
+          <>
+            <div className="form-group">
+              <label>Video URL</label>
+              <DroppableTextInput
+                type="text"
+                name="mediaUrl"
+                placeholder="https://example.com/video.mp4"
+                value={formData.mediaUrl || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Direct URL to the video file (MP4, MOV)
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Video Type</label>
+              <select 
+                name="mediaType" 
+                value={formData.mediaType || 'VIDEO'} 
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              >
+                <option value="VIDEO">Regular Video</option>
+                <option value="REELS">Instagram Reel</option>
+              </select>
+              <div className="text-xs text-gray-500 mt-1">
+                Choose between regular video post or Reel
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Caption (Optional)</label>
+              <DroppableTextInput
+                type="textarea"
+                name="caption"
+                placeholder="Your video caption... Use hashtags and mentions! #reels #video"
+                value={formData.caption || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="4"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Location ID (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="locationId"
+                placeholder="Location ID from Instagram"
+                value={formData.locationId || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Carousel Publishing Parameters */}
+        {formData.operation === 'publishCarousel' && (
+          <>
+            <div className="form-group">
+              <label>Media Items (JSON Array)</label>
+              <DroppableTextInput
+                type="textarea"
+                name="mediaItems"
+                placeholder='[{"mediaUrl": "https://example.com/photo1.jpg", "mediaType": "IMAGE"}, {"mediaUrl": "https://example.com/photo2.jpg", "mediaType": "IMAGE"}]'
+                value={formData.mediaItems || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="6"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Array of media objects (2-10 items). Each with mediaUrl and mediaType (IMAGE/VIDEO)
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Caption (Optional)</label>
+              <DroppableTextInput
+                type="textarea"
+                name="caption"
+                placeholder="Your carousel caption... Swipe to see more! ➡️"
+                value={formData.caption || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="4"
+              />
+            </div>
+          </>
+        )}
+
+        {/* Story Creation Parameters */}
+        {formData.operation === 'createStory' && (
+          <>
+            <div className="form-group">
+              <label>Media URL</label>
+              <DroppableTextInput
+                type="text"
+                name="mediaUrl"
+                placeholder="https://example.com/story.jpg"
+                value={formData.mediaUrl || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Direct URL to the story media file
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Media Type</label>
+              <select 
+                name="mediaType" 
+                value={formData.mediaType || 'IMAGE'} 
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              >
+                <option value="IMAGE">Photo Story</option>
+                <option value="VIDEO">Video Story</option>
+              </select>
+            </div>
+          </>
+        )}
+
+        {/* Media Details Parameters */}
+        {['getMediaDetails', 'getMediaComments', 'updateCaption', 'deleteMedia', 'getMediaInsights'].includes(formData.operation) && (
+          <div className="form-group">
+            <label>Media ID</label>
+            <DroppableTextInput
+              type="text"
+              name="mediaId"
+              placeholder="Instagram media ID"
+              value={formData.mediaId || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Instagram media ID from previous operations or API calls
+            </div>
+          </div>
+        )}
+
+        {/* Update Caption Parameters */}
+        {formData.operation === 'updateCaption' && (
+          <div className="form-group">
+            <label>New Caption</label>
+            <DroppableTextInput
+              type="textarea"
+              name="newCaption"
+              placeholder="Updated caption text..."
+              value={formData.newCaption || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              inputData={inputData}
+              rows="4"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              New caption text to replace the existing one
+            </div>
+          </div>
+        )}
+
+        {/* Comment Management Parameters */}
+        {['replyToComment', 'deleteComment', 'hideComment'].includes(formData.operation) && (
+          <div className="form-group">
+            <label>Comment ID</label>
+            <DroppableTextInput
+              type="text"
+              name="commentId"
+              placeholder="Instagram comment ID"
+              value={formData.commentId || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Instagram comment ID from webhook or API response
+            </div>
+          </div>
+        )}
+
+        {/* Reply to Comment Parameters */}
+        {formData.operation === 'replyToComment' && (
+          <div className="form-group">
+            <label>Reply Message</label>
+            <DroppableTextInput
+              type="textarea"
+              name="message"
+              placeholder="Your reply message..."
+              value={formData.message || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              inputData={inputData}
+              rows="3"
+            />
+          </div>
+        )}
+
+        {/* Hide Comment Parameters */}
+        {formData.operation === 'hideComment' && (
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="checkbox"
+                name="hide"
+                checked={formData.hide !== false}
+                onChange={(e) => handleFormFieldChange({
+                  target: { name: 'hide', value: e.target.checked }
+                })}
+              />
+              Hide comment (uncheck to unhide)
+            </label>
+            <div className="text-xs text-gray-500 mt-1">
+              Hide or unhide the comment from public view
+            </div>
+          </div>
+        )}
+
+        {/* Account Insights Parameters */}
+        {formData.operation === 'getAccountInsights' && (
+          <>
+            <div className="form-group">
+              <label>Metrics</label>
+              <DroppableTextInput
+                type="text"
+                name="metrics"
+                placeholder="impressions,reach,profile_views,follower_count"
+                value={formData.metrics || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Comma-separated list of metrics to retrieve
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Period</label>
+              <select 
+                name="period" 
+                value={formData.period || 'day'} 
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              >
+                <option value="day">Day</option>
+                <option value="week">Week</option>
+                <option value="days_28">28 Days</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Since Date (Optional)</label>
+              <input
+                type="date"
+                name="since"
+                value={formData.since || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Until Date (Optional)</label>
+              <input
+                type="date"
+                name="until"
+                value={formData.until || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              />
+            </div>
+          </>
+        )}
+
+        {/* Media Insights Parameters */}
+        {formData.operation === 'getMediaInsights' && (
+          <div className="form-group">
+            <label>Metrics</label>
+            <DroppableTextInput
+              type="text"
+              name="metrics"
+              placeholder="impressions,reach,engagement,likes,comments,saves"
+              value={formData.metrics || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Comma-separated list of media metrics to retrieve
+            </div>
+          </div>
+        )}
+
+        {/* Hashtag Search Parameters */}
+        {formData.operation === 'searchHashtags' && (
+          <div className="form-group">
+            <label>Hashtag Query</label>
+            <DroppableTextInput
+              type="text"
+              name="hashtag"
+              placeholder="travel"
+              value={formData.hashtag || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Hashtag to search for (without #)
+            </div>
+          </div>
+        )}
+
+        {/* Hashtag Media Parameters */}
+        {formData.operation === 'getHashtagMedia' && (
+          <>
+            <div className="form-group">
+              <label>Hashtag ID</label>
+              <DroppableTextInput
+                type="text"
+                name="hashtagId"
+                placeholder="Hashtag ID from search results"
+                value={formData.hashtagId || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Hashtag ID obtained from hashtag search
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Media Type</label>
+              <select 
+                name="mediaType" 
+                value={formData.mediaType || 'recent'} 
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              >
+                <option value="recent">Recent Media</option>
+                <option value="top">Top Media</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Limit</label>
+              <input
+                type="number"
+                name="limit"
+                min="1"
+                max="50"
+                value={formData.limit || 25}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Number of media items to retrieve (1-50)
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Direct Message Parameters */}
+        {formData.operation === 'sendDirectMessage' && (
+          <>
+            <div className="form-group">
+              <label>Recipient ID</label>
+              <DroppableTextInput
+                type="text"
+                name="recipientId"
+                placeholder="Instagram user ID"
+                value={formData.recipientId || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Instagram user ID of the message recipient
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Message Text</label>
+              <DroppableTextInput
+                type="textarea"
+                name="messageText"
+                placeholder="Your direct message..."
+                value={formData.messageText || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="4"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Media ID (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="mediaId"
+                placeholder="Media ID to send as attachment"
+                value={formData.mediaId || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Optional: Send media as attachment instead of text
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Get Media Parameters */}
+        {formData.operation === 'getMedia' && (
+          <div className="form-group">
+            <label>Limit</label>
+            <input
+              type="number"
+              name="limit"
+              min="1"
+              max="100"
+              value={formData.limit || 25}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Number of media items to retrieve (1-100)
+            </div>
+          </div>
+        )}
+
+        {/* Get Tagged Media Parameters */}
+        {formData.operation === 'getTaggedMedia' && (
+          <div className="form-group">
+            <label>Limit</label>
+            <input
+              type="number"
+              name="limit"
+              min="1"
+              max="100"
+              value={formData.limit || 25}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Number of tagged media items to retrieve (1-100)
+            </div>
+          </div>
+        )}
+
+        <div className="text-xs text-gray-500 mb-2">
+          📸 Instagram Business API integration for comprehensive social media automation
+        </div>
+      </>
+    );
+  }
+
   if (node.data.type === 'fileConverter') {
     return (
       <>

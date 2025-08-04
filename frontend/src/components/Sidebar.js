@@ -104,6 +104,14 @@ const Sidebar = ({ onSave, onRestore, onActivate, onDeactivate }) => {
               type: 'whatsapp' 
           }} 
         />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'Instagram Business', 
+              icon: 'fa-brands fa-instagram', 
+              description: 'Publish content, manage interactions, stories, and analyze Instagram performance',
+              type: 'instagram' 
+          }} 
+        />
 
         {/* Logic Nodes from N8N Integration */}
         <div className="mt-6 mb-4 font-bold text-lg text-gray-700">Logic Nodes</div>

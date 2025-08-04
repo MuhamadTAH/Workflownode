@@ -111,6 +111,15 @@ export const nodeMetadata = {
     bgColor: "#e8f5e9"
   },
 
+  instagram: {
+    title: "Instagram Business",
+    description: "Complete Instagram Business automation with Meta Graph API. Publish photos, videos, carousels, stories, manage comments, get insights, hashtag research, and direct messaging with advanced analytics.",
+    icon: "📸",
+    category: "social",
+    color: "#E4405F",
+    bgColor: "#fce4ec"
+  },
+
   // ===== LOGIC NODES =====
   if: {
     title: "Conditional Logic (If)",
@@ -242,6 +251,12 @@ export const categoryMetadata = {
     description: "Workflow control and error handling",
     color: "#ef4444",
     icon: "🎛️"
+  },
+  social: {
+    name: "Social Media",
+    description: "Social media platforms integration",
+    color: "#1DA1F2",
+    icon: "📱"
   }
 };
 
