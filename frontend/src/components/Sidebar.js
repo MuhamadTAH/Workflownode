@@ -88,6 +88,89 @@ const Sidebar = ({ onSave, onRestore, onActivate, onDeactivate }) => {
               type: 'trigger' 
           }} 
         />
+
+        {/* Logic Nodes from N8N Integration */}
+        <div className="mt-6 mb-4 font-bold text-lg text-gray-700">Logic Nodes</div>
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'If', 
+              icon: 'fa-solid fa-sitemap', 
+              description: 'Route items to different branches (true/false)',
+              type: 'if' 
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'Switch', 
+              icon: 'fa-solid fa-random', 
+              description: 'Route items based on multiple conditions',
+              type: 'switch' 
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'Filter', 
+              icon: 'fa-solid fa-filter', 
+              description: 'Remove items matching conditions',
+              type: 'filter' 
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'Merge', 
+              icon: 'fa-solid fa-share-alt', 
+              description: 'Combine data from multiple sources',
+              type: 'merge' 
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'Set Data', 
+              icon: 'fa-solid fa-database', 
+              description: 'Create custom key-value pairs',
+              type: 'setData' 
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'Loop', 
+              icon: 'fa-solid fa-sync-alt', 
+              description: 'Split data into batches and iterate',
+              type: 'loop' 
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'Wait', 
+              icon: 'fa-solid fa-clock', 
+              description: 'Pause workflow execution for specified time',
+              type: 'wait' 
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'Stop and Error', 
+              icon: 'fa-solid fa-exclamation-triangle', 
+              description: 'Terminate workflow with custom error',
+              type: 'stopAndError' 
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'Compare Datasets', 
+              icon: 'fa-solid fa-balance-scale', 
+              description: 'Compare two datasets for differences',
+              type: 'compareDatasets' 
+          }} 
+        />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'Execute Sub Workflow', 
+              icon: 'fa-solid fa-play-circle', 
+              description: 'Run nested workflows',
+              type: 'executeSubWorkflow' 
+          }} 
+        />
       </div>
       <div className="mt-auto">
         <div className="mb-4 font-bold text-lg text-gray-700">Actions</div>

@@ -12,6 +12,18 @@ const DataStorageNode = require('../../nodes/actions/dataStorageNode');
 const telegramSendMessageNode = require('../../nodes/actions/telegramSendMessageNode');
 const fileConverterNode = require('../../nodes/actions/fileConverterNode');
 
+// N8N Logic Nodes Integration
+const ifNode = require('../../nodes/actions/ifNode');
+const filterNode = require('../../nodes/actions/filterNode');
+const mergeNode = require('../../nodes/actions/mergeNode');
+const setDataNode = require('../../nodes/actions/setDataNode');
+const switchNode = require('../../nodes/actions/switchNode');
+const waitNode = require('../../nodes/actions/waitNode');
+const stopAndErrorNode = require('../../nodes/actions/stopAndErrorNode');
+const loopNode = require('../../nodes/actions/loopNode');
+const compareDatasetsNode = require('../../nodes/actions/compareDatasetsNode');
+const executeSubWorkflowNode = require('../../nodes/actions/executeSubWorkflowNode');
+
 const runNode = async (req, res) => {
     try {
         const { node, inputData, connectedNodes } = req.body;
@@ -47,6 +59,39 @@ const runNode = async (req, res) => {
             case 'fileConverter':
                 result = await fileConverterNode.execute(node.config, inputData, connectedNodes);
                 break;
+                
+            // N8N Logic Nodes
+            case 'if':
+                result = await ifNode.execute(node.config, inputData);
+                break;
+            case 'filter':
+                result = await filterNode.execute(node.config, inputData);
+                break;
+            case 'merge':
+                result = await mergeNode.execute(node.config, inputData);
+                break;
+            case 'setData':
+                result = await setDataNode.execute(node.config, inputData);
+                break;
+            case 'switch':
+                result = await switchNode.execute(node.config, inputData);
+                break;
+            case 'wait':
+                result = await waitNode.execute(node.config, inputData);
+                break;
+            case 'stopAndError':
+                result = await stopAndErrorNode.execute(node.config, inputData);
+                break;
+            case 'loop':
+                result = await loopNode.execute(node.config, inputData);
+                break;
+            case 'compareDatasets':
+                result = await compareDatasetsNode.execute(node.config, inputData);
+                break;
+            case 'executeSubWorkflow':
+                result = await executeSubWorkflowNode.execute(node.config, inputData);
+                break;
+                
             default:
                 return res.status(400).send({ message: `Node type "${node.type}" is not supported.` });
         }

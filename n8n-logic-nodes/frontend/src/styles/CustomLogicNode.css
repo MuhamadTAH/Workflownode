@@ -1,0 +1,121 @@
+/*
+=================================================================
+FILE: frontend/src/styles/CustomLogicNode.css (RESTORED)
+=================================================================
+This file has been reverted to the original node styling,
+featuring a more rounded, pill-like shape.
+*/
+.custom-node-ai {
+  background-color: #f0f0f0;
+  border: 1px solid #d1d1d1;
+  border-radius: 40px;
+  width: 250px;
+  font-family: 'Helvetica Neue', sans-serif;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.react-flow__node-custom.selected .custom-node-ai {
+  border: 2px solid #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.custom-node-ai .node-content {
+  padding: 10px 20px;
+}
+
+.custom-node-ai .node-header {
+  display: flex;
+  align-items: center;
+}
+
+.custom-node-ai .node-icon {
+  font-size: 16px;
+  margin-right: 10px;
+}
+
+.custom-node-ai .node-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.custom-node-ai .node-description {
+  font-size: 12px;
+  color: #555;
+  margin-top: 4px;
+}
+
+.custom-node-ai .react-flow__handle {
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #555;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.custom-node-ai .react-flow__handle::after {
+    content: '+';
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+    line-height: 1;
+}
+
+.custom-node-ai .handle-left {
+  width: 10px;
+  height: 30px;
+  background: #888;
+  border-radius: 4px 0 0 4px;
+  border: 1px solid #777;
+  left: -11px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.custom-node-ai .handle-left::after {
+    content: '';
+}
+
+.custom-node-ai .handle-right {
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Handle colors for different nodes */
+.handle-true { background-color: #22c55e !important; }
+.handle-false { background-color: #ef4444 !important; }
+.handle-loop { background-color: #8b5cf6 !important; }
+.handle-done { background-color: #6b7280 !important; }
+
+.handle-label {
+  position: absolute;
+  font-size: 10px;
+  font-weight: bold;
+  color: #6b7280;
+}
+
+.handle-label-right {
+  right: -50px;
+}
+
+.handle-label-left {
+  left: -50px;
+  text-align: right;
+}
+
+/* Vertical alignment for labels */
+.handle-label[style*="25%"] { top: calc(25% - 7px); }
+.handle-label[style*="30%"] { top: calc(30% - 7px); }
+.handle-label[style*="50%"] { top: calc(50% - 7px); }
+.handle-label[style*="70%"] { top: calc(70% - 7px); }
+.handle-label[style*="75%"] { top: calc(75% - 7px); }
+
+/* Label colors for different nodes */
+.handle-label-true { color: #16a34a; }
+.handle-label-false { color: #dc2626; }
+.handle-label-loop { color: #7c3aed; }
+.handle-label-done { color: #4b5563; }
