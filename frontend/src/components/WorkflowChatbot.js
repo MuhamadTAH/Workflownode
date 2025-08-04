@@ -48,8 +48,8 @@ Current Workflow State:
 ${JSON.stringify(currentWorkflow, null, 2)}
 
 Available Node Types:
-- Triggers: telegramTrigger
-- Actions: modelNode, aiAgent, googleDocs, dataStorage, telegramSendMessage, fileConverter
+- Triggers: trigger (Telegram Trigger)
+- Actions: modelNode, aiAgent, googleDocs, dataStorage, telegramSendMessage, fileConverter  
 - Logic: if, filter, merge, setData, switch, wait, stopAndError, loop, compareDatasets, executeSubWorkflow
 
 When the user wants to:
@@ -144,13 +144,14 @@ Respond conversationally first, then include the JSON command if needed.`;
     setIsProcessing(false);
   };
 
-  // Simple command parsing as fallback
+  // Simple command parsing as fallback - ENHANCED WITH ALL NODE TYPES
   const parseSimpleCommands = (message) => {
     const lowerMsg = message.toLowerCase();
     
     // Node addition commands
     if (lowerMsg.includes('add') || lowerMsg.includes('create')) {
-      if (lowerMsg.includes('telegram trigger') || lowerMsg.includes('telegram bot')) {
+      // TRIGGER NODES
+      if (lowerMsg.includes('telegram trigger') || lowerMsg.includes('telegram bot') || lowerMsg.includes('trigger')) {
         return {
           action: 'addNode',
           nodeType: 'trigger',
@@ -159,6 +160,8 @@ Respond conversationally first, then include the JSON command if needed.`;
           description: 'add a Telegram trigger'
         };
       }
+      
+      // ACTION NODES
       if (lowerMsg.includes('ai agent') || lowerMsg.includes('ai node')) {
         return {
           action: 'addNode',
@@ -168,7 +171,7 @@ Respond conversationally first, then include the JSON command if needed.`;
           description: 'add an AI agent'
         };
       }
-      if (lowerMsg.includes('model node') || lowerMsg.includes('chat node')) {
+      if (lowerMsg.includes('model node') || lowerMsg.includes('chat node') || lowerMsg.includes('model')) {
         return {
           action: 'addNode',
           nodeType: 'modelNode',
@@ -177,16 +180,134 @@ Respond conversationally first, then include the JSON command if needed.`;
           description: 'add a model node'
         };
       }
+      if (lowerMsg.includes('google docs') || lowerMsg.includes('google doc') || lowerMsg.includes('docs')) {
+        return {
+          action: 'addNode',
+          nodeType: 'googleDocs',
+          label: 'Google Docs',
+          position: getNextNodePosition(),
+          description: 'add a Google Docs node'
+        };
+      }
+      if (lowerMsg.includes('data storage') || lowerMsg.includes('storage') || lowerMsg.includes('database')) {
+        return {
+          action: 'addNode',
+          nodeType: 'dataStorage',
+          label: 'Data Storage',
+          position: getNextNodePosition(),
+          description: 'add a data storage node'
+        };
+      }
+      if (lowerMsg.includes('telegram send') || lowerMsg.includes('send message') || lowerMsg.includes('send telegram')) {
+        return {
+          action: 'addNode',
+          nodeType: 'telegramSendMessage',
+          label: 'Telegram Send Message',
+          position: getNextNodePosition(),
+          description: 'add a Telegram send message node'
+        };
+      }
+      if (lowerMsg.includes('file converter') || lowerMsg.includes('converter') || lowerMsg.includes('file convert')) {
+        return {
+          action: 'addNode',
+          nodeType: 'fileConverter',
+          label: 'File Converter',
+          position: getNextNodePosition(),
+          description: 'add a file converter node'
+        };
+      }
+      
+      // LOGIC NODES (All 10 logic nodes from n8n integration)
+      if (lowerMsg.includes('if node') || lowerMsg.includes('if condition') || (lowerMsg.includes('if') && lowerMsg.includes('node'))) {
+        return {
+          action: 'addNode',
+          nodeType: 'if',
+          label: 'If',
+          position: getNextNodePosition(),
+          description: 'add an If node for conditional routing'
+        };
+      }
       if (lowerMsg.includes('filter') || lowerMsg.includes('filter node')) {
         return {
           action: 'addNode',
           nodeType: 'filter',
           label: 'Filter',
           position: getNextNodePosition(),
-          description: 'add a filter node'
+          description: 'add a Filter node'
         };
       }
-      // Add more node types as needed
+      if (lowerMsg.includes('merge') || lowerMsg.includes('merge node')) {
+        return {
+          action: 'addNode',
+          nodeType: 'merge',
+          label: 'Merge',
+          position: getNextNodePosition(),
+          description: 'add a Merge node'
+        };
+      }
+      if (lowerMsg.includes('set data') || lowerMsg.includes('set data node') || lowerMsg.includes('setdata')) {
+        return {
+          action: 'addNode',
+          nodeType: 'setData',
+          label: 'Set Data',
+          position: getNextNodePosition(),
+          description: 'add a Set Data node'
+        };
+      }
+      if (lowerMsg.includes('switch') || lowerMsg.includes('switch node')) {
+        return {
+          action: 'addNode',
+          nodeType: 'switch',
+          label: 'Switch',
+          position: getNextNodePosition(),
+          description: 'add a Switch node for multi-path routing'
+        };
+      }
+      if (lowerMsg.includes('wait') || lowerMsg.includes('wait node') || lowerMsg.includes('delay')) {
+        return {
+          action: 'addNode',
+          nodeType: 'wait',
+          label: 'Wait',
+          position: getNextNodePosition(),
+          description: 'add a Wait node'
+        };
+      }
+      if (lowerMsg.includes('stop') || lowerMsg.includes('error') || lowerMsg.includes('stop and error')) {
+        return {
+          action: 'addNode',
+          nodeType: 'stopAndError',
+          label: 'Stop and Error',
+          position: getNextNodePosition(),
+          description: 'add a Stop and Error node'
+        };
+      }
+      if (lowerMsg.includes('loop') || lowerMsg.includes('loop node')) {
+        return {
+          action: 'addNode',
+          nodeType: 'loop',
+          label: 'Loop',
+          position: getNextNodePosition(),
+          description: 'add a Loop node'
+        };
+      }
+      if (lowerMsg.includes('compare') || lowerMsg.includes('compare datasets') || lowerMsg.includes('compare data')) {
+        return {
+          action: 'addNode',
+          nodeType: 'compareDatasets',
+          label: 'Compare Datasets',
+          position: getNextNodePosition(),
+          description: 'add a Compare Datasets node'
+        };
+      }
+      if (lowerMsg.includes('sub workflow') || lowerMsg.includes('subworkflow') || lowerMsg.includes('execute workflow')) {
+        return {
+          action: 'addNode',
+          nodeType: 'executeSubWorkflow',
+          label: 'Execute Sub Workflow',
+          position: getNextNodePosition(),
+          description: 'add an Execute Sub Workflow node'
+        };
+      }
     }
 
     // Connection commands

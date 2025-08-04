@@ -190,47 +190,165 @@ const chatbotResponse = async (req, res) => {
     }
 };
 
-// Generate demo responses for common chatbot requests
+// Generate demo responses for common chatbot requests - ENHANCED WITH ALL NODE TYPES
 const generateDemoResponse = (userMessage) => {
     const lowerMsg = userMessage.toLowerCase();
     
-    if (lowerMsg.includes('add') && lowerMsg.includes('telegram')) {
+    // TRIGGER NODES
+    if (lowerMsg.includes('add') && (lowerMsg.includes('telegram') || lowerMsg.includes('trigger'))) {
         return `I'll add a Telegram trigger node for you! This will start your workflow when messages are received.
 
 {"action": "addNode", "nodeType": "trigger", "label": "Telegram Trigger", "position": {"x": 100, "y": 100}}`;
     }
     
-    if (lowerMsg.includes('add') && lowerMsg.includes('ai')) {
+    // ACTION NODES
+    if (lowerMsg.includes('add') && lowerMsg.includes('ai agent')) {
         return `Great! I'll add an AI Agent node that can process data and generate intelligent responses.
 
 {"action": "addNode", "nodeType": "aiAgent", "label": "AI Agent", "position": {"x": 350, "y": 100}}`;
     }
     
+    if (lowerMsg.includes('add') && (lowerMsg.includes('model') || lowerMsg.includes('chat'))) {
+        return `I'll add a Model Node for you! This provides real-time chat functionality with AI.
+
+{"action": "addNode", "nodeType": "modelNode", "label": "Model Node", "position": {"x": 350, "y": 150}}`;
+    }
+    
+    if (lowerMsg.includes('add') && (lowerMsg.includes('google') || lowerMsg.includes('docs'))) {
+        return `I'll add a Google Docs node! This can read, write, and create Google Documents.
+
+{"action": "addNode", "nodeType": "googleDocs", "label": "Google Docs", "position": {"x": 350, "y": 200}}`;
+    }
+    
+    if (lowerMsg.includes('add') && (lowerMsg.includes('storage') || lowerMsg.includes('database'))) {
+        return `I'll add a Data Storage node to store and retrieve information in your workflow.
+
+{"action": "addNode", "nodeType": "dataStorage", "label": "Data Storage", "position": {"x": 350, "y": 250}}`;
+    }
+    
+    if (lowerMsg.includes('add') && lowerMsg.includes('send')) {
+        return `I'll add a Telegram Send Message node to send responses back to users.
+
+{"action": "addNode", "nodeType": "telegramSendMessage", "label": "Telegram Send Message", "position": {"x": 600, "y": 100}}`;
+    }
+    
+    if (lowerMsg.includes('add') && (lowerMsg.includes('file') || lowerMsg.includes('convert'))) {
+        return `I'll add a File Converter node to handle file processing and conversion.
+
+{"action": "addNode", "nodeType": "fileConverter", "label": "File Converter", "position": {"x": 350, "y": 300}}`;
+    }
+    
+    // LOGIC NODES
+    if (lowerMsg.includes('add') && lowerMsg.includes('if')) {
+        return `I'll add an If node for conditional routing - perfect for creating branching logic in your workflow.
+
+{"action": "addNode", "nodeType": "if", "label": "If", "position": {"x": 200, "y": 100}}`;
+    }
+    
+    if (lowerMsg.includes('add') && lowerMsg.includes('filter')) {
+        return `I'll add a Filter node to help you process and filter your data based on conditions.
+
+{"action": "addNode", "nodeType": "filter", "label": "Filter", "position": {"x": 200, "y": 150}}`;
+    }
+    
+    if (lowerMsg.includes('add') && lowerMsg.includes('merge')) {
+        return `I'll add a Merge node to combine data from multiple sources into one stream.
+
+{"action": "addNode", "nodeType": "merge", "label": "Merge", "position": {"x": 200, "y": 200}}`;
+    }
+    
+    if (lowerMsg.includes('add') && lowerMsg.includes('set data')) {
+        return `I'll add a Set Data node to create custom key-value pairs for your workflow.
+
+{"action": "addNode", "nodeType": "setData", "label": "Set Data", "position": {"x": 200, "y": 250}}`;
+    }
+    
+    if (lowerMsg.includes('add') && lowerMsg.includes('switch')) {
+        return `I'll add a Switch node for multi-path routing based on different conditions.
+
+{"action": "addNode", "nodeType": "switch", "label": "Switch", "position": {"x": 200, "y": 300}}`;
+    }
+    
+    if (lowerMsg.includes('add') && (lowerMsg.includes('wait') || lowerMsg.includes('delay'))) {
+        return `I'll add a Wait node to pause your workflow execution for a specified time.
+
+{"action": "addNode", "nodeType": "wait", "label": "Wait", "position": {"x": 200, "y": 350}}`;
+    }
+    
+    if (lowerMsg.includes('add') && (lowerMsg.includes('stop') || lowerMsg.includes('error'))) {
+        return `I'll add a Stop and Error node to terminate workflow execution with custom error messages.
+
+{"action": "addNode", "nodeType": "stopAndError", "label": "Stop and Error", "position": {"x": 200, "y": 400}}`;
+    }
+    
+    if (lowerMsg.includes('add') && lowerMsg.includes('loop')) {
+        return `I'll add a Loop node to iterate over data in batches - perfect for processing lists of items.
+
+{"action": "addNode", "nodeType": "loop", "label": "Loop", "position": {"x": 200, "y": 450}}`;
+    }
+    
+    if (lowerMsg.includes('add') && lowerMsg.includes('compare')) {
+        return `I'll add a Compare Datasets node to identify differences between two sets of data.
+
+{"action": "addNode", "nodeType": "compareDatasets", "label": "Compare Datasets", "position": {"x": 200, "y": 500}}`;
+    }
+    
+    if (lowerMsg.includes('add') && (lowerMsg.includes('sub') || lowerMsg.includes('workflow'))) {
+        return `I'll add an Execute Sub Workflow node to run nested workflows within your main workflow.
+
+{"action": "addNode", "nodeType": "executeSubWorkflow", "label": "Execute Sub Workflow", "position": {"x": 200, "y": 550}}`;
+    }
+    
+    // CONNECTION COMMANDS
     if (lowerMsg.includes('connect')) {
         return `I'll connect your nodes to create a workflow path. This allows data to flow from one node to the next.
 
 {"action": "connectNodes", "sourceId": "dndnode_0", "targetId": "dndnode_1"}`;
     }
     
-    if (lowerMsg.includes('filter')) {
-        return `I'll add a filter node to help you process and filter your data based on conditions.
+    // HELP AND INFO
+    if (lowerMsg.includes('what') || lowerMsg.includes('show') || lowerMsg.includes('help') || lowerMsg.includes('list')) {
+        return `I can help you build workflows with ALL available node types:
 
-{"action": "addNode", "nodeType": "filter", "label": "Filter", "position": {"x": 200, "y": 200}}`;
+🎯 **Trigger Nodes:**
+• "Add a Telegram trigger" - Starts workflows from messages
+
+🔧 **Action Nodes:**
+• "Add an AI agent" - AI processing and responses
+• "Add a model node" - Real-time AI chat
+• "Add Google Docs" - Document automation  
+• "Add data storage" - Store and retrieve data
+• "Add Telegram send message" - Send responses
+• "Add file converter" - File processing
+
+🧠 **Logic Nodes:**
+• "Add an if node" - Conditional routing
+• "Add a filter node" - Data filtering
+• "Add a merge node" - Combine data streams
+• "Add set data" - Create custom data
+• "Add a switch node" - Multi-path routing
+• "Add a wait node" - Delay execution
+• "Add a loop node" - Iterate over data
+• "Add compare datasets" - Find differences
+• "Add sub workflow" - Nested workflows
+
+💡 **Commands:**
+• "Connect them" - Links the last two nodes
+• "Show me what I have" - Lists current nodes
+
+Just tell me what you want to add!`;
     }
     
-    if (lowerMsg.includes('what') || lowerMsg.includes('show') || lowerMsg.includes('help')) {
-        return `I can help you build workflows by understanding commands like:
+    return `I understand you want to work with your workflow. I can help you add ANY type of node and connect them! 
 
-• "Add a Telegram trigger" - Adds a trigger node
-• "Add an AI agent" - Adds an AI processing node  
-• "Connect them" - Connects the last two nodes
-• "Add a filter node" - Adds data filtering
-• "Show me what I have" - Lists your current nodes
+Try commands like:
+• "Add a Telegram trigger"
+• "Add an AI agent" 
+• "Add a filter node"
+• "Add a wait node"
+• "Connect them"
 
-Just tell me what you want to add or change in your workflow!`;
-    }
-    
-    return `I understand you want to work with your workflow. I can help you add nodes, connect them, and build automation workflows. Try asking me to "add a telegram trigger" or "add an AI agent" to get started!`;
+What would you like to add to your workflow?`;
 };
 
 module.exports = {
