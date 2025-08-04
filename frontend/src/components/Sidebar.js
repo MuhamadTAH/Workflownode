@@ -88,6 +88,14 @@ const Sidebar = ({ onSave, onRestore, onActivate, onDeactivate }) => {
               type: 'trigger' 
           }} 
         />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'LinkedIn', 
+              icon: 'fa-brands fa-linkedin', 
+              description: 'Post content, get profile data, send messages on LinkedIn',
+              type: 'linkedin' 
+          }} 
+        />
 
         {/* Logic Nodes from N8N Integration */}
         <div className="mt-6 mb-4 font-bold text-lg text-gray-700">Logic Nodes</div>

@@ -2090,6 +2090,266 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
     );
   }
 
+  if (node.data.type === 'linkedin') {
+    return (
+      <>
+        <NodeDescription nodeType="linkedin" />
+        
+        {/* LinkedIn Authentication Section */}
+        <div className="form-group" style={{ 
+          backgroundColor: '#0077B5', 
+          color: 'white', 
+          padding: '12px', 
+          borderRadius: '4px', 
+          marginBottom: '16px' 
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <i className="fa-brands fa-linkedin" style={{ fontSize: '16px' }}></i>
+            <strong>LinkedIn Authentication</strong>
+          </div>
+          <div style={{ fontSize: '13px', opacity: '0.9' }}>
+            Connect your LinkedIn account to post content, get profile data, and send messages.
+          </div>
+          
+          <div style={{ marginTop: '12px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button 
+              type="button"
+              onClick={() => {
+                // Open LinkedIn OAuth popup
+                const authUrl = '/api/linkedin/auth-url';
+                fetch(authUrl, { method: 'POST' })
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.success) {
+                      const popup = window.open(data.authUrl, 'linkedin-auth', 'width=500,height=600');
+                      // Handle OAuth callback (simplified for MVP)
+                      const checkClosed = setInterval(() => {
+                        if (popup.closed) {
+                          clearInterval(checkClosed);
+                          // In production, handle token exchange here
+                          console.log('LinkedIn auth completed');
+                        }
+                      }, 1000);
+                    }
+                  });
+              }}
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: 'white',
+                padding: '6px 12px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              🔗 Connect LinkedIn
+            </button>
+            <span style={{ fontSize: '12px', opacity: '0.8' }}>
+              {formData.tokenData ? '✅ Connected' : '❌ Not connected'}
+            </span>
+          </div>
+        </div>
+
+        {/* Operation Selection */}
+        <div className="form-group">
+          <label>Operation</label>
+          <select 
+            name="operation" 
+            value={formData.operation || 'getProfile'} 
+            onChange={handleFormFieldChange}
+            className="condition-input"
+          >
+            <option value="getProfile">Get Profile</option>
+            <option value="getCompanies">Get Companies</option>
+            <option value="postShare">Post Share</option>
+            <option value="scheduleShare">Schedule Share</option>
+            <option value="sendMessage">Send Message</option>
+            <option value="getMessages">Get Messages</option>
+            <option value="getAnalytics">Get Analytics</option>
+          </select>
+          <div className="text-xs text-gray-500 mt-1">
+            Choose the LinkedIn operation to perform
+          </div>
+        </div>
+
+        {/* Post Share Parameters */}
+        {(formData.operation === 'postShare' || formData.operation === 'scheduleShare') && (
+          <>
+            <div className="form-group">
+              <label>Author Type</label>
+              <select 
+                name="authorType" 
+                value={formData.authorType || 'user'} 
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              >
+                <option value="user">Post as User</option>
+                <option value="organization">Post as Organization</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Author URN</label>
+              <DroppableTextInput
+                type="text"
+                name="authorURN"
+                placeholder="urn:li:person:123456 or urn:li:organization:123456"
+                value={formData.authorURN || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                LinkedIn URN for the author (user or organization)
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Content Type</label>
+              <select 
+                name="contentType" 
+                value={formData.contentType || 'text'} 
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              >
+                <option value="text">Text Only</option>
+                <option value="link">Link</option>
+                <option value="image">Image</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Post Text</label>
+              <DroppableTextInput
+                type="textarea"
+                name="text"
+                placeholder="What's on your mind? Use {{variables}} for dynamic content..."
+                value={formData.text || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="4"
+              />
+            </div>
+
+            {(formData.contentType === 'link' || formData.contentType === 'image') && (
+              <>
+                <div className="form-group">
+                  <label>Media URL</label>
+                  <DroppableTextInput
+                    type="text"
+                    name="mediaURL"
+                    placeholder="https://example.com/image.jpg or https://example.com/article"
+                    value={formData.mediaURL || ''}
+                    onChange={handleFormFieldChange}
+                    className="condition-input"
+                    inputData={inputData}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Title</label>
+                  <DroppableTextInput
+                    type="text"
+                    name="title"
+                    placeholder="Title for the shared content"
+                    value={formData.title || ''}
+                    onChange={handleFormFieldChange}
+                    className="condition-input"
+                    inputData={inputData}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Description</label>
+                  <DroppableTextInput
+                    type="textarea"
+                    name="description"
+                    placeholder="Description for the shared content"
+                    value={formData.description || ''}
+                    onChange={handleFormFieldChange}
+                    className="condition-input"
+                    inputData={inputData}
+                    rows="3"
+                  />
+                </div>
+              </>
+            )}
+
+            {formData.operation === 'scheduleShare' && (
+              <div className="form-group">
+                <label>Schedule Time</label>
+                <input
+                  type="datetime-local"
+                  name="scheduleTime"
+                  value={formData.scheduleTime || ''}
+                  onChange={handleFormFieldChange}
+                  className="condition-input"
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  When to publish this post
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Send Message Parameters */}
+        {formData.operation === 'sendMessage' && (
+          <>
+            <div className="form-group">
+              <label>Recipient URN</label>
+              <DroppableTextInput
+                type="text"
+                name="recipientURN"
+                placeholder="urn:li:person:123456"
+                value={formData.recipientURN || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                LinkedIn URN of the person to message
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Subject (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="messageSubject"
+                placeholder="Message subject"
+                value={formData.messageSubject || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Message Body</label>
+              <DroppableTextInput
+                type="textarea"
+                name="messageBody"
+                placeholder="Your message content..."
+                value={formData.messageBody || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="4"
+              />
+            </div>
+          </>
+        )}
+
+        <div className="text-xs text-gray-500 mb-2">
+          🔗 LinkedIn integration for professional social media automation
+        </div>
+      </>
+    );
+  }
+
   if (node.data.type === 'fileConverter') {
     return (
       <>

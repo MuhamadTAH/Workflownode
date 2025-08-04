@@ -36,6 +36,7 @@ const telegramRoutes = require('./src/api/routes/telegram');
 const nodeRoutes = require('./src/api/routes/nodes');
 const aiRoutes = require('./src/api/routes/ai');
 const channelBotRoutes = require('./src/api/routes/channelBot');
+const linkedinRoutes = require('./src/api/routes/linkedin');
 
 // Initialize workflow executor service
 const workflowExecutor = require('./src/services/workflowExecutor');
@@ -122,6 +123,7 @@ app.use('/api/telegram', telegramRoutes);
 app.use('/api/nodes', nodeRoutes);
 app.use('/api/ai', aiRoutes); // <-- Register new routes
 app.use('/api/channel-bot', channelBotRoutes);
+app.use('/api/linkedin', linkedinRoutes);
 
 // Create temp-files directory if it doesn't exist
 const tempFilesDir = path.join(__dirname, 'temp-files');

@@ -23,6 +23,7 @@ const stopAndErrorNode = require('../../nodes/actions/stopAndErrorNode');
 const loopNode = require('../../nodes/actions/loopNode');
 const compareDatasetsNode = require('../../nodes/actions/compareDatasetsNode');
 const executeSubWorkflowNode = require('../../nodes/actions/executeSubWorkflowNode');
+const linkedinNode = require('../../nodes/actions/linkedinNode');
 
 const runNode = async (req, res) => {
     try {
@@ -90,6 +91,9 @@ const runNode = async (req, res) => {
                 break;
             case 'executeSubWorkflow':
                 result = await executeSubWorkflowNode.execute(node.config, inputData);
+                break;
+            case 'linkedin':
+                result = await linkedinNode.executeLinkedInNode(inputData, node.config);
                 break;
                 
             default:

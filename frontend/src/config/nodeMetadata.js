@@ -93,6 +93,15 @@ export const nodeMetadata = {
     bgColor: "#f5f3ff"
   },
 
+  linkedin: {
+    title: "LinkedIn Integration",
+    description: "Professional social media automation with LinkedIn. Post content, get profile data, send messages, and manage your professional presence with template variable support.",
+    icon: "🔗",
+    category: "social",
+    color: "#0077B5",
+    bgColor: "#e7f3ff"
+  },
+
   // ===== LOGIC NODES =====
   if: {
     title: "Conditional Logic (If)",
