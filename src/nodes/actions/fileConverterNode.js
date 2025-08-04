@@ -364,6 +364,28 @@ const fileConverterNode = {
             return result;
         };
 
+        // Analyze template variables for Telegram media type intelligence
+        const telegramMediaAnalysis = this.analyzeTelegramTemplates(nodeConfig, inputData);
+        
+        // Apply smart corrections based on Telegram media type detection
+        let correctedConfig = { ...nodeConfig };
+        if (telegramMediaAnalysis.detectedType && telegramMediaAnalysis.recommendedExtension) {
+            console.log(`🔍 Telegram media type detected: ${telegramMediaAnalysis.detectedType}`);
+            console.log(`🔧 Auto-correcting extension to: ${telegramMediaAnalysis.recommendedExtension}`);
+            
+            // Override the file extension based on detected Telegram media type
+            if (nodeConfig.inputType === 'telegram_file_id') {
+                correctedConfig.outputFormat = telegramMediaAnalysis.recommendedExtension;
+            }
+            
+            // Show warnings if any
+            if (telegramMediaAnalysis.warnings.length > 0) {
+                telegramMediaAnalysis.warnings.forEach(warning => 
+                    console.warn(`⚠️ ${warning}`)
+                );
+            }
+        }
+
         const { 
             inputType,
             telegramBotToken,
@@ -380,7 +402,7 @@ const fileConverterNode = {
             imageQuality = 85,
             maxFileSizeMB = 50,
             cacheDurationHours = 24
-        } = nodeConfig;
+        } = correctedConfig;
         
         try {
             let fileBuffer, fileName, mimeType;
@@ -390,7 +412,7 @@ const fileConverterNode = {
                 case 'telegram_file_id':
                     const processedBotToken = parseUniversalTemplate(telegramBotToken, inputData);
                     const processedFileId = parseUniversalTemplate(telegramFileId, inputData);
-                    const telegramResult = await this.getTelegramFile(processedBotToken, processedFileId);
+                    const telegramResult = await this.getTelegramFile(processedBotToken, processedFileId, telegramMediaAnalysis);
                     fileBuffer = telegramResult.buffer;
                     fileName = telegramResult.fileName;
                     mimeType = telegramResult.mimeType;
@@ -493,7 +515,7 @@ const fileConverterNode = {
     },
 
     // Get file from Telegram file_id
-    async getTelegramFile(botToken, fileId) {
+    async getTelegramFile(botToken, fileId, telegramMediaAnalysis = null) {
         console.log('Getting Telegram file:', fileId);
         
         try {
@@ -524,36 +546,67 @@ const fileConverterNode = {
             const buffer = Buffer.from(downloadResponse.data);
             const contentType = downloadResponse.headers['content-type'] || 'application/octet-stream';
             
-            // Extract filename from file path
+            // Step 3: Determine actual file type using multiple methods
+            let actualMimeType = contentType;
+            let actualExtension;
+            
+            // Method 1: Use template analysis if available (highest priority)
+            if (telegramMediaAnalysis && telegramMediaAnalysis.detectedType && telegramMediaAnalysis.recommendedExtension) {
+                actualMimeType = telegramMediaAnalysis.recommendedMimeType;
+                actualExtension = telegramMediaAnalysis.recommendedExtension;
+                console.log(`🎯 Using template analysis: ${telegramMediaAnalysis.detectedType} → .${actualExtension}`);
+            } else {
+                // Method 2: Magic bytes detection (second priority)
+                const magicBytesMimeType = this.detectFileTypeFromBuffer(buffer);
+                if (magicBytesMimeType) {
+                    actualMimeType = magicBytesMimeType;
+                    actualExtension = this.getExtensionFromMimeType(actualMimeType);
+                    console.log(`🔍 Magic bytes detection: ${actualMimeType} → .${actualExtension}`);
+                } else {
+                    // Method 3: Content-Type header (fallback)
+                    actualExtension = this.getExtensionFromMimeType(actualMimeType);
+                    console.log(`📋 Using Content-Type header: ${actualMimeType} → .${actualExtension}`);
+                }
+            }
+            
+            // Step 4: Generate appropriate filename
             let fileName = 'telegram_file';
             if (filePath) {
                 const pathParts = filePath.split('/');
                 fileName = pathParts[pathParts.length - 1];
             }
             
-            // Detect actual file type from buffer content (magic bytes)
-            const actualMimeType = this.detectFileTypeFromBuffer(buffer) || contentType;
-            const actualExtension = this.getExtensionFromMimeType(actualMimeType);
-            
-            // If filename has wrong extension, fix it based on actual content
-            if (fileName.includes('.')) {
-                const currentExtension = fileName.split('.').pop().toLowerCase();
-                const expectedExtension = this.getExtensionFromMimeType(actualMimeType);
+            // Apply smart extension correction based on detected type
+            if (filePath && fileName.includes('.')) {
+                const telegramExtension = fileName.split('.').pop().toLowerCase();
                 
-                if (currentExtension !== expectedExtension) {
-                    console.log(`🔧 File type mismatch detected: ${fileName} is actually ${actualMimeType}`);
-                    console.log(`🔧 Correcting extension from .${currentExtension} to .${expectedExtension}`);
-                    fileName = fileName.replace(/\.[^.]+$/, `.${expectedExtension}`);
+                // If our detected extension differs from Telegram's, use ours
+                if (telegramExtension !== actualExtension) {
+                    console.log(`🔧 Telegram filename extension mismatch: .${telegramExtension} → .${actualExtension}`);
+                    fileName = fileName.replace(/\.[^.]+$/, `.${actualExtension}`);
                 }
             } else {
-                // Add extension based on actual content type
-                fileName += `.${actualExtension}`;
+                // Add extension based on our detection
+                const typePrefix = telegramMediaAnalysis?.detectedType || 'file';
+                fileName = filePath ? `${fileName}.${actualExtension}` : `telegram_${typePrefix}.${actualExtension}`;
             }
+            
+            // Step 5: Final validation and logging
+            console.log(`✅ Final file details:`);
+            console.log(`   📁 Filename: ${fileName}`);
+            console.log(`   🎭 MIME Type: ${actualMimeType}`);
+            console.log(`   📏 Size: ${Math.round(fileSize / 1024)}KB`);
             
             return {
                 buffer: buffer,
                 fileName: fileName,
-                mimeType: actualMimeType
+                mimeType: actualMimeType,
+                telegramInfo: {
+                    originalPath: filePath,
+                    fileSize: fileSize,
+                    detectedType: telegramMediaAnalysis?.detectedType || 'unknown',
+                    confidence: telegramMediaAnalysis?.confidence || 0
+                }
             };
             
         } catch (error) {
@@ -958,6 +1011,189 @@ const fileConverterNode = {
             'text/plain': 'txt'
         };
         return extensions[mimeType] || 'bin';
+    },
+
+    // Analyze template variables for Telegram media type intelligence
+    analyzeTelegramTemplates(nodeConfig, inputData) {
+        const analysis = {
+            detectedType: null,
+            recommendedExtension: null,
+            recommendedMimeType: null,
+            warnings: [],
+            confidence: 0
+        };
+
+        // Only analyze for Telegram file_id input type
+        if (nodeConfig.inputType !== 'telegram_file_id') {
+            return analysis;
+        }
+
+        const telegramFileId = nodeConfig.telegramFileId || '';
+        console.log(`🔍 Analyzing Telegram template: "${telegramFileId}"`);
+
+        // Telegram media type patterns in template variables
+        const mediaTypePatterns = {
+            photo: {
+                patterns: [
+                    /\.photo\./i,
+                    /\.largest_photo\./i,
+                    /\.photo\[/i,
+                    /message\.photo/i,
+                    /photo\.file_id/i
+                ],
+                extension: 'jpg',
+                mimeType: 'image/jpeg',
+                confidence: 0.9
+            },
+            video: {
+                patterns: [
+                    /\.video\./i,
+                    /message\.video/i,
+                    /video\.file_id/i,
+                    /\.video_note\./i
+                ],
+                extension: 'mp4', 
+                mimeType: 'video/mp4',
+                confidence: 0.9
+            },
+            document: {
+                patterns: [
+                    /\.document\./i,
+                    /message\.document/i,
+                    /document\.file_id/i
+                ],
+                extension: null, // Will be determined by document MIME type
+                mimeType: 'application/octet-stream',
+                confidence: 0.8
+            },
+            animation: {
+                patterns: [
+                    /\.animation\./i,
+                    /message\.animation/i,
+                    /animation\.file_id/i
+                ],
+                extension: 'gif',
+                mimeType: 'image/gif',
+                confidence: 0.8
+            },
+            sticker: {
+                patterns: [
+                    /\.sticker\./i,
+                    /message\.sticker/i,
+                    /sticker\.file_id/i
+                ],
+                extension: 'webp',
+                mimeType: 'image/webp',
+                confidence: 0.8
+            },
+            voice: {
+                patterns: [
+                    /\.voice\./i,
+                    /message\.voice/i,
+                    /voice\.file_id/i
+                ],
+                extension: 'ogg',
+                mimeType: 'audio/ogg',
+                confidence: 0.8
+            },
+            audio: {
+                patterns: [
+                    /\.audio\./i,
+                    /message\.audio/i,
+                    /audio\.file_id/i
+                ],
+                extension: 'mp3',
+                mimeType: 'audio/mpeg',
+                confidence: 0.8
+            }
+        };
+
+        // Check template variable for media type indicators
+        let bestMatch = null;
+        let highestConfidence = 0;
+
+        for (const [mediaType, config] of Object.entries(mediaTypePatterns)) {
+            for (const pattern of config.patterns) {
+                if (pattern.test(telegramFileId)) {
+                    if (config.confidence > highestConfidence) {
+                        bestMatch = {
+                            type: mediaType,
+                            ...config
+                        };
+                        highestConfidence = config.confidence;
+                    }
+                }
+            }
+        }
+
+        if (bestMatch) {
+            analysis.detectedType = bestMatch.type;
+            analysis.recommendedExtension = bestMatch.extension;
+            analysis.recommendedMimeType = bestMatch.mimeType;
+            analysis.confidence = bestMatch.confidence;
+
+            console.log(`✅ Detected Telegram media type: ${bestMatch.type} (confidence: ${Math.round(bestMatch.confidence * 100)}%)`);
+
+            // Generate helpful warnings and suggestions
+            if (bestMatch.type === 'photo' && nodeConfig.outputFormat === 'mp4') {
+                analysis.warnings.push('Template suggests a photo file_id but output format is set to MP4. Auto-correcting to JPG.');
+            }
+            
+            if (bestMatch.type === 'video' && nodeConfig.outputFormat === 'jpg') {
+                analysis.warnings.push('Template suggests a video file_id but output format is set to JPG. Auto-correcting to MP4.');
+            }
+
+            // Special handling for your specific case
+            if (telegramFileId.includes('photo.largest_photo.file_id')) {
+                analysis.warnings.push('Detected largest_photo.file_id - this is definitely a photo, not a video!');
+            }
+
+            // Additional validation based on actual data
+            if (inputData) {
+                const actualData = this.extractActualTelegramData(telegramFileId, inputData);
+                if (actualData) {
+                    console.log('🔍 Actual Telegram data found for validation');
+                    // Could add more sophisticated validation here
+                }
+            }
+        } else {
+            console.log('❓ No specific Telegram media type detected in template');
+        }
+
+        return analysis;
+    },
+
+    // Extract actual Telegram data for validation
+    extractActualTelegramData(template, inputData) {
+        try {
+            // Try to resolve the template to see what actual data we have
+            if (!inputData || typeof inputData !== 'object') {
+                return null;
+            }
+
+            // Look for Telegram data in various possible locations
+            const possibleKeys = [
+                'telegram', 'Telegram_Trigger', 'step_1_Telegram_Trigger', 
+                'message', 'data', '_telegram'
+            ];
+
+            for (const key of possibleKeys) {
+                if (inputData[key] && typeof inputData[key] === 'object') {
+                    const telegramData = inputData[key];
+                    
+                    // Check if it has typical Telegram message structure
+                    if (telegramData.message || telegramData.data?.message) {
+                        console.log(`📋 Found Telegram data structure in: ${key}`);
+                        return telegramData;
+                    }
+                }
+            }
+
+            return null;
+        } catch (error) {
+            console.warn('Error extracting Telegram data:', error.message);
+            return null;
+        }
     }
 };
 
