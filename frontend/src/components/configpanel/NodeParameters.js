@@ -167,40 +167,749 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
     );
   }
 
-  // Existing simple node types (preserved)
-  if (node.data.type === 'if' || node.data.type === 'filter') {
+  // ===== COMPREHENSIVE LOGIC NODES PARAMETER FORMS =====
+  
+  // IF NODE - Conditional routing with multiple conditions
+  if (node.data.type === 'if') {
     return (
       <>
         <NodeDescription nodeType={node.data.type} />
         <div className="form-group">
           <label>Conditions</label>
-          {formData.conditions.map((condition, index) => (
-            <div key={index} className="condition-row">
-              <input type="text" name="key" placeholder="value1" value={condition.key} onChange={(e) => handleInputChange(index, e)} className="condition-input" />
-              <span className="operator-display">is equal to</span>
-              <input type="text" name="value" placeholder="value2" value={condition.value} onChange={(e) => handleInputChange(index, e)} className="condition-input" />
-              <button onClick={() => removeCondition(index)} className="remove-condition-btn-subtle">
-                  <i className="fa-solid fa-circle-xmark"></i>
+          {(formData.conditions || [{ value1: '', operator: 'is_equal_to', value2: '' }]).map((condition, index) => (
+            <div key={index} className="condition-row" style={{ 
+              backgroundColor: '#f8f9fa', 
+              border: '1px solid #e9ecef', 
+              borderRadius: '4px', 
+              padding: '12px', 
+              marginBottom: '8px' 
+            }}>
+              <div className="condition-field">
+                <label className="field-label">Field to Check</label>
+                <DroppableTextInput
+                  type="text"
+                  placeholder="{{fieldName}} or field name"
+                  value={condition.value1 || ''}
+                  onChange={(e) => {
+                    const newConditions = [...(formData.conditions || [])];
+                    newConditions[index] = { ...newConditions[index], value1: e.target.value };
+                    handleFormFieldChange('conditions', newConditions);
+                  }}
+                  className="condition-input"
+                  inputData={inputData}
+                />
+              </div>
+              <div className="condition-field">
+                <label className="field-label">Operator</label>
+                <select 
+                  value={condition.operator || 'is_equal_to'}
+                  onChange={(e) => {
+                    const newConditions = [...(formData.conditions || [])];
+                    newConditions[index] = { ...newConditions[index], operator: e.target.value };
+                    handleFormFieldChange('conditions', newConditions);
+                  }}
+                  className="condition-input"
+                >
+                  <option value="is_equal_to">Is Equal To</option>
+                  <option value="is_not_equal_to">Is Not Equal To</option>
+                  <option value="contains">Contains</option>
+                  <option value="greater_than">Greater Than</option>
+                  <option value="less_than">Less Than</option>
+                </select>
+              </div>
+              <div className="condition-field">
+                <label className="field-label">Compare Value</label>
+                <DroppableTextInput
+                  type="text"
+                  placeholder="Comparison value"
+                  value={condition.value2 || ''}
+                  onChange={(e) => {
+                    const newConditions = [...(formData.conditions || [])];
+                    newConditions[index] = { ...newConditions[index], value2: e.target.value };
+                    handleFormFieldChange('conditions', newConditions);
+                  }}
+                  className="condition-input"
+                  inputData={inputData}
+                />
+              </div>
+              <button 
+                onClick={() => {
+                  const newConditions = formData.conditions.filter((_, i) => i !== index);
+                  handleFormFieldChange('conditions', newConditions);
+                }} 
+                className="remove-condition-btn-subtle"
+                title="Remove condition"
+              >
+                <i className="fa-solid fa-circle-xmark"></i>
               </button>
             </div>
           ))}
-          <button onClick={addCondition} className="add-condition-btn full-width">+ Add Condition</button>
+          <button 
+            onClick={() => {
+              const newConditions = [...(formData.conditions || []), { value1: '', operator: 'is_equal_to', value2: '' }];
+              handleFormFieldChange('conditions', newConditions);
+            }} 
+            className="add-condition-btn full-width"
+          >
+            + Add Condition
+          </button>
         </div>
+        
+        <div className="form-group">
+          <label>Condition Logic</label>
+          <select 
+            value={formData.combinator || 'AND'}
+            onChange={(e) => handleFormFieldChange('combinator', e.target.value)}
+            className="condition-input"
+          >
+            <option value="AND">ALL conditions must match (AND)</option>
+            <option value="OR">ANY condition can match (OR)</option>
+          </select>
+        </div>
+        
         <div className="form-group">
           <label className="flex items-center toggle-label">
-            <input type="checkbox" className="toggle-switch" />
-            <span className="ml-2">Convert types where required</span>
+            <input 
+              type="checkbox" 
+              className="toggle-switch"
+              checked={formData.ignoreCase || false}
+              onChange={(e) => handleFormFieldChange('ignoreCase', e.target.checked)}
+            />
+            <span className="ml-2">Ignore text case when comparing</span>
           </label>
-        </div>
-        <div className="form-group">
-          <label>Options</label>
-          <input type="text" className="condition-input" placeholder="No properties" disabled />
-          <button className="add-condition-btn full-width mt-2">+ Add option</button>
         </div>
       </>
     );
   }
-  
+
+  // FILTER NODE - Remove items based on conditions
+  if (node.data.type === 'filter') {
+    return (
+      <>
+        <NodeDescription nodeType={node.data.type} />
+        <div className="info-box" style={{ backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', padding: '12px', borderRadius: '4px', marginBottom: '16px' }}>
+          <strong>Filter Logic:</strong> Items that match ALL conditions will be kept. Items that don't match will be removed.
+        </div>
+        
+        <div className="form-group">
+          <label>Filter Conditions</label>
+          {(formData.conditions || [{ value1: '', operator: 'is_equal_to', value2: '' }]).map((condition, index) => (
+            <div key={index} className="condition-row" style={{ 
+              backgroundColor: '#f8f9fa', 
+              border: '1px solid #e9ecef', 
+              borderRadius: '4px', 
+              padding: '12px', 
+              marginBottom: '8px' 
+            }}>
+              <div className="condition-field">
+                <label className="field-label">Field to Filter</label>
+                <DroppableTextInput
+                  type="text"
+                  placeholder="{{fieldName}} or field name"
+                  value={condition.value1 || ''}
+                  onChange={(e) => {
+                    const newConditions = [...(formData.conditions || [])];
+                    newConditions[index] = { ...newConditions[index], value1: e.target.value };
+                    handleFormFieldChange('conditions', newConditions);
+                  }}
+                  className="condition-input"
+                  inputData={inputData}
+                />
+              </div>
+              <div className="condition-field">
+                <label className="field-label">Operator</label>
+                <select 
+                  value={condition.operator || 'is_equal_to'}
+                  onChange={(e) => {
+                    const newConditions = [...(formData.conditions || [])];
+                    newConditions[index] = { ...newConditions[index], operator: e.target.value };
+                    handleFormFieldChange('conditions', newConditions);
+                  }}
+                  className="condition-input"
+                >
+                  <option value="is_equal_to">Keep if Equal To</option>
+                  <option value="is_not_equal_to">Keep if Not Equal To</option>
+                  <option value="contains">Keep if Contains</option>
+                  <option value="greater_than">Keep if Greater Than</option>
+                  <option value="less_than">Keep if Less Than</option>
+                </select>
+              </div>
+              <div className="condition-field">
+                <label className="field-label">Filter Value</label>
+                <DroppableTextInput
+                  type="text"
+                  placeholder="Value to filter by"
+                  value={condition.value2 || ''}
+                  onChange={(e) => {
+                    const newConditions = [...(formData.conditions || [])];
+                    newConditions[index] = { ...newConditions[index], value2: e.target.value };
+                    handleFormFieldChange('conditions', newConditions);
+                  }}
+                  className="condition-input"
+                  inputData={inputData}
+                />
+              </div>
+              <button 
+                onClick={() => {
+                  const newConditions = formData.conditions.filter((_, i) => i !== index);
+                  handleFormFieldChange('conditions', newConditions);
+                }} 
+                className="remove-condition-btn-subtle"
+                title="Remove condition"
+              >
+                <i className="fa-solid fa-circle-xmark"></i>
+              </button>
+            </div>
+          ))}
+          <button 
+            onClick={() => {
+              const newConditions = [...(formData.conditions || []), { value1: '', operator: 'is_equal_to', value2: '' }];
+              handleFormFieldChange('conditions', newConditions);
+            }} 
+            className="add-condition-btn full-width"
+          >
+            + Add Filter Condition
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  // MERGE NODE - Combine data from multiple sources
+  if (node.data.type === 'merge') {
+    return (
+      <>
+        <NodeDescription nodeType={node.data.type} />
+        <div className="info-box" style={{ backgroundColor: '#e8f4fd', border: '1px solid #bee5eb', padding: '12px', borderRadius: '4px', marginBottom: '16px' }}>
+          <strong>Merge Logic:</strong> Combines data from all connected inputs into a single output array.
+        </div>
+        
+        <div className="form-group">
+          <label>Merge Mode</label>
+          <select 
+            value={formData.mode || 'append'}
+            onChange={(e) => handleFormFieldChange('mode', e.target.value)}
+            className="condition-input"
+          >
+            <option value="append">Append - Add all items to single list</option>
+            <option value="merge_by_key">Merge by Key - Combine items with same key</option>
+          </select>
+        </div>
+        
+        {formData.mode === 'merge_by_key' && (
+          <div className="form-group">
+            <label>Key Field</label>
+            <DroppableTextInput
+              type="text"
+              placeholder="id, name, etc."
+              value={formData.keyField || ''}
+              onChange={(e) => handleFormFieldChange('keyField', e.target.value)}
+              className="condition-input"
+              inputData={inputData}
+            />
+            <p className="field-description">Field to use as merge key</p>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // SET DATA NODE - Create custom key-value pairs
+  if (node.data.type === 'setData') {
+    return (
+      <>
+        <NodeDescription nodeType={node.data.type} />
+        <div className="info-box" style={{ backgroundColor: '#f0f9ff', border: '1px solid #bfdbfe', padding: '12px', borderRadius: '4px', marginBottom: '16px' }}>
+          <strong>Set Data:</strong> Create custom objects with key-value pairs. Supports template variables from previous nodes.
+        </div>
+        
+        <div className="form-group">
+          <label>Data Fields</label>
+          {(formData.fields || [{ key: '', value: '' }]).map((field, index) => (
+            <div key={index} className="condition-row" style={{ 
+              backgroundColor: '#f8f9fa', 
+              border: '1px solid #e9ecef', 
+              borderRadius: '4px', 
+              padding: '12px', 
+              marginBottom: '8px',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr auto',
+              gap: '8px',
+              alignItems: 'end'
+            }}>
+              <div className="condition-field">
+                <label className="field-label">Key</label>
+                <DroppableTextInput
+                  type="text"
+                  placeholder="Field name"
+                  value={field.key || ''}
+                  onChange={(e) => {
+                    const newFields = [...(formData.fields || [])];
+                    newFields[index] = { ...newFields[index], key: e.target.value };
+                    handleFormFieldChange('fields', newFields);
+                  }}
+                  className="condition-input"
+                  inputData={inputData}
+                />
+              </div>
+              <div className="condition-field">
+                <label className="field-label">Value</label>
+                <DroppableTextInput
+                  type="text"
+                  placeholder="Field value or {{expression}}"
+                  value={field.value || ''}
+                  onChange={(e) => {
+                    const newFields = [...(formData.fields || [])];
+                    newFields[index] = { ...newFields[index], value: e.target.value };
+                    handleFormFieldChange('fields', newFields);
+                  }}
+                  className="condition-input"
+                  inputData={inputData}
+                />
+              </div>
+              <button 
+                onClick={() => {
+                  const newFields = formData.fields.filter((_, i) => i !== index);
+                  handleFormFieldChange('fields', newFields);
+                }} 
+                className="remove-condition-btn-subtle"
+                title="Remove field"
+              >
+                <i className="fa-solid fa-circle-xmark"></i>
+              </button>
+            </div>
+          ))}
+          <button 
+            onClick={() => {
+              const newFields = [...(formData.fields || []), { key: '', value: '' }];
+              handleFormFieldChange('fields', newFields);
+            }} 
+            className="add-condition-btn full-width"
+          >
+            + Add Field
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  // SWITCH NODE - Multi-path routing based on rules
+  if (node.data.type === 'switch') {
+    return (
+      <>
+        <NodeDescription nodeType={node.data.type} />
+        <div className="info-box" style={{ backgroundColor: '#fdf2f8', border: '1px solid #f9a8d4', padding: '12px', borderRadius: '4px', marginBottom: '16px' }}>
+          <strong>Switch Logic:</strong> Routes items to different outputs based on rules. First matching rule wins.
+        </div>
+        
+        <div className="form-group">
+          <label>Switch Rules</label>
+          {(formData.switchRules || [{ value1: '', operator: 'is_equal_to', value2: '' }]).map((rule, index) => (
+            <div key={index} className="condition-row" style={{ 
+              backgroundColor: '#f8f9fa', 
+              border: '1px solid #e9ecef', 
+              borderRadius: '4px', 
+              padding: '12px', 
+              marginBottom: '8px' 
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px', color: '#6366f1', fontWeight: '600' }}>
+                <span style={{ fontSize: '14px', marginRight: '8px' }}>📍</span>
+                Output {index + 1}
+              </div>
+              
+              <div className="condition-field">
+                <label className="field-label">Field to Check</label>
+                <DroppableTextInput
+                  type="text"
+                  placeholder="{{fieldName}} or field name"
+                  value={rule.value1 || ''}
+                  onChange={(e) => {
+                    const newRules = [...(formData.switchRules || [])];
+                    newRules[index] = { ...newRules[index], value1: e.target.value };
+                    handleFormFieldChange('switchRules', newRules);
+                  }}
+                  className="condition-input"
+                  inputData={inputData}
+                />
+              </div>
+              <div className="condition-field">
+                <label className="field-label">Operator</label>
+                <select 
+                  value={rule.operator || 'is_equal_to'}
+                  onChange={(e) => {
+                    const newRules = [...(formData.switchRules || [])];
+                    newRules[index] = { ...newRules[index], operator: e.target.value };
+                    handleFormFieldChange('switchRules', newRules);
+                  }}
+                  className="condition-input"
+                >
+                  <option value="is_equal_to">Is Equal To</option>
+                  <option value="is_not_equal_to">Is Not Equal To</option>
+                  <option value="contains">Contains</option>
+                  <option value="greater_than">Greater Than</option>
+                  <option value="less_than">Less Than</option>
+                </select>
+              </div>
+              <div className="condition-field">
+                <label className="field-label">Compare Value</label>
+                <DroppableTextInput
+                  type="text"
+                  placeholder="Comparison value"
+                  value={rule.value2 || ''}
+                  onChange={(e) => {
+                    const newRules = [...(formData.switchRules || [])];
+                    newRules[index] = { ...newRules[index], value2: e.target.value };
+                    handleFormFieldChange('switchRules', newRules);
+                  }}
+                  className="condition-input"
+                  inputData={inputData}
+                />
+              </div>
+              <button 
+                onClick={() => {
+                  const newRules = formData.switchRules.filter((_, i) => i !== index);
+                  handleFormFieldChange('switchRules', newRules);
+                }} 
+                className="remove-condition-btn-subtle"
+                title="Remove rule"
+              >
+                <i className="fa-solid fa-circle-xmark"></i>
+              </button>
+            </div>
+          ))}
+          <button 
+            onClick={() => {
+              const newRules = [...(formData.switchRules || []), { value1: '', operator: 'is_equal_to', value2: '' }];
+              handleFormFieldChange('switchRules', newRules);
+            }} 
+            className="add-condition-btn full-width"
+          >
+            + Add Switch Rule
+          </button>
+        </div>
+        
+        <div className="form-group">
+          <label>Options</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label className="flex items-center toggle-label">
+              <input 
+                type="checkbox" 
+                className="toggle-switch"
+                checked={(formData.switchOptions || []).includes('ignoreCase')}
+                onChange={(e) => {
+                  const currentOptions = formData.switchOptions || [];
+                  const newOptions = e.target.checked 
+                    ? [...currentOptions, 'ignoreCase']
+                    : currentOptions.filter(opt => opt !== 'ignoreCase');
+                  handleFormFieldChange('switchOptions', newOptions);
+                }}
+              />
+              <span className="ml-2">Ignore text case when comparing</span>
+            </label>
+            <label className="flex items-center toggle-label">
+              <input 
+                type="checkbox" 
+                className="toggle-switch"
+                checked={(formData.switchOptions || []).includes('fallbackOutput')}
+                onChange={(e) => {
+                  const currentOptions = formData.switchOptions || [];
+                  const newOptions = e.target.checked 
+                    ? [...currentOptions, 'fallbackOutput']
+                    : currentOptions.filter(opt => opt !== 'fallbackOutput');
+                  handleFormFieldChange('switchOptions', newOptions);
+                }}
+              />
+              <span className="ml-2">Add fallback output for unmatched items</span>
+            </label>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // WAIT NODE - Pause workflow execution
+  if (node.data.type === 'wait') {
+    return (
+      <>
+        <NodeDescription nodeType={node.data.type} />
+        <div className="info-box" style={{ backgroundColor: '#fffbeb', border: '1px solid #fed7aa', padding: '12px', borderRadius: '4px', marginBottom: '16px' }}>
+          <strong>Wait Logic:</strong> Pauses workflow execution for a specified time before continuing.
+        </div>
+        
+        <div className="form-group">
+          <label>Resume Condition</label>
+          <select 
+            value={formData.resumeCondition || 'afterTimeInterval'}
+            onChange={(e) => handleFormFieldChange('resumeCondition', e.target.value)}
+            className="condition-input"
+          >
+            <option value="afterTimeInterval">After Time Interval</option>
+            <option value="atSpecificTime">At Specific Time</option>
+            <option value="onWebhookCall">On Webhook Call</option>
+          </select>
+        </div>
+        
+        {formData.resumeCondition === 'afterTimeInterval' && (
+          <>
+            <div className="form-group">
+              <label>Wait Duration</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '8px' }}>
+                <input
+                  type="number"
+                  placeholder="5"
+                  value={formData.waitAmount || ''}
+                  onChange={(e) => handleFormFieldChange('waitAmount', e.target.value)}
+                  className="condition-input"
+                  min="0"
+                  step="0.1"
+                />
+                <select 
+                  value={formData.waitUnit || 'seconds'}
+                  onChange={(e) => handleFormFieldChange('waitUnit', e.target.value)}
+                  className="condition-input"
+                >
+                  <option value="seconds">Seconds</option>
+                  <option value="minutes">Minutes</option>
+                  <option value="hours">Hours</option>
+                  <option value="days">Days</option>
+                </select>
+              </div>
+              <p className="field-description">How long to wait before continuing</p>
+            </div>
+          </>
+        )}
+        
+        {formData.resumeCondition === 'atSpecificTime' && (
+          <div className="form-group">
+            <label>Specific Time</label>
+            <input
+              type="datetime-local"
+              value={formData.specificTime || ''}
+              onChange={(e) => handleFormFieldChange('specificTime', e.target.value)}
+              className="condition-input"
+            />
+            <p className="field-description">Wait until this specific date and time</p>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // STOP AND ERROR NODE - Terminate workflow with error
+  if (node.data.type === 'stopAndError') {
+    return (
+      <>
+        <NodeDescription nodeType={node.data.type} />
+        <div className="info-box" style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '12px', borderRadius: '4px', marginBottom: '16px' }}>
+          <strong>Stop and Error:</strong> Immediately terminates workflow execution with a custom error message.
+        </div>
+        
+        <div className="form-group">
+          <label>Error Type</label>
+          <select 
+            value={formData.errorType || 'errorMessage'}
+            onChange={(e) => handleFormFieldChange('errorType', e.target.value)}
+            className="condition-input"
+          >
+            <option value="errorMessage">Error Message</option>
+            <option value="errorObject">Error Object</option>
+          </select>
+        </div>
+        
+        <div className="form-group">
+          <label>Error Message</label>
+          <DroppableTextInput
+            type="text"
+            placeholder="Workflow execution stopped due to an error."
+            value={formData.errorMessage || ''}
+            onChange={(e) => handleFormFieldChange('errorMessage', e.target.value)}
+            className="condition-input"
+            inputData={inputData}
+          />
+          <p className="field-description">The error message to display when workflow stops</p>
+        </div>
+      </>
+    );
+  }
+
+  // LOOP NODE - Iterate over data batches  
+  if (node.data.type === 'loop') {
+    return (
+      <>
+        <NodeDescription nodeType={node.data.type} />
+        <div className="info-box" style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px', borderRadius: '4px', marginBottom: '16px' }}>
+          <strong>Loop Logic:</strong> Splits input data into batches and processes each batch separately.
+        </div>
+        
+        <div className="form-group">
+          <label>Batch Size</label>
+          <input
+            type="number"
+            placeholder="1"
+            value={formData.batchSize || ''}
+            onChange={(e) => handleFormFieldChange('batchSize', parseInt(e.target.value) || 1)}
+            className="condition-input"
+            min="1"
+          />
+          <p className="field-description">Number of items to process in each batch</p>
+        </div>
+        
+        <div className="form-group">
+          <label>Loop Mode</label>
+          <select 
+            value={formData.loopMode || 'each_item'}
+            onChange={(e) => handleFormFieldChange('loopMode', e.target.value)}
+            className="condition-input"
+          >
+            <option value="each_item">Process Each Item</option>
+            <option value="batch">Process in Batches</option>
+          </select>
+        </div>
+      </>
+    );
+  }
+
+  // COMPARE DATASETS NODE - Compare two datasets for differences
+  if (node.data.type === 'compareDatasets') {
+    return (
+      <>
+        <NodeDescription nodeType={node.data.type} />
+        <div className="info-box" style={{ backgroundColor: '#f3e8ff', border: '1px solid #c084fc', padding: '12px', borderRadius: '4px', marginBottom: '16px' }}>
+          <strong>Compare Logic:</strong> Compares two datasets and identifies differences, matches, and unique items.
+        </div>
+        
+        <div className="form-group">
+          <label>Comparison Key</label>
+          <DroppableTextInput
+            type="text"
+            placeholder="id, name, etc."
+            value={formData.keyField || ''}
+            onChange={(e) => handleFormFieldChange('keyField', e.target.value)}
+            className="condition-input"
+            inputData={inputData}
+          />
+          <p className="field-description">Field to use for comparing items (must exist in both datasets)</p>
+        </div>
+        
+        <div className="form-group">
+          <label>Comparison Mode</label>
+          <select 
+            value={formData.compareMode || 'full'}
+            onChange={(e) => handleFormFieldChange('compareMode', e.target.value)}
+            className="condition-input"
+          >
+            <option value="full">Full Comparison - Show all differences</option>
+            <option value="added_only">Added Only - Show items in dataset 2 but not 1</option>
+            <option value="removed_only">Removed Only - Show items in dataset 1 but not 2</option>
+            <option value="changed_only">Changed Only - Show modified items</option>
+          </select>
+        </div>
+        
+        <div className="form-group">
+          <label>Options</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label className="flex items-center toggle-label">
+              <input 
+                type="checkbox" 
+                className="toggle-switch"
+                checked={formData.includeEqual || false}
+                onChange={(e) => handleFormFieldChange('includeEqual', e.target.checked)}
+              />
+              <span className="ml-2">Include unchanged items in output</span>
+            </label>
+            <label className="flex items-center toggle-label">
+              <input 
+                type="checkbox" 
+                className="toggle-switch"
+                checked={formData.fuzzyCompare || false}
+                onChange={(e) => handleFormFieldChange('fuzzyCompare', e.target.checked)}
+              />
+              <span className="ml-2">Use fuzzy comparison for text fields</span>
+            </label>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // EXECUTE SUB WORKFLOW NODE - Run nested workflows
+  if (node.data.type === 'executeSubWorkflow') {
+    return (
+      <>
+        <NodeDescription nodeType={node.data.type} />
+        <div className="info-box" style={{ backgroundColor: '#ecfdf5', border: '1px solid #6ee7b7', padding: '12px', borderRadius: '4px', marginBottom: '16px' }}>
+          <strong>Sub Workflow:</strong> Executes a nested workflow with the current data as input. Useful for reusable workflow components.
+        </div>
+        
+        <div className="form-group">
+          <label>Workflow to Execute</label>
+          <select 
+            value={formData.subWorkflowId || ''}
+            onChange={(e) => handleFormFieldChange('subWorkflowId', e.target.value)}
+            className="condition-input"
+          >
+            <option value="">Select a workflow...</option>
+            <option value="workflow1">Data Processing Workflow</option>
+            <option value="workflow2">Email Notification Workflow</option>
+            <option value="workflow3">File Processing Workflow</option>
+          </select>
+          <p className="field-description">Choose which workflow to execute as a sub-process</p>
+        </div>
+        
+        <div className="form-group">
+          <label>Input Mapping</label>
+          <DroppableTextInput
+            type="text"
+            placeholder="{{inputData}} or custom mapping"
+            value={formData.inputMapping || ''}
+            onChange={(e) => handleFormFieldChange('inputMapping', e.target.value)}
+            className="condition-input"
+            inputData={inputData}
+          />
+          <p className="field-description">How to map current data to sub-workflow input</p>
+        </div>
+        
+        <div className="form-group">
+          <label>Execution Settings</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label className="flex items-center toggle-label">
+              <input 
+                type="checkbox" 
+                className="toggle-switch"
+                checked={formData.waitForCompletion || true}
+                onChange={(e) => handleFormFieldChange('waitForCompletion', e.target.checked)}
+              />
+              <span className="ml-2">Wait for sub-workflow to complete</span>
+            </label>
+            <label className="flex items-center toggle-label">
+              <input 
+                type="checkbox" 
+                className="toggle-switch"
+                checked={formData.passThrough || false}
+                onChange={(e) => handleFormFieldChange('passThrough', e.target.checked)}
+              />
+              <span className="ml-2">Pass original data through unchanged</span>
+            </label>
+          </div>
+        </div>
+        
+        <div className="form-group">
+          <label>Timeout (seconds)</label>
+          <input
+            type="number"
+            placeholder="30"
+            value={formData.timeout || ''}
+            onChange={(e) => handleFormFieldChange('timeout', parseInt(e.target.value) || 30)}
+            className="condition-input"
+            min="1"
+            max="300"
+          />
+          <p className="field-description">Maximum time to wait for sub-workflow completion</p>
+        </div>
+      </>
+    );
+  }
+
   if (node.data.type === 'compare') {
     return (
       <>
