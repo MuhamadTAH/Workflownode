@@ -120,11 +120,35 @@ app.use('/api/ai', aiRoutes); // <-- Register new routes
 const tempFilesDir = path.join(__dirname, 'temp-files');
 fs.mkdir(tempFilesDir, { recursive: true }).catch(() => {});
 
-// Serve temporary files
+// Serve temporary files with video-optimized headers
 app.use('/temp-files', express.static(tempFilesDir, {
   maxAge: '24h', // Cache for 24 hours
   etag: true,
-  lastModified: true
+  lastModified: true,
+  setHeaders: (res, path, stat) => {
+    // Add video-specific headers for better browser compatibility
+    if (path.endsWith('.mp4') || path.endsWith('.webm') || path.endsWith('.avi')) {
+      res.set({
+        'Accept-Ranges': 'bytes', // Enable range requests for video seeking
+        'Content-Type': path.endsWith('.mp4') ? 'video/mp4' : 
+                       path.endsWith('.webm') ? 'video/webm' : 
+                       path.endsWith('.avi') ? 'video/x-msvideo' : 'video/mp4',
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'public, max-age=86400'
+      });
+    }
+    // Add image-specific headers
+    else if (path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+      res.set({
+        'Content-Type': path.endsWith('.jpg') || path.endsWith('.jpeg') ? 'image/jpeg' :
+                       path.endsWith('.png') ? 'image/png' :
+                       path.endsWith('.gif') ? 'image/gif' :
+                       path.endsWith('.webp') ? 'image/webp' : 'image/jpeg',
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'public, max-age=86400'
+      });
+    }
+  }
 }));
 
 // API endpoint to delete temp files
