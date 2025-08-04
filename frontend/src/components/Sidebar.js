@@ -96,6 +96,14 @@ const Sidebar = ({ onSave, onRestore, onActivate, onDeactivate }) => {
               type: 'linkedin' 
           }} 
         />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'WhatsApp Business', 
+              icon: 'fa-brands fa-whatsapp', 
+              description: 'Send messages, media, templates, and interactive content via WhatsApp',
+              type: 'whatsapp' 
+          }} 
+        />
 
         {/* Logic Nodes from N8N Integration */}
         <div className="mt-6 mb-4 font-bold text-lg text-gray-700">Logic Nodes</div>

@@ -37,6 +37,7 @@ const nodeRoutes = require('./src/api/routes/nodes');
 const aiRoutes = require('./src/api/routes/ai');
 const channelBotRoutes = require('./src/api/routes/channelBot');
 const linkedinRoutes = require('./src/api/routes/linkedin');
+const whatsappRoutes = require('./src/api/routes/whatsapp');
 
 // Initialize workflow executor service
 const workflowExecutor = require('./src/services/workflowExecutor');
@@ -124,6 +125,7 @@ app.use('/api/nodes', nodeRoutes);
 app.use('/api/ai', aiRoutes); // <-- Register new routes
 app.use('/api/channel-bot', channelBotRoutes);
 app.use('/api/linkedin', linkedinRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 // Create temp-files directory if it doesn't exist
 const tempFilesDir = path.join(__dirname, 'temp-files');

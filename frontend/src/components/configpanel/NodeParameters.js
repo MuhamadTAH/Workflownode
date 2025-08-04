@@ -2350,6 +2350,604 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
     );
   }
 
+  if (node.data.type === 'whatsapp') {
+    return (
+      <>
+        <NodeDescription nodeType="whatsapp" />
+        
+        {/* WhatsApp API Configuration Section */}
+        <div className="form-group" style={{ 
+          backgroundColor: '#25D366', 
+          color: 'white', 
+          padding: '12px', 
+          borderRadius: '4px', 
+          marginBottom: '16px' 
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <i className="fa-brands fa-whatsapp" style={{ fontSize: '16px' }}></i>
+            <strong>WhatsApp Business API</strong>
+          </div>
+          <div style={{ fontSize: '13px', opacity: '0.9' }}>
+            Send messages, media, templates, and manage WhatsApp Business interactions using Meta Graph API.
+          </div>
+          
+          <div style={{ marginTop: '12px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button 
+              type="button"
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/whatsapp/verify-setup', { method: 'POST' });
+                  const data = await response.json();
+                  if (data.success) {
+                    alert('✅ WhatsApp Business API verified successfully!');
+                  } else {
+                    alert('❌ Setup verification failed: ' + data.error);
+                  }
+                } catch (error) {
+                  alert('❌ Verification failed: ' + error.message);
+                }
+              }}
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: 'white',
+                padding: '6px 12px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              🔍 Verify Setup
+            </button>
+            <span style={{ fontSize: '12px', opacity: '0.8' }}>
+              Check API credentials and connectivity
+            </span>
+          </div>
+        </div>
+
+        {/* Operation Selection */}
+        <div className="form-group">
+          <label>Operation</label>
+          <select 
+            name="operation" 
+            value={formData.operation || 'sendText'} 
+            onChange={handleFormFieldChange}
+            className="condition-input"
+          >
+            <optgroup label="Basic Messaging">
+              <option value="sendText">Send Text Message</option>
+              <option value="sendImage">Send Image</option>
+              <option value="sendVideo">Send Video</option>
+              <option value="sendDocument">Send Document</option>
+              <option value="sendAudio">Send Audio</option>
+            </optgroup>
+            <optgroup label="Interactive Messages">
+              <option value="sendButtons">Send Button Message</option>
+              <option value="sendList">Send List Message</option>
+              <option value="sendTemplate">Send Template Message</option>
+            </optgroup>
+            <optgroup label="Location & Contacts">
+              <option value="sendLocation">Send Location</option>
+              <option value="sendContact">Send Contact</option>
+              <option value="getContact">Get Contact Info</option>
+            </optgroup>
+            <optgroup label="Business Management">
+              <option value="getBusinessProfile">Get Business Profile</option>
+              <option value="updateBusinessProfile">Update Business Profile</option>
+              <option value="getTemplates">Get Message Templates</option>
+            </optgroup>
+            <optgroup label="Media & Status">
+              <option value="uploadMedia">Upload Media</option>
+              <option value="downloadMedia">Download Media</option>
+              <option value="markRead">Mark Message as Read</option>
+            </optgroup>
+          </select>
+          <div className="text-xs text-gray-500 mt-1">
+            Choose the WhatsApp operation to perform
+          </div>
+        </div>
+
+        {/* Phone Number Field (for most operations) */}
+        {!['getBusinessProfile', 'updateBusinessProfile', 'getTemplates', 'uploadMedia'].includes(formData.operation) && (
+          <div className="form-group">
+            <label>Phone Number</label>
+            <DroppableTextInput
+              type="text"
+              name="to"
+              placeholder="1234567890 or +1234567890"
+              value={formData.to || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Recipient's phone number (with or without country code)
+            </div>
+          </div>
+        )}
+
+        {/* Text Message Parameters */}
+        {formData.operation === 'sendText' && (
+          <>
+            <div className="form-group">
+              <label>Message Text</label>
+              <DroppableTextInput
+                type="textarea"
+                name="text"
+                placeholder="Your message text... Use {{variables}} for dynamic content"
+                value={formData.text || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="4"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  name="previewUrl"
+                  checked={formData.previewUrl || false}
+                  onChange={(e) => handleFormFieldChange({
+                    target: { name: 'previewUrl', value: e.target.checked }
+                  })}
+                />
+                Preview URLs in message
+              </label>
+              <div className="text-xs text-gray-500 mt-1">
+                Show URL previews for links in the message
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Media Message Parameters */}
+        {['sendImage', 'sendVideo', 'sendDocument', 'sendAudio'].includes(formData.operation) && (
+          <>
+            <div className="form-group">
+              <label>Media Source</label>
+              <select 
+                name="mediaSource" 
+                value={formData.mediaSource || 'url'} 
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              >
+                <option value="url">Media URL</option>
+                <option value="id">Media ID (uploaded)</option>
+              </select>
+            </div>
+
+            {formData.mediaSource === 'url' ? (
+              <div className="form-group">
+                <label>Media URL</label>
+                <DroppableTextInput
+                  type="text"
+                  name="mediaUrl"
+                  placeholder={`https://example.com/${formData.operation?.replace('send', '').toLowerCase()}.${
+                    formData.operation === 'sendImage' ? 'jpg' :
+                    formData.operation === 'sendVideo' ? 'mp4' :
+                    formData.operation === 'sendAudio' ? 'mp3' : 'pdf'
+                  }`}
+                  value={formData.mediaUrl || ''}
+                  onChange={handleFormFieldChange}
+                  className="condition-input"
+                  inputData={inputData}
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  Direct URL to the media file
+                </div>
+              </div>
+            ) : (
+              <div className="form-group">
+                <label>Media ID</label>
+                <DroppableTextInput
+                  type="text"
+                  name="mediaId"
+                  placeholder="Media ID from WhatsApp upload"
+                  value={formData.mediaId || ''}
+                  onChange={handleFormFieldChange}
+                  className="condition-input"
+                  inputData={inputData}
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  Media ID obtained from WhatsApp media upload
+                </div>
+              </div>
+            )}
+
+            {formData.operation === 'sendDocument' && (
+              <div className="form-group">
+                <label>Filename (Optional)</label>
+                <DroppableTextInput
+                  type="text"
+                  name="filename"
+                  placeholder="document.pdf"
+                  value={formData.filename || ''}
+                  onChange={handleFormFieldChange}
+                  className="condition-input"
+                  inputData={inputData}
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  Display name for the document
+                </div>
+              </div>
+            )}
+
+            {['sendImage', 'sendVideo', 'sendDocument'].includes(formData.operation) && (
+              <div className="form-group">
+                <label>Caption (Optional)</label>
+                <DroppableTextInput
+                  type="textarea"
+                  name="caption"
+                  placeholder="Caption for the media..."
+                  value={formData.caption || ''}
+                  onChange={handleFormFieldChange}
+                  className="condition-input"
+                  inputData={inputData}
+                  rows="3"
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Template Message Parameters */}
+        {formData.operation === 'sendTemplate' && (
+          <>
+            <div className="form-group">
+              <label>Template Name</label>
+              <DroppableTextInput
+                type="text"
+                name="templateName"
+                placeholder="hello_world"
+                value={formData.templateName || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Name of the approved template message
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Language Code</label>
+              <select 
+                name="languageCode" 
+                value={formData.languageCode || 'en'} 
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              >
+                <option value="en">English (en)</option>
+                <option value="es">Spanish (es)</option>
+                <option value="fr">French (fr)</option>
+                <option value="de">German (de)</option>
+                <option value="pt">Portuguese (pt)</option>
+                <option value="ar">Arabic (ar)</option>
+                <option value="hi">Hindi (hi)</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Template Components (JSON)</label>
+              <DroppableTextInput
+                type="textarea"
+                name="components"
+                placeholder='[{"type": "body", "parameters": [{"type": "text", "text": "John"}]}]'
+                value={formData.components || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="4"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Template parameter components in JSON format
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Button Message Parameters */}
+        {formData.operation === 'sendButtons' && (
+          <>
+            <div className="form-group">
+              <label>Header Text (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="headerText"
+                placeholder="Header text"
+                value={formData.headerText || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Body Text</label>
+              <DroppableTextInput
+                type="textarea"
+                name="bodyText"
+                placeholder="Main message body text..."
+                value={formData.bodyText || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="3"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Footer Text (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="footerText"
+                placeholder="Footer text"
+                value={formData.footerText || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Buttons (JSON Array)</label>
+              <DroppableTextInput
+                type="textarea"
+                name="buttons"
+                placeholder='[{"id": "btn1", "title": "Option 1"}, {"id": "btn2", "title": "Option 2"}]'
+                value={formData.buttons || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="4"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Array of button objects (max 3 buttons)
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* List Message Parameters */}
+        {formData.operation === 'sendList' && (
+          <>
+            <div className="form-group">
+              <label>Header Text (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="headerText"
+                placeholder="Header text"
+                value={formData.headerText || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Body Text</label>
+              <DroppableTextInput
+                type="textarea"
+                name="bodyText"
+                placeholder="Main message body text..."
+                value={formData.bodyText || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="3"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Button Text</label>
+              <DroppableTextInput
+                type="text"
+                name="buttonText"
+                placeholder="View Options"
+                value={formData.buttonText || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Footer Text (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="footerText"
+                placeholder="Footer text"
+                value={formData.footerText || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Sections (JSON Array)</label>
+              <DroppableTextInput
+                type="textarea"
+                name="sections"
+                placeholder='[{"title": "Section 1", "rows": [{"id": "row1", "title": "Row 1", "description": "Description 1"}]}]'
+                value={formData.sections || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                rows="6"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Array of section objects with rows
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Location Message Parameters */}
+        {formData.operation === 'sendLocation' && (
+          <>
+            <div className="form-group">
+              <label>Latitude</label>
+              <DroppableTextInput
+                type="number"
+                name="latitude"
+                placeholder="37.7749"
+                value={formData.latitude || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                step="any"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Longitude</label>
+              <DroppableTextInput
+                type="number"
+                name="longitude"
+                placeholder="-122.4194"
+                value={formData.longitude || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+                step="any"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Location Name (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="locationName"
+                placeholder="San Francisco"
+                value={formData.locationName || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Address (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="locationAddress"
+                placeholder="123 Main St, San Francisco, CA"
+                value={formData.locationAddress || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                inputData={inputData}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Contact Message Parameters */}
+        {formData.operation === 'sendContact' && (
+          <div className="form-group">
+            <label>Contacts (JSON Array)</label>
+            <DroppableTextInput
+              type="textarea"
+              name="contacts"
+              placeholder='[{"name": {"formatted_name": "John Doe", "first_name": "John"}, "phones": [{"phone": "+1234567890", "type": "MOBILE"}]}]'
+              value={formData.contacts || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              inputData={inputData}
+              rows="6"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Array of contact objects with name and phone information
+            </div>
+          </div>
+        )}
+
+        {/* Get Contact Parameters */}
+        {formData.operation === 'getContact' && (
+          <div className="form-group">
+            <label>Phone Number</label>
+            <DroppableTextInput
+              type="text"
+              name="phoneNumber"
+              placeholder="1234567890"
+              value={formData.phoneNumber || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Phone number to get contact information for
+            </div>
+          </div>
+        )}
+
+        {/* Business Profile Parameters */}
+        {formData.operation === 'updateBusinessProfile' && (
+          <div className="form-group">
+            <label>Profile Data (JSON)</label>
+            <DroppableTextInput
+              type="textarea"
+              name="profileData"
+              placeholder='{"about": "We are a business", "description": "Business description", "email": "contact@business.com"}'
+              value={formData.profileData || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              inputData={inputData}
+              rows="4"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Business profile data in JSON format
+            </div>
+          </div>
+        )}
+
+        {/* Mark Read Parameters */}
+        {formData.operation === 'markRead' && (
+          <div className="form-group">
+            <label>Message ID</label>
+            <DroppableTextInput
+              type="text"
+              name="messageId"
+              placeholder="wamid.XXX"
+              value={formData.messageId || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              WhatsApp message ID to mark as read
+            </div>
+          </div>
+        )}
+
+        {/* Download Media Parameters */}
+        {formData.operation === 'downloadMedia' && (
+          <div className="form-group">
+            <label>Media ID</label>
+            <DroppableTextInput
+              type="text"
+              name="mediaId"
+              placeholder="Media ID from WhatsApp"
+              value={formData.mediaId || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Media ID to download from WhatsApp servers
+            </div>
+          </div>
+        )}
+
+        <div className="text-xs text-gray-500 mb-2">
+          📱 WhatsApp Business API integration for comprehensive messaging automation
+        </div>
+      </>
+    );
+  }
+
   if (node.data.type === 'fileConverter') {
     return (
       <>

@@ -24,6 +24,7 @@ const loopNode = require('../../nodes/actions/loopNode');
 const compareDatasetsNode = require('../../nodes/actions/compareDatasetsNode');
 const executeSubWorkflowNode = require('../../nodes/actions/executeSubWorkflowNode');
 const linkedinNode = require('../../nodes/actions/linkedinNode');
+const whatsappNode = require('../../nodes/actions/whatsappNode');
 
 const runNode = async (req, res) => {
     try {
@@ -94,6 +95,9 @@ const runNode = async (req, res) => {
                 break;
             case 'linkedin':
                 result = await linkedinNode.executeLinkedInNode(inputData, node.config);
+                break;
+            case 'whatsapp':
+                result = await whatsappNode.executeWhatsAppNode(inputData, node.config);
                 break;
                 
             default:

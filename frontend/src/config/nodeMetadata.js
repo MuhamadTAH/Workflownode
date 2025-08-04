@@ -102,6 +102,15 @@ export const nodeMetadata = {
     bgColor: "#e7f3ff"
   },
 
+  whatsapp: {
+    title: "WhatsApp Business",
+    description: "Comprehensive WhatsApp Business API integration. Send text, media, templates, interactive messages, manage contacts, and handle business communications with full Meta Graph API support.",
+    icon: "📱",
+    category: "social",
+    color: "#25D366",
+    bgColor: "#e8f5e9"
+  },
+
   // ===== LOGIC NODES =====
   if: {
     title: "Conditional Logic (If)",
