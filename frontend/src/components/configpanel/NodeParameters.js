@@ -193,7 +193,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   onChange={(e) => {
                     const newConditions = [...(formData.conditions || [])];
                     newConditions[index] = { ...newConditions[index], value1: e.target.value };
-                    handleFormFieldChange('conditions', newConditions);
+                    handleFormFieldChange({ target: { name: 'conditions', value: newConditions } });
                   }}
                   className="condition-input"
                   inputData={inputData}
@@ -206,7 +206,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   onChange={(e) => {
                     const newConditions = [...(formData.conditions || [])];
                     newConditions[index] = { ...newConditions[index], operator: e.target.value };
-                    handleFormFieldChange('conditions', newConditions);
+                    handleFormFieldChange({ target: { name: 'conditions', value: newConditions } });
                   }}
                   className="condition-input"
                 >
@@ -226,7 +226,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   onChange={(e) => {
                     const newConditions = [...(formData.conditions || [])];
                     newConditions[index] = { ...newConditions[index], value2: e.target.value };
-                    handleFormFieldChange('conditions', newConditions);
+                    handleFormFieldChange({ target: { name: 'conditions', value: newConditions } });
                   }}
                   className="condition-input"
                   inputData={inputData}
@@ -235,7 +235,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
               <button 
                 onClick={() => {
                   const newConditions = formData.conditions.filter((_, i) => i !== index);
-                  handleFormFieldChange('conditions', newConditions);
+                  handleFormFieldChange({ target: { name: 'conditions', value: newConditions } });
                 }} 
                 className="remove-condition-btn-subtle"
                 title="Remove condition"
@@ -247,7 +247,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
           <button 
             onClick={() => {
               const newConditions = [...(formData.conditions || []), { value1: '', operator: 'is_equal_to', value2: '' }];
-              handleFormFieldChange('conditions', newConditions);
+              handleFormFieldChange({ target: { name: 'conditions', value: newConditions } });
             }} 
             className="add-condition-btn full-width"
           >
@@ -259,7 +259,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
           <label>Condition Logic</label>
           <select 
             value={formData.combinator || 'AND'}
-            onChange={(e) => handleFormFieldChange('combinator', e.target.value)}
+            onChange={(e) => handleFormFieldChange({ target: { name: 'combinator', value: e.target.value } })}
             className="condition-input"
           >
             <option value="AND">ALL conditions must match (AND)</option>
@@ -273,7 +273,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
               type="checkbox" 
               className="toggle-switch"
               checked={formData.ignoreCase || false}
-              onChange={(e) => handleFormFieldChange('ignoreCase', e.target.checked)}
+              onChange={(e) => handleFormFieldChange({ target: { name: 'ignoreCase', value: e.target.checked, type: 'checkbox', checked: e.target.checked } })}
             />
             <span className="ml-2">Ignore text case when comparing</span>
           </label>
@@ -310,7 +310,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   onChange={(e) => {
                     const newConditions = [...(formData.conditions || [])];
                     newConditions[index] = { ...newConditions[index], value1: e.target.value };
-                    handleFormFieldChange('conditions', newConditions);
+                    handleFormFieldChange({ target: { name: 'conditions', value: newConditions } });
                   }}
                   className="condition-input"
                   inputData={inputData}
@@ -323,7 +323,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   onChange={(e) => {
                     const newConditions = [...(formData.conditions || [])];
                     newConditions[index] = { ...newConditions[index], operator: e.target.value };
-                    handleFormFieldChange('conditions', newConditions);
+                    handleFormFieldChange({ target: { name: 'conditions', value: newConditions } });
                   }}
                   className="condition-input"
                 >
@@ -343,7 +343,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   onChange={(e) => {
                     const newConditions = [...(formData.conditions || [])];
                     newConditions[index] = { ...newConditions[index], value2: e.target.value };
-                    handleFormFieldChange('conditions', newConditions);
+                    handleFormFieldChange({ target: { name: 'conditions', value: newConditions } });
                   }}
                   className="condition-input"
                   inputData={inputData}
@@ -352,7 +352,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
               <button 
                 onClick={() => {
                   const newConditions = formData.conditions.filter((_, i) => i !== index);
-                  handleFormFieldChange('conditions', newConditions);
+                  handleFormFieldChange({ target: { name: 'conditions', value: newConditions } });
                 }} 
                 className="remove-condition-btn-subtle"
                 title="Remove condition"
@@ -364,7 +364,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
           <button 
             onClick={() => {
               const newConditions = [...(formData.conditions || []), { value1: '', operator: 'is_equal_to', value2: '' }];
-              handleFormFieldChange('conditions', newConditions);
+              handleFormFieldChange({ target: { name: 'conditions', value: newConditions } });
             }} 
             className="add-condition-btn full-width"
           >
@@ -388,7 +388,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
           <label>Merge Mode</label>
           <select 
             value={formData.mode || 'append'}
-            onChange={(e) => handleFormFieldChange('mode', e.target.value)}
+            onChange={(e) => handleFormFieldChange({ target: { name: 'mode', value: e.target.value } })}
             className="condition-input"
           >
             <option value="append">Append - Add all items to single list</option>
@@ -403,7 +403,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
               type="text"
               placeholder="id, name, etc."
               value={formData.keyField || ''}
-              onChange={(e) => handleFormFieldChange('keyField', e.target.value)}
+              onChange={(e) => handleFormFieldChange({ target: { name: 'keyField', value: e.target.value } })}
               className="condition-input"
               inputData={inputData}
             />
@@ -446,7 +446,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   onChange={(e) => {
                     const newFields = [...(formData.fields || [])];
                     newFields[index] = { ...newFields[index], key: e.target.value };
-                    handleFormFieldChange('fields', newFields);
+                    handleFormFieldChange({ target: { name: 'fields', value: newFields } });
                   }}
                   className="condition-input"
                   inputData={inputData}
@@ -461,7 +461,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   onChange={(e) => {
                     const newFields = [...(formData.fields || [])];
                     newFields[index] = { ...newFields[index], value: e.target.value };
-                    handleFormFieldChange('fields', newFields);
+                    handleFormFieldChange({ target: { name: 'fields', value: newFields } });
                   }}
                   className="condition-input"
                   inputData={inputData}
@@ -470,7 +470,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
               <button 
                 onClick={() => {
                   const newFields = formData.fields.filter((_, i) => i !== index);
-                  handleFormFieldChange('fields', newFields);
+                  handleFormFieldChange({ target: { name: 'fields', value: newFields } });
                 }} 
                 className="remove-condition-btn-subtle"
                 title="Remove field"
@@ -482,7 +482,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
           <button 
             onClick={() => {
               const newFields = [...(formData.fields || []), { key: '', value: '' }];
-              handleFormFieldChange('fields', newFields);
+              handleFormFieldChange({ target: { name: 'fields', value: newFields } });
             }} 
             className="add-condition-btn full-width"
           >
@@ -526,7 +526,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   onChange={(e) => {
                     const newRules = [...(formData.switchRules || [])];
                     newRules[index] = { ...newRules[index], value1: e.target.value };
-                    handleFormFieldChange('switchRules', newRules);
+                    handleFormFieldChange({ target: { name: 'switchRules', value: newRules } });
                   }}
                   className="condition-input"
                   inputData={inputData}
@@ -539,7 +539,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   onChange={(e) => {
                     const newRules = [...(formData.switchRules || [])];
                     newRules[index] = { ...newRules[index], operator: e.target.value };
-                    handleFormFieldChange('switchRules', newRules);
+                    handleFormFieldChange({ target: { name: 'switchRules', value: newRules } });
                   }}
                   className="condition-input"
                 >
@@ -559,7 +559,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   onChange={(e) => {
                     const newRules = [...(formData.switchRules || [])];
                     newRules[index] = { ...newRules[index], value2: e.target.value };
-                    handleFormFieldChange('switchRules', newRules);
+                    handleFormFieldChange({ target: { name: 'switchRules', value: newRules } });
                   }}
                   className="condition-input"
                   inputData={inputData}
@@ -568,7 +568,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
               <button 
                 onClick={() => {
                   const newRules = formData.switchRules.filter((_, i) => i !== index);
-                  handleFormFieldChange('switchRules', newRules);
+                  handleFormFieldChange({ target: { name: 'switchRules', value: newRules } });
                 }} 
                 className="remove-condition-btn-subtle"
                 title="Remove rule"
@@ -580,7 +580,15 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
           <button 
             onClick={() => {
               const newRules = [...(formData.switchRules || []), { value1: '', operator: 'is_equal_to', value2: '' }];
-              handleFormFieldChange('switchRules', newRules);
+              // Create a synthetic event object for handleFormFieldChange
+              const syntheticEvent = {
+                target: {
+                  name: 'switchRules',
+                  value: newRules,
+                  type: 'button'
+                }
+              };
+              handleFormFieldChange(syntheticEvent);
             }} 
             className="add-condition-btn full-width"
           >
@@ -601,7 +609,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   const newOptions = e.target.checked 
                     ? [...currentOptions, 'ignoreCase']
                     : currentOptions.filter(opt => opt !== 'ignoreCase');
-                  handleFormFieldChange('switchOptions', newOptions);
+                  handleFormFieldChange({ target: { name: 'switchOptions', value: newOptions } });
                 }}
               />
               <span className="ml-2">Ignore text case when comparing</span>
@@ -616,7 +624,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   const newOptions = e.target.checked 
                     ? [...currentOptions, 'fallbackOutput']
                     : currentOptions.filter(opt => opt !== 'fallbackOutput');
-                  handleFormFieldChange('switchOptions', newOptions);
+                  handleFormFieldChange({ target: { name: 'switchOptions', value: newOptions } });
                 }}
               />
               <span className="ml-2">Add fallback output for unmatched items</span>
@@ -640,7 +648,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
           <label>Resume Condition</label>
           <select 
             value={formData.resumeCondition || 'afterTimeInterval'}
-            onChange={(e) => handleFormFieldChange('resumeCondition', e.target.value)}
+            onChange={(e) => handleFormFieldChange({ target: { name: 'resumeCondition', value: e.target.value } })}
             className="condition-input"
           >
             <option value="afterTimeInterval">After Time Interval</option>
@@ -658,14 +666,14 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                   type="number"
                   placeholder="5"
                   value={formData.waitAmount || ''}
-                  onChange={(e) => handleFormFieldChange('waitAmount', e.target.value)}
+                  onChange={(e) => handleFormFieldChange({ target: { name: 'waitAmount', value: e.target.value } })}
                   className="condition-input"
                   min="0"
                   step="0.1"
                 />
                 <select 
                   value={formData.waitUnit || 'seconds'}
-                  onChange={(e) => handleFormFieldChange('waitUnit', e.target.value)}
+                  onChange={(e) => handleFormFieldChange({ target: { name: 'waitUnit', value: e.target.value } })}
                   className="condition-input"
                 >
                   <option value="seconds">Seconds</option>
@@ -685,7 +693,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
             <input
               type="datetime-local"
               value={formData.specificTime || ''}
-              onChange={(e) => handleFormFieldChange('specificTime', e.target.value)}
+              onChange={(e) => handleFormFieldChange({ target: { name: 'specificTime', value: e.target.value } })}
               className="condition-input"
             />
             <p className="field-description">Wait until this specific date and time</p>
@@ -708,7 +716,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
           <label>Error Type</label>
           <select 
             value={formData.errorType || 'errorMessage'}
-            onChange={(e) => handleFormFieldChange('errorType', e.target.value)}
+            onChange={(e) => handleFormFieldChange({ target: { name: 'errorType', value: e.target.value } })}
             className="condition-input"
           >
             <option value="errorMessage">Error Message</option>
@@ -722,7 +730,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
             type="text"
             placeholder="Workflow execution stopped due to an error."
             value={formData.errorMessage || ''}
-            onChange={(e) => handleFormFieldChange('errorMessage', e.target.value)}
+            onChange={(e) => handleFormFieldChange({ target: { name: 'errorMessage', value: e.target.value } })}
             className="condition-input"
             inputData={inputData}
           />
@@ -747,7 +755,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
             type="number"
             placeholder="1"
             value={formData.batchSize || ''}
-            onChange={(e) => handleFormFieldChange('batchSize', parseInt(e.target.value) || 1)}
+            onChange={(e) => handleFormFieldChange({ target: { name: 'batchSize', value: parseInt(e.target.value) || 1 } })}
             className="condition-input"
             min="1"
           />
@@ -758,7 +766,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
           <label>Loop Mode</label>
           <select 
             value={formData.loopMode || 'each_item'}
-            onChange={(e) => handleFormFieldChange('loopMode', e.target.value)}
+            onChange={(e) => handleFormFieldChange({ target: { name: 'loopMode', value: e.target.value } })}
             className="condition-input"
           >
             <option value="each_item">Process Each Item</option>
@@ -784,7 +792,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
             type="text"
             placeholder="id, name, etc."
             value={formData.keyField || ''}
-            onChange={(e) => handleFormFieldChange('keyField', e.target.value)}
+            onChange={(e) => handleFormFieldChange({ target: { name: 'keyField', value: e.target.value } })}
             className="condition-input"
             inputData={inputData}
           />
@@ -795,7 +803,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
           <label>Comparison Mode</label>
           <select 
             value={formData.compareMode || 'full'}
-            onChange={(e) => handleFormFieldChange('compareMode', e.target.value)}
+            onChange={(e) => handleFormFieldChange({ target: { name: 'compareMode', value: e.target.value } })}
             className="condition-input"
           >
             <option value="full">Full Comparison - Show all differences</option>
@@ -813,7 +821,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                 type="checkbox" 
                 className="toggle-switch"
                 checked={formData.includeEqual || false}
-                onChange={(e) => handleFormFieldChange('includeEqual', e.target.checked)}
+                onChange={(e) => handleFormFieldChange({ target: { name: 'includeEqual', value: e.target.checked, type: 'checkbox', checked: e.target.checked } })}
               />
               <span className="ml-2">Include unchanged items in output</span>
             </label>
@@ -822,7 +830,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                 type="checkbox" 
                 className="toggle-switch"
                 checked={formData.fuzzyCompare || false}
-                onChange={(e) => handleFormFieldChange('fuzzyCompare', e.target.checked)}
+                onChange={(e) => handleFormFieldChange({ target: { name: 'fuzzyCompare', value: e.target.checked, type: 'checkbox', checked: e.target.checked } })}
               />
               <span className="ml-2">Use fuzzy comparison for text fields</span>
             </label>
@@ -845,7 +853,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
           <label>Workflow to Execute</label>
           <select 
             value={formData.subWorkflowId || ''}
-            onChange={(e) => handleFormFieldChange('subWorkflowId', e.target.value)}
+            onChange={(e) => handleFormFieldChange({ target: { name: 'subWorkflowId', value: e.target.value } })}
             className="condition-input"
           >
             <option value="">Select a workflow...</option>
@@ -862,7 +870,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
             type="text"
             placeholder="{{inputData}} or custom mapping"
             value={formData.inputMapping || ''}
-            onChange={(e) => handleFormFieldChange('inputMapping', e.target.value)}
+            onChange={(e) => handleFormFieldChange({ target: { name: 'inputMapping', value: e.target.value } })}
             className="condition-input"
             inputData={inputData}
           />
@@ -877,7 +885,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                 type="checkbox" 
                 className="toggle-switch"
                 checked={formData.waitForCompletion || true}
-                onChange={(e) => handleFormFieldChange('waitForCompletion', e.target.checked)}
+                onChange={(e) => handleFormFieldChange({ target: { name: 'waitForCompletion', value: e.target.checked, type: 'checkbox', checked: e.target.checked } })}
               />
               <span className="ml-2">Wait for sub-workflow to complete</span>
             </label>
@@ -886,7 +894,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
                 type="checkbox" 
                 className="toggle-switch"
                 checked={formData.passThrough || false}
-                onChange={(e) => handleFormFieldChange('passThrough', e.target.checked)}
+                onChange={(e) => handleFormFieldChange({ target: { name: 'passThrough', value: e.target.checked, type: 'checkbox', checked: e.target.checked } })}
               />
               <span className="ml-2">Pass original data through unchanged</span>
             </label>
@@ -899,7 +907,7 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
             type="number"
             placeholder="30"
             value={formData.timeout || ''}
-            onChange={(e) => handleFormFieldChange('timeout', parseInt(e.target.value) || 30)}
+            onChange={(e) => handleFormFieldChange({ target: { name: 'timeout', value: parseInt(e.target.value) || 30 } })}
             className="condition-input"
             min="1"
             max="300"
