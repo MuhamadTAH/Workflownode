@@ -11,6 +11,7 @@ const googleDocsNode = require('../../nodes/actions/googleDocsNode');
 const DataStorageNode = require('../../nodes/actions/dataStorageNode');
 const telegramSendMessageNode = require('../../nodes/actions/telegramSendMessageNode');
 const fileConverterNode = require('../../nodes/actions/fileConverterNode');
+const telegramTrigger = require('../../nodes/triggers/telegramTrigger');
 
 // N8N Logic Nodes Integration
 const ifNode = require('../../nodes/actions/ifNode');
@@ -44,6 +45,12 @@ const runNode = async (req, res) => {
 
         // We use a switch statement to handle different node types in the future.
         switch (node.type) {
+            // Trigger Nodes  
+            case 'telegramTrigger':
+                result = await telegramTrigger.execute(node.config, inputData);
+                break;
+                
+            // AI Nodes
             case 'aiAgent':
                 result = await aiAgentNode.execute(node.config, inputData, connectedNodes);
                 break;
@@ -89,6 +96,7 @@ const runNode = async (req, res) => {
             case 'loop':
                 result = await loopNode.execute(node.config, inputData);
                 break;
+            case 'compare':
             case 'compareDatasets':
                 result = await compareDatasetsNode.execute(node.config, inputData);
                 break;
