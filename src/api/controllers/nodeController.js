@@ -26,6 +26,7 @@ const executeSubWorkflowNode = require('../../nodes/actions/executeSubWorkflowNo
 const linkedinNode = require('../../nodes/actions/linkedinNode');
 const whatsappNode = require('../../nodes/actions/whatsappNode');
 const instagramNode = require('../../nodes/actions/instagramNode');
+const tiktokNode = require('../../nodes/actions/tiktokNode');
 
 const runNode = async (req, res) => {
     try {
@@ -102,6 +103,9 @@ const runNode = async (req, res) => {
                 break;
             case 'instagram':
                 result = await instagramNode.executeInstagramNode(inputData, node.config);
+                break;
+            case 'tiktok':
+                result = await tiktokNode.executeTikTokNode(inputData, node.config);
                 break;
                 
             default:

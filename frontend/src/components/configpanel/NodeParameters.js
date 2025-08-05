@@ -3867,6 +3867,641 @@ export const renderNodeParameters = (node, formData, handleFormFieldChange, hand
     );
   }
 
+  // TIKTOK NODE - Comprehensive TikTok Business API Integration
+  if (node.data.type === 'tiktok') {
+    return (
+      <>
+        <NodeDescription nodeType="tiktok" />
+        {/* TikTok API Configuration Section */}
+        <div className="info-box" style={{ 
+          background: 'linear-gradient(135deg, #000000 0%, #333333 100%)', 
+          border: '1px solid #666666', 
+          padding: '12px', 
+          borderRadius: '4px', 
+          marginBottom: '16px',
+          color: 'white'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+            <i className="fa-brands fa-tiktok" style={{ fontSize: '16px', marginRight: '8px' }}></i>
+            <strong>TikTok Business API</strong>
+          </div>
+          Upload videos, publish content, get analytics, and manage TikTok business account using official TikTok API.
+          <div style={{ marginTop: '8px', fontSize: '12px', opacity: '0.9' }}>
+            <button 
+              type="button"
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/tiktok/verify-setup', { method: 'POST' });
+                  if (response.ok) {
+                    alert('✅ TikTok Business API verified successfully!');
+                  } else {
+                    const error = await response.json();
+                    alert('❌ TikTok API Error: ' + error.error);
+                  }
+                } catch (error) {
+                  alert('❌ Connection Error: ' + error.message);
+                }
+              }}
+              style={{ 
+                background: '#ffffff', 
+                color: '#000000', 
+                border: 'none', 
+                padding: '4px 8px', 
+                borderRadius: '3px', 
+                fontSize: '11px',
+                cursor: 'pointer'
+              }}
+            >
+              🔧 Test Connection
+            </button>
+          </div>
+        </div>
+        
+        <div className="form-group">
+          <label>TikTok Operation</label>
+          <select
+            name="operation"
+            value={formData.operation || 'publishVideo'}
+            onChange={handleFormFieldChange}
+            className="condition-input"
+          >
+            <optgroup label="📹 Video Operations">
+              <option value="publishVideo">Publish Video</option>
+              <option value="publishPhotoPost">Publish Photo Post</option>
+              <option value="getPostStatus">Get Post Status</option>
+              <option value="getUserVideos">Get User Videos</option>
+            </optgroup>
+            <optgroup label="👤 User & Creator">
+              <option value="getUserInfo">Get User Info</option>
+              <option value="getCreatorInfo">Get Creator Info</option>
+              <option value="getBusinessAccountInfo">Get Business Account Info</option>
+            </optgroup>
+            <optgroup label="📊 Analytics">
+              <option value="getVideoAnalytics">Get Video Analytics</option>
+              <option value="getUserAnalytics">Get User Analytics</option>
+            </optgroup>
+            <optgroup label="🔍 Search & Discovery">
+              <option value="getHashtagSuggestions">Get Hashtag Suggestions</option>
+              <option value="searchVideosByHashtag">Search Videos by Hashtag</option>
+            </optgroup>
+            <optgroup label="💬 Comments">
+              <option value="getVideoComments">Get Video Comments</option>
+              <option value="replyToComment">Reply to Comment</option>
+            </optgroup>
+          </select>
+          <div className="text-xs text-gray-500 mt-1">
+            Choose the TikTok operation to perform
+          </div>
+        </div>
+
+        {/* Video Publishing Fields */}
+        {formData.operation === 'publishVideo' && (
+          <>
+            <div className="form-group">
+              <label>Video Title</label>
+              <DroppableTextInput
+                type="text"
+                name="title"
+                value={formData.title || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="My awesome TikTok video! 🎵"
+                inputData={inputData}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Video Description</label>
+              <DroppableTextInput
+                as="textarea"
+                name="description"
+                value={formData.description || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                rows="3"
+                placeholder="Check out this amazing content! #fyp #viral #trending"
+                inputData={inputData}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Upload Method</label>
+              <select
+                name="uploadMethod"
+                value={formData.uploadMethod || 'url'}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              >
+                <option value="url">Video URL (Direct Post)</option>
+                <option value="file">File Upload (Initialize Upload)</option>
+              </select>
+            </div>
+            
+            {formData.uploadMethod === 'url' && (
+              <div className="form-group">
+                <label>Video URL</label>
+                <DroppableTextInput
+                  type="url"
+                  name="videoUrl"
+                  value={formData.videoUrl || ''}
+                  onChange={handleFormFieldChange}
+                  className="condition-input"
+                  placeholder="https://example.com/video.mp4"
+                  inputData={inputData}
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  🔗 HTTPS URL to video file (must be publicly accessible)
+                </div>
+              </div>
+            )}
+            
+            {formData.uploadMethod === 'file' && (
+              <>
+                <div className="form-group">
+                  <label>Video Size (bytes)</label>
+                  <DroppableTextInput
+                    type="number"
+                    name="videoSize"
+                    value={formData.videoSize || ''}
+                    onChange={handleFormFieldChange}
+                    className="condition-input"
+                    placeholder="52428800"
+                    inputData={inputData}
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    📏 Size of video file in bytes (max 274MB for TikTok)
+                  </div>
+                </div>
+                
+                <div className="form-group">
+                  <label>Chunk Size (bytes)</label>
+                  <input
+                    type="number"
+                    name="chunkSize"
+                    value={formData.chunkSize || 10485760}
+                    onChange={handleFormFieldChange}
+                    className="condition-input"
+                    min="5242880"
+                    max="67108864"
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    🔧 Upload chunk size (5MB-64MB, default: 10MB)
+                  </div>
+                </div>
+              </>
+            )}
+            
+            <div className="form-group">
+              <label>Privacy Level</label>
+              <select
+                name="privacyLevel"
+                value={formData.privacyLevel || 'PUBLIC_TO_EVERYONE'}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              >
+                <option value="PUBLIC_TO_EVERYONE">Public to Everyone</option>
+                <option value="MUTUAL_FOLLOW_FRIENDS">Friends Only</option>
+                <option value="FOLLOWER_OF_CREATOR">Followers Only</option>
+                <option value="SELF_ONLY">Private (Only Me)</option>
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label>Video Options</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label className="flex items-center toggle-label">
+                  <input 
+                    type="checkbox" 
+                    className="toggle-switch"
+                    checked={formData.disableDuet || false}
+                    onChange={(e) => handleFormFieldChange({ target: { name: 'disableDuet', value: e.target.checked } })}
+                  />
+                  <span className="ml-2">Disable Duet</span>
+                </label>
+                <label className="flex items-center toggle-label">
+                  <input 
+                    type="checkbox" 
+                    className="toggle-switch"
+                    checked={formData.disableComment || false}
+                    onChange={(e) => handleFormFieldChange({ target: { name: 'disableComment', value: e.target.checked } })}
+                  />
+                  <span className="ml-2">Disable Comments</span>
+                </label>
+                <label className="flex items-center toggle-label">
+                  <input 
+                    type="checkbox" 
+                    className="toggle-switch"
+                    checked={formData.disableStitch || false}
+                    onChange={(e) => handleFormFieldChange({ target: { name: 'disableStitch', value: e.target.checked } })}
+                  />
+                  <span className="ml-2">Disable Stitch</span>
+                </label>
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Cover Timestamp (ms)</label>
+              <input
+                type="number"
+                name="coverTimestamp"
+                value={formData.coverTimestamp || 1000}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                min="0"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🎬 Timestamp for video cover image (milliseconds from start)
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Photo Post Fields */}
+        {formData.operation === 'publishPhotoPost' && (
+          <>
+            <div className="form-group">
+              <label>Post Title</label>
+              <DroppableTextInput
+                type="text"
+                name="title"
+                value={formData.title || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="My photo carousel! 📸"
+                inputData={inputData}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Post Description</label>
+              <DroppableTextInput
+                as="textarea"
+                name="description"
+                value={formData.description || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                rows="3"
+                placeholder="Check out these amazing photos! #photography #photocarousel"
+                inputData={inputData}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Photo URLs (comma-separated)</label>
+              <DroppableTextInput
+                as="textarea"
+                name="photoUrls"
+                value={formData.photoUrls || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                rows="3"
+                placeholder="https://example.com/photo1.jpg, https://example.com/photo2.jpg"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                📸 Up to 35 photo URLs separated by commas (max 50MB each)
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Cover Photo Index</label>
+              <input
+                type="number"
+                name="coverIndex"
+                value={formData.coverIndex || 0}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                min="0"
+                max="34"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🖼️ Index of photo to use as cover (0-based)
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Privacy Level</label>
+              <select
+                name="privacyLevel"
+                value={formData.privacyLevel || 'PUBLIC_TO_EVERYONE'}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              >
+                <option value="PUBLIC_TO_EVERYONE">Public to Everyone</option>
+                <option value="MUTUAL_FOLLOW_FRIENDS">Friends Only</option>
+                <option value="FOLLOWER_OF_CREATOR">Followers Only</option>
+                <option value="SELF_ONLY">Private (Only Me)</option>
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label className="flex items-center toggle-label">
+                <input 
+                  type="checkbox" 
+                  className="toggle-switch"
+                  checked={formData.disableComment || false}
+                  onChange={(e) => handleFormFieldChange({ target: { name: 'disableComment', value: e.target.checked } })}
+                />
+                <span className="ml-2">Disable Comments</span>
+              </label>
+            </div>
+          </>
+        )}
+
+        {/* Post Status Fields */}
+        {formData.operation === 'getPostStatus' && (
+          <div className="form-group">
+            <label>Publish ID</label>
+            <DroppableTextInput
+              type="text"
+              name="publishId"
+              value={formData.publishId || ''}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+              placeholder="v_pub_12345678"
+              inputData={inputData}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              🆔 Publish ID returned from video upload initialization
+            </div>
+          </div>
+        )}
+
+        {/* User Videos Fields */}
+        {formData.operation === 'getUserVideos' && (
+          <>
+            <div className="form-group">
+              <label>Max Count</label>
+              <input
+                type="number"
+                name="maxCount"
+                value={formData.maxCount || 10}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                min="1"
+                max="20"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                📊 Maximum number of videos to retrieve (1-20)
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Cursor (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="cursor"
+                value={formData.cursor || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="cursor_value_for_pagination"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                ➡️ Pagination cursor for getting more results
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Video Analytics Fields */}
+        {formData.operation === 'getVideoAnalytics' && (
+          <>
+            <div className="form-group">
+              <label>Video IDs (comma-separated)</label>
+              <DroppableTextInput
+                type="text"
+                name="videoIds"
+                value={formData.videoIds || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="7123456789012345678, 7234567890123456789"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🎥 TikTok video IDs separated by commas
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Analytics Fields (comma-separated)</label>
+              <input
+                type="text"
+                name="fields"
+                value={formData.fields || 'like_count,comment_count,share_count,view_count'}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                📈 Fields: like_count, comment_count, share_count, view_count, duration
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* User Analytics Fields */}
+        {formData.operation === 'getUserAnalytics' && (
+          <div className="form-group">
+            <label>Analytics Fields (comma-separated)</label>
+            <input
+              type="text"
+              name="fields"
+              value={formData.fields || 'follower_count,following_count,likes_count,video_count'}
+              onChange={handleFormFieldChange}
+              className="condition-input"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              📊 Fields: follower_count, following_count, likes_count, video_count
+            </div>
+          </div>
+        )}
+
+        {/* Hashtag Suggestions Fields */}
+        {formData.operation === 'getHashtagSuggestions' && (
+          <>
+            <div className="form-group">
+              <label>Keywords</label>
+              <DroppableTextInput
+                type="text"
+                name="keywords"
+                value={formData.keywords || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="dance, music, trending"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🏷️ Keywords to get hashtag suggestions for
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Count</label>
+              <input
+                type="number"
+                name="count"
+                value={formData.count || 10}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                min="1"
+                max="50"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🔢 Number of hashtag suggestions to return
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Search Videos by Hashtag Fields */}
+        {formData.operation === 'searchVideosByHashtag' && (
+          <>
+            <div className="form-group">
+              <label>Hashtag</label>
+              <DroppableTextInput
+                type="text"
+                name="hashtag"
+                value={formData.hashtag || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="fyp (without #)"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                #️⃣ Hashtag name (without the # symbol)
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Count</label>
+              <input
+                type="number"
+                name="count"
+                value={formData.count || 10}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                min="1"
+                max="100"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Cursor (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="cursor"
+                value={formData.cursor || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="cursor_value_for_pagination"
+                inputData={inputData}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Video Comments Fields */}
+        {formData.operation === 'getVideoComments' && (
+          <>
+            <div className="form-group">
+              <label>Video ID</label>
+              <DroppableTextInput
+                type="text"
+                name="videoId"
+                value={formData.videoId || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="7123456789012345678"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                🎥 TikTok video ID
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Count</label>
+              <input
+                type="number"
+                name="count"
+                value={formData.count || 10}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                min="1"
+                max="50"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Cursor (Optional)</label>
+              <DroppableTextInput
+                type="text"
+                name="cursor"
+                value={formData.cursor || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="cursor_value_for_pagination"
+                inputData={inputData}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Reply to Comment Fields */}
+        {formData.operation === 'replyToComment' && (
+          <>
+            <div className="form-group">
+              <label>Video ID</label>
+              <DroppableTextInput
+                type="text"
+                name="videoId"
+                value={formData.videoId || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="7123456789012345678"
+                inputData={inputData}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Comment ID</label>
+              <DroppableTextInput
+                type="text"
+                name="commentId"
+                value={formData.commentId || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                placeholder="comment_12345"
+                inputData={inputData}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                💬 TikTok comment ID to reply to
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Reply Text</label>
+              <DroppableTextInput
+                as="textarea"
+                name="replyText"
+                value={formData.replyText || ''}
+                onChange={handleFormFieldChange}
+                className="condition-input"
+                rows="3"
+                placeholder="Thanks for watching! 🎵"
+                inputData={inputData}
+              />
+            </div>
+          </>
+        )}
+
+        <div className="text-xs text-gray-500 mb-2">
+          🎵 TikTok Business API integration for comprehensive content automation
+        </div>
+      </>
+    );
+  }
+
   // Fallback for unknown node types
   return (
     <>

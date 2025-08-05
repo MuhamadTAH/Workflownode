@@ -120,6 +120,15 @@ export const nodeMetadata = {
     bgColor: "#fce4ec"
   },
 
+  tiktok: {
+    title: "TikTok Business",
+    description: "Comprehensive TikTok Business API integration. Upload videos, publish content, get analytics, manage comments, hashtag research, creator insights, and business account management with full content automation.",
+    icon: "🎵",
+    category: "social",
+    color: "#000000",
+    bgColor: "#f5f5f5"
+  },
+
   // ===== LOGIC NODES =====
   if: {
     title: "Conditional Logic (If)",

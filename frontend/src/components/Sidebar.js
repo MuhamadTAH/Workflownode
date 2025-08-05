@@ -112,6 +112,14 @@ const Sidebar = ({ onSave, onRestore, onActivate, onDeactivate }) => {
               type: 'instagram' 
           }} 
         />
+        <DraggableNode 
+          nodeInfo={{ 
+              label: 'TikTok Business', 
+              icon: 'fa-brands fa-tiktok', 
+              description: 'Upload videos, publish content, get analytics, and manage TikTok business account',
+              type: 'tiktok' 
+          }} 
+        />
 
         {/* Logic Nodes from N8N Integration */}
         <div className="mt-6 mb-4 font-bold text-lg text-gray-700">Logic Nodes</div>
