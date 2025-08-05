@@ -50,7 +50,8 @@
       "Bash(mv:*)",
       "WebFetch(domain:core.telegram.org)",
       "Bash(tasklist:*)",
-      "Bash(start npm start)"
+      "Bash(start npm start)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }
